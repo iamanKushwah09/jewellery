@@ -1,0 +1,50 @@
+/* ============================================
+   Vellora Jewels — Admin Design Tokens
+   ============================================ */
+:root {
+  --gold-primary: #C9920A;
+  --gold-dark: #8B6508;
+  --gold-light: #E8B84B;
+  --gold-pale: #F5E6C8;
+  --maroon-primary: #6B1A1A;
+  --maroon-dark: #4A1010;
+  --warm-bg: #FFFDF8;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer components {
+    .custom-scroll {
+      @apply overflow-x-auto overflow-y-hidden;
+      scroll-behavior: smooth;
+    }
+  
+    .custom-scroll::-webkit-scrollbar {
+      height: 8px;
+    }
+  
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: var(--gold-primary);
+      border-radius: 4px;
+    }
+  
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: var(--gold-dark);
+    }
+
+    /* Gold shimmer button for admin */
+    .btn-jewels {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold-primary));
+      color: white;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      border: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn-jewels:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(201, 146, 10, 0.35);
+    }
+  }
