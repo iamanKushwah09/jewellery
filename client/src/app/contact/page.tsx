@@ -148,8 +148,7 @@ export default function ContactPage() {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
-                    style={{ focusRingColor: '#C9920A' }}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C9920A] focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
                     placeholder="Enter your full name"
                   />
                 </div>
