@@ -26,13 +26,10 @@ export const getImageUrl = (image: any): string => {
   }
   
   if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
-    console.log("DEBUG getImageUrl (starts with http):", JSON.stringify({ input: image, rawImage, returning: rawImage }));
     return rawImage;
   }
   
-  const result = `${baseUrl}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
-  console.log("DEBUG getImageUrl (fallback):", JSON.stringify({ input: image, rawImage, returning: result }));
-  return result;
+  return `${baseUrl}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
 };
 
 export const getQuantityStep = (product: any): number => {
