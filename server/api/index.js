@@ -209,14 +209,15 @@ app.use((err, req, res, next) => {
   res.status(400).json({ message: err.message });
 });
 
+app.use('/', express.static(path.join(__dirname, process.env.FILE_UPLOAD_FOLDER || '../uploadFile')));
+
 // Serve static files from the "dist" directory
 app.use("/static", express.static("public"));
-app.use('/', express.static(path.join(__dirname, process.env.FILE_UPLOAD_FOLDER)));
 
 // Vercel-specific static file serving
 app.get('/api/static/:folder/:filename', (req, res) => {
   const { folder, filename } = req.params;
-  const filePath = path.join(__dirname, process.env.FILE_UPLOAD_FOLDER, folder, filename);
+  const filePath = path.join(__dirname, process.env.FILE_UPLOAD_FOLDER || '../uploadFile', folder, filename);
 
   // console.log('Static file request:--', { folder, filename, filePath });
   // console.log('File exists:--', fs.existsSync(filePath));
