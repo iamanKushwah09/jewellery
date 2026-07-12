@@ -119,3 +119,6 @@ The backend is integrated with:
 - **Razorpay**
 - **Cloudinary** (For product image uploads)
 - **Nodemailer** (For transactional emails)
+
+
+## Developed by Aman and Team
