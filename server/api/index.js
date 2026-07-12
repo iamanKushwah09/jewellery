@@ -108,6 +108,9 @@ const allowedOrigins = [
   'http://localhost:3101',
   'http://localhost:4100',
   'http://localhost:5055',
+  'https://jewellery-eosin-three.vercel.app',
+  'https://jewellery-client-omega.vercel.app',
+  'https://jewellery-admin-woad.vercel.app',
   'http://localhost:5058',
   'http://localhost:5173'
 ];
