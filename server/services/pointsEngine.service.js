@@ -298,6 +298,24 @@ const PointsEngine = {
         invoiceId: invoiceId || null
       });
 
+      try {
+        const LoyaltyPoint = require('../models/loyaltyPoint.model');
+        let loyaltyRecord = await LoyaltyPoint.findOne({ customer: customerId });
+        if (!loyaltyRecord) {
+          loyaltyRecord = new LoyaltyPoint({ customer: customerId, totalPoints: 0, transactions: [] });
+        }
+        loyaltyRecord.totalPoints = (loyaltyRecord.totalPoints || 0) + finalPoints;
+        loyaltyRecord.transactions.push({
+          orderId: invoiceId ? invoiceId.toString() : '',
+          pointsEarned: finalPoints,
+          pointsRedeemed: 0,
+          description: `Earned from ${sourceType} rule`
+        });
+        await loyaltyRecord.save();
+      } catch (lPointErr) {
+        console.error("Error updating LoyaltyPoint document:", lPointErr);
+      }
+
       // ── Increment customer visit count ──
       await Customer.findByIdAndUpdate(customerId, { $inc: { visitCount: 1 } });
     }

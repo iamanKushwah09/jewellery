@@ -537,12 +537,15 @@ exports.getPointsBalance = async (req, res) => {
       customerId,
       isExpired: false,
       $or: [{ expiryDate: null }, { expiryDate: { $gt: now } }]
-    });
+    }).sort({ earnedDate: -1 });
 
-    // Always fetch legacy LoyaltyPoint totalPoints as source of truth if it exists
+    const ledgerBalance = entries.reduce((sum, entry) => sum + ((entry.pointsEarned || 0) - (entry.pointsRedeemed || 0)), 0);
+
     const LoyaltyPoint = require('../models/loyaltyPoint.model');
     const legacyPoint = await LoyaltyPoint.findOne({ customer: customerId });
-    const balance = legacyPoint ? legacyPoint.totalPoints : 0;
+    const legacyBalance = legacyPoint ? legacyPoint.totalPoints : 0;
+
+    const balance = Math.max(ledgerBalance, legacyBalance);
 
     res.status(200).json({ success: true, balance, entries });
   } catch (err) {

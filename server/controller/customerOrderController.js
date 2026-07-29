@@ -391,6 +391,23 @@ const addOrder = async (req, res) => {
                  await entry.save();
               }
             }
+
+            try {
+              const LoyaltyPoint = require('../models/loyaltyPoint.model');
+              let loyaltyRecord = await LoyaltyPoint.findOne({ customer: customerId });
+              if (loyaltyRecord) {
+                loyaltyRecord.totalPoints = Math.max(0, (loyaltyRecord.totalPoints || 0) - pointsRedeemed);
+                loyaltyRecord.transactions.push({
+                  orderId: savedOrder._id ? savedOrder._id.toString() : '',
+                  pointsEarned: 0,
+                  pointsRedeemed: pointsRedeemed,
+                  description: `Redeemed on order ${savedOrder.order_no || ''}`
+                });
+                await loyaltyRecord.save();
+              }
+            } catch (lpErr) {
+              console.error("Error updating LoyaltyPoint model on redemption:", lpErr);
+            }
         }
 
         // --- CALCULATION & COMMITTING TO LEDGER/COUPONS ---

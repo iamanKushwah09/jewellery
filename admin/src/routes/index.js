@@ -150,19 +150,26 @@ const allRoutes = [
 
 // Filter routes based on user permissions
 const filterRoutesByPermissions = (routes, userPermissions) => {
+  if (!userPermissions || !Array.isArray(userPermissions) || userPermissions.length === 0) {
+    return routes;
+  }
   return routes.reduce((filtered, route) => {
-    const hasPermission = userPermissions?.some(
-      (userPerm) => userPerm.permission === route.permission
-    );
-    // If the route does not have a permission, add it directly
-    if (!route.permission || hasPermission) {
+    if (!route.permission) {
+      filtered.push(route);
+      return filtered;
+    }
+    const hasPermission = userPermissions.some((userPerm) => {
+      const permVal = typeof userPerm === "string" ? userPerm : (userPerm?.permission || userPerm?.path);
+      if (permVal === route.permission) return true;
+      if (route.permission === "view_sale_order" && (permVal === "view_orders" || permVal === "/orders")) return true;
+      return false;
+    });
+    if (hasPermission) {
       filtered.push(route);
     }
     return filtered;
   }, []);
 };
-// Get user permissions
-// const userPermissions = getUserPermissions();
-// const routes = filterRoutesByPermissions(allRoutes, userPermissions);
+
 const getRoutes = (userPermissions) => filterRoutesByPermissions(allRoutes, userPermissions);
 export default getRoutes;

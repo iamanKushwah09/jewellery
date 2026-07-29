@@ -217,22 +217,38 @@ const userPermissions = [
   { path: "#", permission: "view_shippings" },
 ];
 
-const filterSidebar = (sidebar, userPermissions) => {
-  return sidebar.filter((item) => {
-    const hasPermission = item.permission
-      ? userPermissions.some((perm) => perm.permission === item.permission)
-      : true;
-
-    if (item.routes) {
-      item.routes = filterSidebar(item.routes, userPermissions);
-      return hasPermission || item.routes.length > 0;
-    }
-    return hasPermission;
+const hasUserPermission = (userPermissions, requiredPermission) => {
+  if (!requiredPermission) return true;
+  if (!userPermissions || !Array.isArray(userPermissions) || userPermissions.length === 0) {
+    return true;
+  }
+  return userPermissions.some((perm) => {
+    const permVal = typeof perm === "string" ? perm : (perm?.permission || perm?.path);
+    if (permVal === requiredPermission) return true;
+    if (requiredPermission === "view_sale_order" && (permVal === "view_orders" || permVal === "/orders")) return true;
+    return false;
   });
 };
 
-// Final filtered sidebar based on user permissions
-// const filteredSidebar = filterSidebar(sidebar, userPermissions);
+const filterSidebar = (sidebarList, userPermissions) => {
+  if (!userPermissions) return sidebarList;
+
+  return sidebarList
+    .map((item) => {
+      const newItem = { ...item };
+      const hasPermission = hasUserPermission(userPermissions, newItem.permission);
+
+      if (newItem.routes) {
+        newItem.routes = filterSidebar(newItem.routes, userPermissions);
+        const shouldShowGroup = newItem.routes.length > 0 || hasPermission;
+        return shouldShowGroup ? newItem : null;
+      }
+
+      return hasPermission ? newItem : null;
+    })
+    .filter(Boolean);
+};
+
 const getFilteredSidebar = (userPermissions) =>
   filterSidebar(sidebar, userPermissions);
 export default getFilteredSidebar;

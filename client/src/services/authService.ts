@@ -6,8 +6,11 @@ export class AuthService {
   static async login(credentials: any): Promise<any> {
     const response = await api.post<any>('/store/customer/login', credentials);
     const { token, ...user } = response.data;
-    // Store tokens
-    if (token) localStorage.setItem('authToken', token);
+    // Store tokens and user info
+    if (token) {
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('user', JSON.stringify(response.data));
+    }
     return response.data;
   }
 
@@ -21,15 +24,19 @@ export class AuthService {
   static async register(userData: any): Promise<any> {
     const response = await api.post<any>('/store/customer/register', userData);
     const { token } = response.data;
-    if (token) localStorage.setItem('authToken', token);
+    if (token) {
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('user', JSON.stringify(response.data));
+    }
     return response.data;
   }
 
   // Logout user
   static async logout(): Promise<void> {
-    // Clear tokens
+    // Clear tokens and user
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
   }
 
   // Forgot password
@@ -73,6 +80,7 @@ export class AuthService {
   static clearAuthData(): void {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
   }
 }
 
