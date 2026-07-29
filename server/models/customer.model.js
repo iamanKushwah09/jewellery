@@ -61,6 +61,19 @@ const customerSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    loyaltyTier: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'LoyaltyMembershipTier',
+        default: null
+    },
+    loyaltyTierExpiry: {
+        type: Date,
+        default: null
+    },
+    visitCount: {
+        type: Number,
+        default: 0
+    }
 
 }, {
     timestamps: false // Removed automatic timestamps

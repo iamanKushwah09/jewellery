@@ -363,6 +363,66 @@ const addOrder = async (req, res) => {
       }
     }
 
+    // Loyalty Point logic
+    if (customerId && customer) {
+      try {
+        const PointsEngine = require('../services/pointsEngine.service');
+        const CouponGiftEngine = require('../services/couponGiftEngine.service');
+        const LoyaltyLedger = require('../models/loyaltyLedger.model');
+
+        // --- NEW LEDGER DEDUCTION LOGIC ---
+        let pointsRedeemed = req.body.redeemPoints || 0;
+        if (pointsRedeemed > 0) {
+            const now = new Date();
+            const ledgerEntries = await LoyaltyLedger.find({
+              customerId,
+              isExpired: false,
+              $or: [{ expiryDate: null }, { expiryDate: { $gt: now } }]
+            }).sort({ earnedDate: 1 }); 
+            
+            let remaining = pointsRedeemed;
+            for (const entry of ledgerEntries) {
+              if (remaining <= 0) break;
+              const available = (entry.pointsEarned || 0) - (entry.pointsRedeemed || 0);
+              if (available > 0) {
+                 const deduct = Math.min(available, remaining);
+                 entry.pointsRedeemed = (entry.pointsRedeemed || 0) + deduct;
+                 remaining -= deduct;
+                 await entry.save();
+              }
+            }
+        }
+
+        // --- CALCULATION & COMMITTING TO LEDGER/COUPONS ---
+        const loyaltyItems = cart.map(item => ({
+           item_id: (item._id || item.id || "").split('-')[0],
+           item_group_id: item.groupId || null,
+           price: item.price,
+           quantity: item.quantity
+        }));
+
+        // Evaluate and commit points using PointsEngine
+        await PointsEngine.evaluate({
+          customerId,
+          items: loyaltyItems,
+          totalAmount: total,
+          invoiceId: savedOrder._id,
+          commit: true
+        });
+
+        // Evaluate and commit coupons using CouponGiftEngine
+        await CouponGiftEngine.evaluate({
+          customerId,
+          items: loyaltyItems,
+          totalAmount: total,
+          invoiceId: savedOrder._id,
+          commit: true
+        });
+      } catch (loyaltyErr) {
+        console.error("Error processing loyalty points/coupons:", loyaltyErr);
+      }
+    }
+
     // Construct the final order response
     const orderResponse = {
       _id: savedOrder._id,

@@ -11,25 +11,93 @@ import {
   MinusIcon, 
   ShoppingBagIcon,
   ArrowLeftIcon,
-  TruckIcon,
+  // TruckIcon,
   ShieldCheckIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  TagIcon,
+  CheckBadgeIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import type { RootState } from '../../store/types';
 import { showingTranslateValue } from '../../lib/utils';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5056/api';
+
+interface MembershipInfo {
+  tier: {
+    _id: string;
+    name: string;
+    discountPercentage: number;
+  } | null;
+  isActive: boolean;
+  expiry: string | null;
+}
+
 export default function CartPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { items, total, itemCount } = useAppSelector((state: RootState) => state.cart);
-  const { isAuthenticated } = useAppSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user } = useAppSelector((state: RootState) => state.auth);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [membership, setMembership] = useState<MembershipInfo | null>(null);
+  const [membershipLoading, setMembershipLoading] = useState(false);
+  const [pointsToEarn, setPointsToEarn] = useState(0);
+  const [couponsToEarn, setCouponsToEarn] = useState<any[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Fetch membership when user is logged in
+  useEffect(() => {
+    const customerId = (user as any)?._id;
+    if (customerId) {
+      setMembershipLoading(true);
+      fetch(`${API_BASE}/loyalty-program/my-membership/${customerId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) setMembership(data.data);
+        })
+        .catch(console.error)
+        .finally(() => setMembershipLoading(false));
+    }
+  }, [user]);
+
+  // Calculate points to earn
+  useEffect(() => {
+    const customerId = (user as any)?._id;
+    if (isAuthenticated && customerId && items.length > 0) {
+      const loyaltyItems = items.map(item => ({
+        item_id: item.product._id,
+        item_group_id: item.product.item_group_id || null,
+        price: item.product.prices.price,
+        quantity: item.quantity
+      }));
+
+      fetch(`${API_BASE}/loyalty-program/calculate-points`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId,
+          items: loyaltyItems,
+          totalAmount: total
+        })
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setPointsToEarn(data.pointsAwarded || 0);
+            setCouponsToEarn(data.couponsIssued || []);
+          }
+        })
+        .catch(console.error);
+    } else {
+      setPointsToEarn(0);
+      setCouponsToEarn([]);
+    }
+  }, [isAuthenticated, user, items, total]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -68,8 +136,6 @@ export default function CartPage() {
     router.push('/checkout');
   };
 
-  const finalTotal = total;
-
   const totalSavings = items.reduce((sum, item) => {
     const originalPrice = item.product.prices?.originalPrice;
     const price = item.product.prices?.price;
@@ -79,8 +145,15 @@ export default function CartPage() {
     return sum;
   }, 0);
 
+  // Membership discount calculation
+  const membershipDiscountPercent = membership?.isActive && membership?.tier?.discountPercentage
+    ? membership.tier.discountPercentage
+    : 0;
+  const membershipDiscountAmount = (total * membershipDiscountPercent) / 100;
+  const finalTotal = total - membershipDiscountAmount;
+
   if (!isMounted) {
-    return null; // Prevent hydration mismatch by waiting for client render
+    return null;
   }
 
   return (
@@ -109,6 +182,39 @@ export default function CartPage() {
               {itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart
             </p>
           </div>
+
+          {/* Membership Active Banner */}
+          {membership?.isActive && membership.tier && (
+            <div className="mb-6 flex items-center gap-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl px-5 py-3.5">
+              <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <CheckBadgeIcon className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-indigo-800">
+                  {membership.tier.name} Member Discount Applied 🎉
+                </p>
+                <p className="text-xs text-indigo-600 mt-0.5">
+                  You're saving {membership.tier.discountPercentage}% extra ({formatPrice(membershipDiscountAmount)}) as a {membership.tier.name} member!
+                </p>
+              </div>
+              <span className="flex-shrink-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                -{membership.tier.discountPercentage}%
+              </span>
+            </div>
+          )}
+
+          {/* No membership nudge for logged-in users */}
+          {isAuthenticated && !membershipLoading && !membership?.isActive && (
+            <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-3.5">
+              <StarIcon className="h-5 w-5 text-amber-500 flex-shrink-0" />
+              <p className="text-sm text-amber-700 flex-1">
+                Get a Loyalty Membership and save extra on every order!
+              </p>
+              <Link href="/loyalty" className="flex-shrink-0 text-xs font-bold text-amber-700 underline underline-offset-2">
+                View Plans →
+              </Link>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Cart Items */}
@@ -231,25 +337,63 @@ export default function CartPage() {
                     <span className="font-medium text-gray-900">{formatPrice(total)}</span>
                   </div>
                   
+                  {/* Product-level savings */}
                   {totalSavings > 0 && (
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Total discount </span>
-                      <span className='font-medium text-gray-900'>{formatPrice(totalSavings)}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-700 flex items-center gap-1">
+                        <TagIcon className="h-3.5 w-3.5" />
+                        Product Discounts
+                      </span>
+                      <span className="font-medium text-green-700">-{formatPrice(totalSavings)}</span>
                     </div>
                   )}
 
+                  {/* Membership discount row */}
+                  {membershipDiscountAmount > 0 && membership?.tier && (
+                    <div className="flex justify-between text-sm bg-indigo-50 rounded-lg px-3 py-2 border border-indigo-100">
+                      <span className="text-indigo-700 font-semibold flex items-center gap-1.5">
+                        <CheckBadgeIcon className="h-4 w-4 text-indigo-600 flex-shrink-0" />
+                        {membership.tier.name} Membership ({membership.tier.discountPercentage}%)
+                      </span>
+                      <span className="font-bold text-indigo-700 flex-shrink-0">-{formatPrice(membershipDiscountAmount)}</span>
+                    </div>
+                  )}
+
+                  {(pointsToEarn > 0 || couponsToEarn.length > 0) && (
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 space-y-1.5 mb-3">
+                      <div className="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🎁</span> Rewards on this Order
+                      </div>
+                      {pointsToEarn > 0 && (
+                        <div className="flex justify-between text-xs font-semibold text-emerald-700">
+                          <span>Points to Earn</span>
+                          <span>+{pointsToEarn} pts</span>
+                        </div>
+                      )}
+                      {couponsToEarn.map((c, idx) => (
+                        <div key={idx} className="flex justify-between text-xs font-semibold text-emerald-700">
+                          <span>Free Coupon Reward</span>
+                          <span>₹{c.couponValue} OFF Coupon</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="border-t border-gray-200 pt-3">
                     <div className="flex justify-between text-lg font-bold text-gray-900">
                       <span>Total</span>
                       <span>{formatPrice(finalTotal)}</span>
                     </div>
+                    {membershipDiscountAmount > 0 && (
+                      <p className="text-xs text-indigo-600 mt-1 text-right font-medium">
+                        You saved {formatPrice(membershipDiscountAmount)} with membership! 🎉
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Features */}
                 <div className="space-y-3 mb-6">
-
                   <div className="flex items-start space-x-3 text-sm text-gray-600">
                     <ShieldCheckIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <span>30-day return policy</span>
@@ -274,4 +418,4 @@ export default function CartPage() {
       )}
     </div>
   );
-} 
+}

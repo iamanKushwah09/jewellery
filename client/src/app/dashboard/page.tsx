@@ -31,8 +31,9 @@ import SavedAddresses from '../../components/SavedAddresses';
 import RecentOrders from '../../components/RecentOrders';
 import DeliveryStatus from '../../components/DeliveryStatus';
 import WishlistSummary from '../../components/WishlistSummary';
+import MembershipCard from '../../components/MembershipCard';
 
-type DashboardSection = 'overview' | 'orders' | 'delivery' | 'profile' | 'addresses' | 'wishlist' | 'settings';
+type DashboardSection = 'overview' | 'orders' | 'delivery' | 'profile' | 'addresses' | 'wishlist' | 'membership' | 'settings';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -97,6 +98,12 @@ export default function DashboardPage() {
       description: 'View your saved items'
     },
     {
+      id: 'membership' as DashboardSection,
+      name: 'My Membership',
+      icon: ChartBarIcon, // You can choose a better icon
+      description: 'View your loyalty plan'
+    },
+    {
       id: 'settings' as DashboardSection,
       name: 'Account Settings',
       icon: CogIcon,
@@ -109,6 +116,7 @@ export default function DashboardPage() {
       case 'overview':
         return (
           <div className="space-y-8">
+            <MembershipCard customerId={(user as any)?._id || ''} />
             <DashboardStats orders={orders} />
             <RecentOrders orders={orders} loading={loading} />
             <DeliveryStatus orders={orders} loading={loading} />
@@ -161,6 +169,13 @@ export default function DashboardPage() {
               </Link>
             </div>
             <WishlistSummary maxItems={5} />
+          </div>
+        );
+      case 'membership':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">My Membership</h2>
+            <MembershipCard customerId={(user as any)?._id || ''} />
           </div>
         );
       case 'settings':

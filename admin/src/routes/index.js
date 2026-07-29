@@ -44,6 +44,7 @@ const PartyLedger = lazy(() => import("@/pages/PartyLedger"));
 const SaleOrder = lazy(() => import("@/pages/SaleOrder"));
 const BillReceivable = lazy(() => import("@/pages/BillReceivable"));
 const WhatsappSetting = lazy(() => import("@/pages/WhatsappSetting"));
+const LoyaltyPoints = lazy(() => import("@/pages/LoyaltyPoints"));
 
 const ShippingSettings = lazy(() => import("@/pages/Shipping/ShippingSettings"));
 const StoreSettings = lazy(() => import("@/pages/Shipping/PharmacySettings"));
@@ -97,6 +98,7 @@ const allRoutes = [
   { path: "/notifications", component: Notifications, permission: "view_notifications" },
   { path: "/catalogs", component: CataLog, permission: "view_catalog" },
   { path: "/dispatch", component: Dispatch, permission: "view_dispatchs" },
+  { path: "/loyalty-points", component: LoyaltyPoints, permission: "view_dashboard" },
   { path: "/sales-man", component: SalesMan, permission: "view_sales_man" },
   { path: "/stock", component: Stock, permission: "view_stock" },
   { path: "/pos", component: POS, permission: "view_pos" },

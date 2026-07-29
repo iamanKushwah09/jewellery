@@ -12,21 +12,41 @@ import {
   TruckIcon, 
   LockClosedIcon,
   CheckIcon,
-  BanknotesIcon
+  BanknotesIcon,
+  CheckBadgeIcon,
+  TagIcon,
+  TicketIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { showingTranslateValue } from '../lib/utils';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5056/api';
+
+interface MembershipInfo {
+  tier: { _id: string; name: string; discountPercentage: number } | null;
+  isActive: boolean;
+  expiry: string | null;
+}
 
 export default function CheckoutForm() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { items, total } = useAppSelector(state => state.cart);
   const { isAuthenticated, user } = useAppSelector(state => state.auth);
+  const userId = (user as any)?._id;
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [calculateShippingApi] = useCalculateShippingMutation();
   const [shippingInfo, setShippingInfo] = useState({ cost: 0, distance: 0, strategy: '' });
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cash-on-delivery'>('razorpay');
+  const [membership, setMembership] = useState<MembershipInfo | null>(null);
+  const [pointsToEarn, setPointsToEarn] = useState(0);
+  const [couponsToEarn, setCouponsToEarn] = useState<any[]>([]);
+  const [customerCoupons, setCustomerCoupons] = useState<any[]>([]);
+  const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null);
+  const [loyaltyConfig, setLoyaltyConfig] = useState<any>(null);
   const [formData, setFormData] = useState({
     // Shipping Address
     firstName: user?.name?.split(' ')[0] || '',
@@ -77,6 +97,72 @@ export default function CheckoutForm() {
     }
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      // Fetch loyalty points from the correct loyalty program endpoint
+      axios.get(`${API_BASE}/loyalty-program/points-balance/${userId}`)
+        .then(res => {
+          if (res.data && res.data.success && typeof res.data.balance === 'number') {
+            setLoyaltyPoints(res.data.balance);
+          }
+        })
+        .catch(err => console.error("Error fetching loyalty points:", err));
+
+      // Fetch customer active issued coupons
+      axios.get(`${API_BASE}/loyalty-program/customer-coupons/${userId}`)
+        .then(res => {
+          if (res.data?.success) {
+            const active = (res.data.data || []).filter((c: any) => !c.isUsed && new Date(c.expiryDate) > new Date());
+            setCustomerCoupons(active);
+          }
+        })
+        .catch(err => console.error("Error fetching customer coupons:", err));
+
+      // Fetch membership tier
+      axios.get(`${API_BASE}/loyalty-program/my-membership/${userId}`)
+        .then(res => {
+          if (res.data?.success) setMembership(res.data.data);
+        })
+        .catch(err => console.error("Error fetching membership:", err));
+
+      // Fetch loyalty configuration
+      axios.get(`${API_BASE}/loyalty-program/config`)
+        .then(res => {
+          if (res.data && res.data.success) {
+            setLoyaltyConfig(res.data.data);
+          }
+        })
+        .catch(err => console.error("Error fetching loyalty config:", err));
+    }
+  }, [isAuthenticated, userId]);
+
+  useEffect(() => {
+    if (isAuthenticated && userId && items.length > 0) {
+      const loyaltyItems = items.map(item => ({
+        item_id: item.product._id,
+        item_group_id: item.product.item_group_id || null,
+        price: item.product.prices.price,
+        quantity: item.quantity
+      }));
+
+      axios.post(`${API_BASE}/loyalty-program/calculate-points`, {
+        customerId: userId,
+        items: loyaltyItems,
+        totalAmount: total
+      })
+      .then(res => {
+        if (res.data && res.data.success) {
+          setPointsToEarn(res.data.pointsAwarded || 0);
+          setCouponsToEarn(res.data.couponsIssued || []);
+        }
+      })
+      .catch(err => console.error("Error calculating points to earn:", err));
+    } else {
+      setPointsToEarn(0);
+      setCouponsToEarn([]);
+    }
+  }, [isAuthenticated, userId, items, total]);
+
   const handleGuestInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setGuestFormData(prev => ({
@@ -93,7 +179,22 @@ export default function CheckoutForm() {
   };
 
   const shippingCost = shippingInfo.cost;
-  const finalTotal = total + shippingCost;
+  const pointValue = loyaltyConfig?.pointValueInRs ?? 0.8;
+  const minPoints = loyaltyConfig?.minPointToRedeem ?? 0;
+  const minInvoice = loyaltyConfig?.minInvoiceAmountToRedeem ?? 0;
+
+  // Membership discount
+  const membershipDiscountPercent = membership?.isActive && membership?.tier?.discountPercentage
+    ? membership.tier.discountPercentage : 0;
+  const membershipDiscountAmount = parseFloat(((total * membershipDiscountPercent) / 100).toFixed(2));
+
+  const canRedeem = loyaltyPoints >= minPoints && total >= minInvoice;
+  const maxRedeemablePoints = Math.min(loyaltyPoints, Math.ceil((total - membershipDiscountAmount) / pointValue));
+  const redeemPoints = useLoyaltyPoints && canRedeem ? maxRedeemablePoints : 0;
+  const loyaltyDiscount = redeemPoints * pointValue;
+  const couponDiscountAmount = selectedCoupon ? (selectedCoupon.couponValue || 0) : 0;
+
+  const finalTotal = Math.max(0, total + shippingCost - loyaltyDiscount - membershipDiscountAmount - couponDiscountAmount);
 
   const totalSavings = items.reduce((sum, item) => {
     const originalPrice = item.product.prices?.originalPrice;
@@ -173,11 +274,17 @@ export default function CheckoutForm() {
           quantity: item.quantity,
           itemTotal: item.product.prices.price * item.quantity,
           color: item.color || '',
-          size: item.size || ''
+          size: item.size || '',
+          groupId: item.product.item_group_id || null
         })),
         total: finalTotal,
         subTotal: total,
-        discount: 0,
+        discount: loyaltyDiscount + membershipDiscountAmount + couponDiscountAmount,
+        membershipDiscount: membershipDiscountAmount,
+        couponDiscount: couponDiscountAmount,
+        couponCode: selectedCoupon?.couponCode || '',
+        membershipTier: membership?.tier?.name || null,
+        redeemPoints: redeemPoints,
         shippingCost: shippingCost,
         paymentMethod: paymentMethod === 'razorpay' ? 'Razorpay' : 'Cash on Delivery',
         user_info: {
@@ -244,10 +351,10 @@ export default function CheckoutForm() {
                 headers
               });
               
-              if (verifyRes.data.success) {
-                await dispatch(createOrder(orderData)).unwrap();
-                dispatch(clearCart());
-                toast.success('Payment successful & Order placed!');
+                if (verifyRes.data.success) {
+                  await dispatch(createOrder(orderData)).unwrap();
+                  dispatch(clearCart());
+                  toast.success('Payment successful & Order placed!');
                 router.push('/order-confirmation');
               } else {
                 toast.error('Payment verification failed.');
@@ -625,9 +732,34 @@ export default function CheckoutForm() {
               </div>
               
               {totalSavings > 0 && (
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Total discount </span>
-                  <span className='font-medium text-gray-900'>{formatPrice(totalSavings)}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 flex items-center gap-1">
+                    <TagIcon className="h-3.5 w-3.5" />
+                    Product Discounts
+                  </span>
+                  <span className="font-medium text-green-600">-{formatPrice(totalSavings)}</span>
+                </div>
+              )}
+
+              {/* Membership Discount Row */}
+              {membershipDiscountAmount > 0 && membership?.tier && (
+                <div className="flex justify-between text-sm items-center bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                  <span className="text-indigo-700 font-semibold flex items-center gap-1.5">
+                    <CheckBadgeIcon className="h-4 w-4 flex-shrink-0" />
+                    {membership.tier.name} Membership ({membership.tier.discountPercentage}%)
+                  </span>
+                  <span className="font-bold text-indigo-700 flex-shrink-0">-{formatPrice(membershipDiscountAmount)}</span>
+                </div>
+              )}
+              
+              {/* Applied Coupon Discount Row */}
+              {couponDiscountAmount > 0 && selectedCoupon && (
+                <div className="flex justify-between text-sm items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
+                    <TicketIcon className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                    Coupon ({selectedCoupon.couponCode})
+                  </span>
+                  <span className="font-bold text-emerald-700 flex-shrink-0">-{formatPrice(couponDiscountAmount)}</span>
                 </div>
               )}
               
@@ -640,8 +772,94 @@ export default function CheckoutForm() {
                 </div>
               </div>
 
+              {/* Loyalty Points Redemption */}
+              {loyaltyPoints > 0 && (
+                <div className="pt-3 border-t border-gray-200">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={useLoyaltyPoints}
+                      disabled={!canRedeem}
+                      onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <span className={`text-sm font-medium ${canRedeem ? 'text-gray-700' : 'text-gray-400'}`}>
+                      Use {maxRedeemablePoints} Loyalty Points (-{formatPrice(maxRedeemablePoints * pointValue)})
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 ml-6">Available Balance: {loyaltyPoints} points</p>
+                  {!canRedeem && (
+                    <p className="text-xs text-amber-600 mt-1 ml-6">
+                      {loyaltyPoints < minPoints && `Minimum points required to redeem is ${minPoints} points. `}
+                      {total < minInvoice && `Minimum invoice amount required to redeem is ${formatPrice(minInvoice)}.`}
+                    </p>
+                  )}
+                </div>
+              )}
 
+              {/* Active Issued Loyalty Coupons Redemption List */}
+              {isAuthenticated && customerCoupons.length > 0 && (
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <TicketIcon className="h-4 w-4 text-indigo-600" />
+                    Available Loyalty Coupons
+                  </div>
+                  <div className="space-y-2">
+                    {customerCoupons.map((coupon) => {
+                      const isSelected = selectedCoupon?.couponCode === coupon.couponCode;
+                      return (
+                        <div 
+                          key={coupon._id}
+                          onClick={() => setSelectedCoupon(isSelected ? null : coupon)}
+                          className={`p-2.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                            isSelected 
+                              ? 'border-indigo-500 bg-indigo-50/70 shadow-sm' 
+                              : 'border-gray-200 hover:border-indigo-200 bg-gray-50/50'
+                          }`}
+                        >
+                          <div>
+                            <div className="text-xs font-bold text-indigo-900 font-mono">
+                              {coupon.couponCode}
+                            </div>
+                            <div className="text-[11px] text-gray-500">
+                              {coupon.description || 'Loyalty Coupon'}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold text-emerald-600">₹{coupon.couponValue} OFF</span>
+                            <span className={`text-[11px] px-2 py-0.5 rounded font-semibold ${
+                              isSelected ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'
+                            }`}>
+                              {isSelected ? 'Applied ✓' : 'Apply'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
+              {/* Rewards on this Order Preview Banner */}
+              {(pointsToEarn > 0 || couponsToEarn.length > 0) && (
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 space-y-1.5 mt-3">
+                  <div className="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🎁</span> Rewards on this Order
+                  </div>
+                  {pointsToEarn > 0 && (
+                    <div className="flex justify-between text-xs font-semibold text-emerald-700">
+                      <span>Points to Earn</span>
+                      <span>+{pointsToEarn} pts</span>
+                    </div>
+                  )}
+                  {couponsToEarn.map((c, idx) => (
+                    <div key={idx} className="flex justify-between text-xs font-semibold text-emerald-700">
+                      <span>Free Coupon Reward</span>
+                      <span>₹{c.couponValue} OFF Coupon</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex justify-between text-lg font-bold text-gray-900">
@@ -656,8 +874,8 @@ export default function CheckoutForm() {
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <LockClosedIcon className="h-4 w-4" />
                 <span>
-                  {(paymentMethod as string) === 'credit-card'
-                    ? 'Secure checkout powered by Stripe'
+                  {paymentMethod === 'razorpay' 
+                    ? 'Secure checkout powered by Razorpay' 
                     : 'Safe and secure cash on delivery'
                   }
                 </span>

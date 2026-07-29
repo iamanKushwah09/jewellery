@@ -61,6 +61,12 @@ const sidebar = [
     permission: "view_stock",
   },
   {
+    path: "/loyalty-points",
+    icon: FiCompass,
+    name: "Loyalty Mgmt",
+    permission: "view_dashboard",
+  },
+  {
     icon: BsCart4,
     name: "Item",
     permission: "view_item_groups",

@@ -71,6 +71,8 @@ const billSundryRoutes = require('../routes/billSundryRoutes');
 // const { startCron } = require("../cron");
 // startCron();
 const itemGroupRoute = require('../routes/itemGroupRoute');
+const loyaltyRoutes = require('../routes/loyalty.routes');
+const loyaltyProgramRoutes = require('../routes/loyaltyProgram.routes');
 
 const { isAuth, isAdmin } = require("../config/auth");
 const WhatsappSettingModel = require("../models/WhatsappSetting.model");
@@ -201,6 +203,8 @@ app.use("/api/sundry-discount", sundryDiscountRoutes);
 app.use("/api/item-discount", itemDiscountRoutes);
 app.use("/api/bill-sundry", billSundryRoutes);
 app.use("/api/sale-order", saleOrderRoutes);
+app.use("/api/loyalty", loyaltyRoutes);
+app.use("/api/loyalty-program", loyaltyProgramRoutes);
 app.use("/api/sale-type", saleTypeRoutes);
 app.use("/api/item-groups-route", itemGroupRoute);
 app.use("/api/sync", require("../routes/sync.routes"));
