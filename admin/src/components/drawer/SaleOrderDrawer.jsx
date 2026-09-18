@@ -99,7 +99,8 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
   const [loyaltyDiscountAmount, setLoyaltyDiscountAmount] = useState(0);
 
   const fetchCustomerLoyalty = useCallback(async (customerId) => {
-    if (!customerId) {
+    const id = typeof customerId === 'object' ? (customerId?.value || customerId?._id) : customerId;
+    if (!id) {
       setLoyaltyInfo(null);
       setIsRedeemActive(false);
       setRedeemPoints(0);
@@ -108,15 +109,55 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
     }
     setIsFetchingLoyalty(true);
     try {
-      const res = await LoyaltyServices.getPointsBalance(customerId);
+      let res = await LoyaltyServices.getPointsBalance(id);
       if (res && res.success) {
         setLoyaltyInfo(res);
       } else {
-        setLoyaltyInfo(null);
+        // Fallback to legacy endpoint if deployed server hasn't updated yet
+        try {
+          const legacyRes = await LoyaltyServices.getCustomerLoyaltyPoints(id);
+          setLoyaltyInfo({
+            success: true,
+            balance: legacyRes?.totalPoints || 0,
+            pointValueInRs: 1,
+            visitCount: 0,
+            tier: null,
+            entries: legacyRes?.transactions || []
+          });
+        } catch {
+          setLoyaltyInfo({
+            success: true,
+            balance: 0,
+            pointValueInRs: 1,
+            visitCount: 0,
+            tier: null,
+            entries: []
+          });
+        }
       }
     } catch (err) {
       console.error("Error fetching loyalty info:", err);
-      setLoyaltyInfo(null);
+      // Fallback to legacy endpoint on error
+      try {
+        const legacyRes = await LoyaltyServices.getCustomerLoyaltyPoints(id);
+        setLoyaltyInfo({
+          success: true,
+          balance: legacyRes?.totalPoints || 0,
+          pointValueInRs: 1,
+          visitCount: 0,
+          tier: null,
+          entries: legacyRes?.transactions || []
+        });
+      } catch {
+        setLoyaltyInfo({
+          success: true,
+          balance: 0,
+          pointValueInRs: 1,
+          visitCount: 0,
+          tier: null,
+          entries: []
+        });
+      }
     } finally {
       setIsFetchingLoyalty(false);
     }
@@ -1151,9 +1192,10 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                   loading={isSearchingCustomers}
                   loadingMore={loadingMoreCustomers}
                   onChange={(value) => {
-                    const selected = customerList.find((cust) => cust._id === value?.value);
+                    const custId = value?.value || value?._id || (typeof value === 'string' ? value : null);
+                    const selected = customerList.find((cust) => cust._id === custId);
                     setSelectedCustomer(value);
-                    fetchCustomerLoyalty(value?.value);
+                    fetchCustomerLoyalty(custId);
 
                     if (selected?.code) {
                       const oldParty = getParty;

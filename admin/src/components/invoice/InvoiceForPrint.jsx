@@ -14,7 +14,12 @@ import { useTranslation } from "react-i18next";
 const InvoiceForPrint = ({ data, printRef, globalSetting }) => {
   const { t } = useTranslation();
 
-  const currency = globalSetting?.default_currency || "$";
+  const currency =
+    globalSetting?.default_currency &&
+    globalSetting.default_currency !== "$" &&
+    globalSetting.default_currency !== "€"
+      ? globalSetting.default_currency
+      : "₹";
 
   return (
     <div ref={printRef} className="p-4">

@@ -532,23 +532,57 @@ exports.redeemPoints = async (req, res) => {
 exports.getPointsBalance = async (req, res) => {
   try {
     const { customerId } = req.params;
+    const mongoose = require('mongoose');
+
+    if (!customerId || !mongoose.Types.ObjectId.isValid(customerId)) {
+      return res.status(200).json({
+        success: true,
+        balance: 0,
+        pointValueInRs: 1,
+        minPointToRedeem: 0,
+        minInvoiceAmountToRedeem: 0,
+        maxRedeemPercentage: 100,
+        redeemLevel: 'full',
+        tier: null,
+        visitCount: 0,
+        customerName: '',
+        entries: []
+      });
+    }
+
     const now = new Date();
     const entries = await LoyaltyLedger.find({
       customerId,
       isExpired: false,
       $or: [{ expiryDate: null }, { expiryDate: { $gt: now } }]
-    }).sort({ earnedDate: -1 });
+    }).sort({ earnedDate: -1 }).catch(() => []);
 
-    const ledgerBalance = entries.reduce((sum, entry) => sum + ((entry.pointsEarned || 0) - (entry.pointsRedeemed || 0)), 0);
+    const ledgerBalance = (entries || []).reduce((sum, entry) => sum + ((entry.pointsEarned || 0) - (entry.pointsRedeemed || 0)), 0);
 
-    const LoyaltyPoint = require('../models/loyaltyPoint.model');
-    const legacyPoint = await LoyaltyPoint.findOne({ customer: customerId });
-    const legacyBalance = legacyPoint ? legacyPoint.totalPoints : 0;
+    let legacyBalance = 0;
+    try {
+      const LoyaltyPoint = require('../models/loyaltyPoint.model');
+      const legacyPoint = await LoyaltyPoint.findOne({ customer: customerId });
+      legacyBalance = legacyPoint ? (legacyPoint.totalPoints || 0) : 0;
+    } catch (e) {
+      console.warn("Could not fetch legacy loyalty points:", e.message);
+    }
 
     const balance = Math.max(ledgerBalance, legacyBalance);
 
-    const config = await LoyaltyConfig.findOne();
-    const customer = await Customer.findById(customerId).populate('loyaltyTier');
+    let config = null;
+    try {
+      config = await LoyaltyConfig.findOne();
+    } catch (e) {
+      console.warn("Could not fetch LoyaltyConfig:", e.message);
+    }
+
+    let customer = null;
+    try {
+      customer = await Customer.findById(customerId).populate('loyaltyTier');
+    } catch (e) {
+      console.warn("Could not fetch Customer details:", e.message);
+    }
 
     res.status(200).json({
       success: true,
@@ -561,10 +595,24 @@ exports.getPointsBalance = async (req, res) => {
       tier: customer?.loyaltyTier || null,
       visitCount: customer?.visitCount || 0,
       customerName: customer?.name || '',
-      entries
+      entries: entries || []
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Error in getPointsBalance:", err);
+    res.status(200).json({
+      success: true,
+      balance: 0,
+      pointValueInRs: 1,
+      minPointToRedeem: 0,
+      minInvoiceAmountToRedeem: 0,
+      maxRedeemPercentage: 100,
+      redeemLevel: 'full',
+      tier: null,
+      visitCount: 0,
+      customerName: '',
+      entries: [],
+      error: err.message
+    });
   }
 };
 

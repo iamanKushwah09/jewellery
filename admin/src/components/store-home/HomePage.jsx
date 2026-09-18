@@ -1707,7 +1707,7 @@ const HomePage = ({
                     label="Title"
                     name="promo_free_shipping"
                     type="text"
-                    placeholder="From $500.00"
+                    placeholder="From ₹500.00"
                   />
                   <Error errorName={errors.promo_free_shipping} />
                 </div>

@@ -18,7 +18,24 @@ const addGlobalSetting = async (req, res) => {
 
 const getGlobalSetting = async (req, res) => {
   try {
-    const globalSetting = await Setting.findOne({ name: "globalSetting" });
+    let globalSetting = await Setting.findOne({ name: "globalSetting" });
+    if (!globalSetting) {
+      globalSetting = new Setting({
+        name: "globalSetting",
+        setting: {
+          number_of_image_per_product: "5",
+          shop_name: "Vellora Jewels",
+          default_currency: "₹",
+          default_time_zone: "Asia/Kolkata",
+          default_date_format: "MMM D, YYYY",
+          receipt_size: "57-mm",
+        },
+      });
+      await globalSetting.save();
+    } else if (globalSetting.setting && (globalSetting.setting.default_currency === "$" || globalSetting.setting.default_currency === "€" || !globalSetting.setting.default_currency)) {
+      globalSetting.setting.default_currency = "₹";
+      await Setting.updateOne({ name: "globalSetting" }, { $set: { "setting.default_currency": "₹" } });
+    }
     res.send(globalSetting.setting);
   } catch (err) {
     res.status(500).send({

@@ -81,6 +81,7 @@ const WhatsappSettingModel = require("../models/WhatsappSetting.model");
 //   getStoreCustomizationSetting,
 // } = require("../lib/notification/setting");
 
+const mongoose = require("mongoose");
 connectDB();
 const app = express();
 
@@ -90,6 +91,18 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(express.json({ limit: "40mb" }));
+
+// Ensure DB is connected for serverless invocations (Vercel)
+app.use(async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+  } catch (err) {
+    console.error("DB connection error in request middleware:", err.message);
+  }
+  next();
+});
 // swagger used
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDoc));
 // app.use(helmet({
