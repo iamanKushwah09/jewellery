@@ -3,16 +3,28 @@ import {
   Table, TableCell, TableContainer, TableHeader, TableRow,
   Button, Input, Label, Select
 } from "@windmill/react-ui";
+import {
+  FiPackage,
+  FiTag,
+  FiShoppingCart,
+  FiCalendar,
+  FiDollarSign,
+  FiGift,
+  FiEdit2,
+  FiPlusCircle,
+  FiInbox,
+  FiChevronDown
+} from "react-icons/fi";
 import LoyaltyServices from "@/services/LoyaltyServices";
 import { notifySuccess, notifyError } from "@/utils/toast";
 
 // ──── Shared UI components ────────────────────────────────────────────────────
 
-function SectionHeader({ icon, title, subtitle }) {
+function SectionHeader({ icon: Icon, title, subtitle }) {
   return (
     <div className="flex items-start gap-3 mb-5">
-      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xl flex-shrink-0">
-        {icon}
+      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
+        {typeof Icon === 'function' ? <Icon size={20} /> : Icon}
       </div>
       <div>
         <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
@@ -27,7 +39,7 @@ function FormPanel({ title, children, onSave, onCancel, isEditing }) {
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border border-blue-100 dark:border-gray-600 rounded-xl p-5 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-          <span>{isEditing ? "✏️" : "➕"}</span>
+          {isEditing ? <FiEdit2 size={15} className="text-blue-600 dark:text-blue-400" /> : <FiPlusCircle size={15} className="text-blue-600 dark:text-blue-400" />}
           <span>{title}</span>
         </h3>
       </div>
@@ -102,7 +114,9 @@ function EmptyState({ message }) {
   return (
     <tr>
       <td colSpan="10" className="py-12 text-center">
-        <div className="text-4xl mb-3">📋</div>
+        <div className="flex justify-center mb-3 text-gray-400">
+          <FiInbox size={38} />
+        </div>
         <p className="text-sm text-gray-500 dark:text-gray-400">{message}</p>
       </td>
     </tr>
@@ -171,7 +185,7 @@ function DropdownCheckboxList({
         className="w-full h-10 px-3 text-left text-sm border border-gray-200 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition flex items-center justify-between"
       >
         <span className="truncate">{displayLabel}</span>
-        <span className="text-gray-400 text-[10px] ml-1">▼</span>
+        <FiChevronDown size={14} className="text-gray-400 ml-1 flex-shrink-0" />
       </button>
 
       {isOpen && (
@@ -314,7 +328,7 @@ export function ItemGroupRulesTab({ itemGroups = [] }) {
     <RuleCard>
       <div className="p-5">
         <SectionHeader
-          icon="📦"
+          icon={FiPackage}
           title="Item Group Wise Points Configuration"
           subtitle="Define point rates per item group. Expiry here overrides the global setting."
         />
@@ -444,7 +458,7 @@ export function ItemRulesTab({ items = [] }) {
     <RuleCard>
       <div className="p-5">
         <SectionHeader
-          icon="🏷️"
+          icon={FiTag}
           title="Item Wise Points Configuration"
           subtitle="Highest priority — item-specific points override all other rules in Priority mode."
         />
@@ -567,7 +581,7 @@ export function SaleRulesTab({ tiers = [], items = [] }) {
     <RuleCard>
       <div className="p-5">
         <SectionHeader
-          icon="🛒"
+          icon={FiShoppingCart}
           title="Sale Wise Slab Configuration"
           subtitle="Configure discounts, gift triggers & free coupons based on invoice total. Leave membership empty for a common slab."
         />
@@ -668,7 +682,7 @@ export function VisitRulesTab({ tiers = [] }) {
     <RuleCard>
       <div className="p-5">
         <SectionHeader
-          icon="📅"
+          icon={FiCalendar}
           title="Visit Wise Slab Configuration"
           subtitle="Trigger discounts and coupons based on how many times a customer has visited or ordered."
         />
@@ -765,7 +779,7 @@ export function LumpsumRulesTab({ tiers = [] }) {
     <RuleCard>
       <div className="p-5">
         <SectionHeader
-          icon="💰"
+          icon={FiDollarSign}
           title="Lumpsum Points Configuration"
           subtitle="Flat fixed points per membership tier when a minimum sale amount threshold is crossed."
         />
@@ -867,7 +881,7 @@ export function CouponTemplatesTab({ items = [], brands = [] }) {
       <div className="p-5">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <SectionHeader
-            icon="🎟️"
+            icon={FiGift}
             title="Coupons Management"
             subtitle="Manage coupon templates and view issued customer coupons."
           />

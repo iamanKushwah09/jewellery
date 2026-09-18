@@ -12,9 +12,7 @@ import DrawerButton from "@/components/form/button/DrawerButton";
 import LabelArea from "@/components/form/selectOption/LabelArea";
 import Uploader from "@/components/image-uploader/Uploader";
 import CheckBox from "@/components/form/others/CheckBox";
-import MultiSelectDropdown from "../form/selectOption/MultiSelectItem";
 import useOfferSubmit from "@/hooks/useOfferSubmit";
-import SelectItem from "../form/selectOption/SelectItem";
 const OfferDrawer = ({ id }) => {
 
   const {

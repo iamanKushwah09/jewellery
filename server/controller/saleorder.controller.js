@@ -93,7 +93,97 @@ exports.createSaleOrder = async (req, res) => {
         // saleOrderData.voucherNo = busyResponse.voucherNo ? busyResponse.voucherNo.trim() : null;
         const newSaleOrder = new SaleOrder(saleOrderData);
         await newSaleOrder.save();
-        res.status(201).json({ message: "Sale Order Created" });
+
+        // Process Loyalty Points (Redemption & Earning)
+        if (saleOrderData.customer) {
+            try {
+                const customerId = saleOrderData.customer;
+                const pointsRedeemed = Number(saleOrderData.loyaltyPointsRedeemed) || 0;
+
+                // 1. Process Redemption: Deduct points from LoyaltyLedger (FIFO) & LoyaltyPoint
+                if (pointsRedeemed > 0) {
+                    const LoyaltyLedger = require('../models/loyaltyLedger.model');
+                    const now = new Date();
+                    const ledgerEntries = await LoyaltyLedger.find({
+                        customerId,
+                        isExpired: false,
+                        $or: [{ expiryDate: null }, { expiryDate: { $gt: now } }]
+                    }).sort({ earnedDate: 1 });
+
+                    let remaining = pointsRedeemed;
+                    for (const entry of ledgerEntries) {
+                        if (remaining <= 0) break;
+                        const available = (entry.pointsEarned || 0) - (entry.pointsRedeemed || 0);
+                        if (available > 0) {
+                            const deduct = Math.min(available, remaining);
+                            entry.pointsRedeemed = (entry.pointsRedeemed || 0) + deduct;
+                            remaining -= deduct;
+                            await entry.save();
+                        }
+                    }
+
+                    try {
+                        const LoyaltyPoint = require('../models/loyaltyPoint.model');
+                        let loyaltyRecord = await LoyaltyPoint.findOne({ customer: customerId });
+                        if (loyaltyRecord) {
+                            loyaltyRecord.totalPoints = Math.max(0, (loyaltyRecord.totalPoints || 0) - pointsRedeemed);
+                            loyaltyRecord.transactions.push({
+                                orderId: newSaleOrder._id ? newSaleOrder._id.toString() : '',
+                                pointsEarned: 0,
+                                pointsRedeemed: pointsRedeemed,
+                                description: `Redeemed on Sale Order ${newSaleOrder.voucherNo || ''}`
+                            });
+                            await loyaltyRecord.save();
+                        }
+                    } catch (lpErr) {
+                        console.error("Error updating LoyaltyPoint model on sale order redemption:", lpErr);
+                    }
+                }
+
+                // 2. Process Earning: Evaluate points and coupons using PointsEngine
+                const PointsEngine = require('../services/pointsEngine.service');
+                const CouponGiftEngine = require('../services/couponGiftEngine.service');
+
+                const loyaltyItems = (newSaleOrder.items || []).map(item => ({
+                    item_id: item.itemId ? item.itemId.toString() : null,
+                    item_group_id: item.groupId || item.item_group_id || null,
+                    price: item.price || item.listPrice || 0,
+                    quantity: item.quantity || 1
+                }));
+
+                const orderTotal = newSaleOrder.netAmount || newSaleOrder.totalAmount || 0;
+
+                const pointsResult = await PointsEngine.evaluate({
+                    customerId,
+                    items: loyaltyItems,
+                    totalAmount: orderTotal,
+                    invoiceId: newSaleOrder._id,
+                    commit: true
+                });
+
+                if (pointsResult?.pointsAwarded && pointsResult.pointsAwarded > 0) {
+                    newSaleOrder.loyaltyPointsEarned = pointsResult.pointsAwarded;
+                    await newSaleOrder.save();
+                }
+
+                await CouponGiftEngine.evaluate({
+                    customerId,
+                    items: loyaltyItems,
+                    totalAmount: orderTotal,
+                    invoiceId: newSaleOrder._id,
+                    commit: true
+                });
+            } catch (loyaltyErr) {
+                console.error("Error processing loyalty points on sale order creation:", loyaltyErr);
+            }
+        }
+
+        res.status(201).json({ 
+            message: "Sale Order Created", 
+            data: newSaleOrder,
+            pointsEarned: newSaleOrder.loyaltyPointsEarned || 0,
+            pointsRedeemed: newSaleOrder.loyaltyPointsRedeemed || 0 
+        });
     } catch (err) {
         console.log("Error in creating sale Order:", err);
         res.status(500).json({ message: err.message });

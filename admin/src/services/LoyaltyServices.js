@@ -114,6 +114,12 @@ const LoyaltyServices = {
   getAllIssuedCoupons: async () => {
     return requests.get(`/loyalty-program/all-issued-coupons`);
   },
+  getPointsBalance: async (customerId) => {
+    return requests.get(`/loyalty-program/points-balance/${customerId}`);
+  },
+  calculatePoints: async (body) => {
+    return requests.post(`/loyalty-program/calculate-points`, body);
+  },
 };
 
 export default LoyaltyServices;

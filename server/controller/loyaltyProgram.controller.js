@@ -547,7 +547,22 @@ exports.getPointsBalance = async (req, res) => {
 
     const balance = Math.max(ledgerBalance, legacyBalance);
 
-    res.status(200).json({ success: true, balance, entries });
+    const config = await LoyaltyConfig.findOne();
+    const customer = await Customer.findById(customerId).populate('loyaltyTier');
+
+    res.status(200).json({
+      success: true,
+      balance,
+      pointValueInRs: config?.pointValueInRs || 1,
+      minPointToRedeem: config?.minPointToRedeem || 0,
+      minInvoiceAmountToRedeem: config?.minInvoiceAmountToRedeem || 0,
+      maxRedeemPercentage: config?.maxRedeemPercentage || 100,
+      redeemLevel: config?.redeemLevel || 'full',
+      tier: customer?.loyaltyTier || null,
+      visitCount: customer?.visitCount || 0,
+      customerName: customer?.name || '',
+      entries
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

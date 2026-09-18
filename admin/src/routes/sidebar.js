@@ -134,16 +134,16 @@ const sidebar = [
   //     { path: "/promo-code", name: "Promo Code", permission: "view_promo_codes" },
   //   ],
   // },
-  {
-    icon: FaShippingFast,
-    name: "Shipping Mgmt",
-    permission: "view_shippings",
-    routes: [
-      { path: "/shipping-settings", name: "Strategy Settings", permission: "view_shippings" },
-      { path: "/store-settings", name: "Store Location", permission: "view_shippings" },
-      { path: "/shipping-rules-list", name: "Shipping Rules", permission: "view_shippings" },
-    ],
-  },
+  // {
+  //   icon: FaShippingFast,
+  //   name: "Shipping Mgmt",
+  //   permission: "view_shippings",
+  //   routes: [
+  //     { path: "/shipping-settings", name: "Strategy Settings", permission: "view_shippings" },
+  //     { path: "/store-settings", name: "Store Location", permission: "view_shippings" },
+  //     { path: "/shipping-rules-list", name: "Shipping Rules", permission: "view_shippings" },
+  //   ],
+  // },
 
   {
     path: "/dispatch",

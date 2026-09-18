@@ -322,12 +322,26 @@ exports.getCustomerNameAndId = async (req, res) => {
                         },
                         { $unwind: { path: "$vendor_group_data", preserveNullAndEmptyArrays: true } },
                         {
+                            $lookup: {
+                                from: "salesmans",
+                                localField: "salesman_id",
+                                foreignField: "_id",
+                                as: "salesman_data"
+                            }
+                        },
+                        { $unwind: { path: "$salesman_data", preserveNullAndEmptyArrays: true } },
+                        {
                             $project: {
                                 _id: 1,
                                 name: 1,
                                 code: 1,
                                 print_name: 1,
-                                vendor_group_id: "$vendor_group_data"
+                                group_type: 1,
+                                vendor_group_id: "$vendor_group_data",
+                                salesman_id: {
+                                    _id: "$salesman_data._id",
+                                    name: "$salesman_data.name"
+                                }
                             }
                         }
                     ]

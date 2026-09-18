@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FiUsers, FiSettings, FiAward, FiPackage, FiTag, FiShoppingCart, FiCalendar, FiDollarSign, FiGift, FiPlusCircle, FiAlertCircle } from "react-icons/fi";
 import {
   Card,
   CardBody,
@@ -214,15 +215,15 @@ const LoyaltyPoints = () => {
       <div className="mb-6 overflow-x-auto">
         <div className="flex gap-2 min-w-max bg-gray-100 dark:bg-gray-800 rounded-xl p-1.5">
           {[
-            { key: "customers", label: "Customers", icon: "👥" },
-            { key: "config",    label: "Global Config", icon: "⚙️" },
-            { key: "tiers",     label: "Tiers", icon: "🏅" },
-            { key: "itemGroup", label: "Item Group", icon: "📦" },
-            { key: "item",      label: "Items", icon: "🏷️" },
-            { key: "sale",      label: "Sale Slabs", icon: "🛒" },
-            { key: "visit",     label: "Visit Rules", icon: "📅" },
-            { key: "lumpsum",   label: "Lumpsum", icon: "💰" },
-            { key: "coupons",   label: "Coupons", icon: "🎟️" },
+            { key: "customers", label: "Customers", icon: FiUsers },
+            { key: "config",    label: "Global Config", icon: FiSettings },
+            { key: "tiers",     label: "Tiers", icon: FiAward },
+            { key: "itemGroup", label: "Item Group", icon: FiPackage },
+            { key: "item",      label: "Items", icon: FiTag },
+            { key: "sale",      label: "Sale Slabs", icon: FiShoppingCart },
+            { key: "visit",     label: "Visit Rules", icon: FiCalendar },
+            { key: "lumpsum",   label: "Lumpsum", icon: FiDollarSign },
+            { key: "coupons",   label: "Coupons", icon: FiGift },
           ].map(tab => (
             <button
               key={tab.key}
@@ -233,7 +234,7 @@ const LoyaltyPoints = () => {
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white/50"
               }`}
             >
-              <span className="text-base leading-none">{tab.icon}</span>
+              <span className="text-base leading-none flex items-center"><tab.icon size={16} /></span>
               <span>{tab.label}</span>
               {activeTab === tab.key && (
                 <span className="ml-1 w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
@@ -268,12 +269,11 @@ const LoyaltyPoints = () => {
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
                             {item.customer.loyaltyTier?.name || item.customer.loyaltyTier}
                           </span>
-                          {item.customer?.loyaltyTierExpiry && (
-                            <p className={`text-xs mt-1 ${new Date(item.customer.loyaltyTierExpiry) < new Date() ? 'text-red-500' : 'text-gray-400'}`}>
-                              {new Date(item.customer.loyaltyTierExpiry) < new Date() ? '⚠ Expired: ' : 'Expires: '}
+                            <p className={`text-xs mt-1 flex items-center gap-1 ${new Date(item.customer.loyaltyTierExpiry) < new Date() ? 'text-red-500' : 'text-gray-400'}`}>
+                              {new Date(item.customer.loyaltyTierExpiry) < new Date() ? <FiAlertCircle size={12} className="text-red-500" /> : null}
+                              {new Date(item.customer.loyaltyTierExpiry) < new Date() ? 'Expired: ' : 'Expires: '}
                               {new Date(item.customer.loyaltyTierExpiry).toLocaleDateString('en-IN')}
                             </p>
-                          )}
                         </div>
                       ) : (
                         <span className="text-sm text-gray-400">None</span>
@@ -380,7 +380,7 @@ const LoyaltyPoints = () => {
               
               {/* Add New Tier */}
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-                <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">➕ Add New Tier</h3>
+                <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3 flex items-center gap-1.5"><FiPlusCircle size={14} /> Add New Tier</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <Label>
                     <span className="text-xs">Tier Name</span>
