@@ -64,6 +64,7 @@ const salesmanRoutes = require('../routes/sales.Routes');
 const dispatchRoutes = require('../routes/dispatch.routes');
 const dispatchLogRoutes = require('../routes/dispatchLog.routes'); // new dispatch log route
 const saleOrderRoutes = require('../routes/saleorder.routes');
+const saleRoutes = require('../routes/sale.routes');
 const saleTypeRoutes = require('../routes/saleType.routes');
 const sundryDiscountRoutes = require('../routes/sundryDiscountRoutes');
 const itemDiscountRoutes = require('../routes/itemDiscountRoutes');
@@ -216,6 +217,7 @@ app.use("/api/sundry-discount", sundryDiscountRoutes);
 app.use("/api/item-discount", itemDiscountRoutes);
 app.use("/api/bill-sundry", billSundryRoutes);
 app.use("/api/sale-order", saleOrderRoutes);
+app.use("/api/sale", saleRoutes);
 app.use("/api/loyalty", loyaltyRoutes);
 app.use("/api/loyalty-program", loyaltyProgramRoutes);
 app.use("/api/sale-type", saleTypeRoutes);

@@ -100,6 +100,11 @@ const sidebar = [
     routes: [
       // { path: "/orders", name: "Customer Orders", permission: "view_orders" },
       {
+        path: "/sale",
+        name: "Sale",
+        permission: "view_sale_order",
+      },
+      {
         path: "/sale-order",
         name: "Sale Order",
         permission: "view_sale_order",
@@ -210,6 +215,7 @@ const userPermissions = [
   { path: "/store/customization", permission: "customize_store" },
   { path: "/store/store-settings", permission: "manage_store_settings" },
   { path: "/catalogs", permission: "view_catalog" },
+  { path: "/sale", permission: "view_sale_order" },
   { path: "/sale-order", permission: "view_sale_order" },
   { path: "/party-ledger", permission: "view_party_ledger" },
   { path: "/bill-receivable", permission: "view_party_ledger" },

@@ -21,10 +21,6 @@ import ItemDiscountServices from "@/services/ItemsDiscountServices";
 import ItemSearchableDropdown from "@/pages/ItemSearchableDropdown";
 import { AdminContext } from "@/context/AdminContext";
 import AttributeValueServices from "@/services/AttributeValueServices";
-import LoyaltyServices from "@/services/LoyaltyServices";
-import { FiAward, FiStar } from "react-icons/fi";
-
-
 const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
   const { isDrawerOpen } = useContext(SidebarContext);
   const { state: adminState } = useContext(AdminContext);
@@ -91,78 +87,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
   const [hasMoreCustomers, setHasMoreCustomers] = useState(false);
   const [loadingMoreCustomers, setLoadingMoreCustomers] = useState(false);
 
-  // Loyalty states
-  const [loyaltyInfo, setLoyaltyInfo] = useState(null);
-  const [isFetchingLoyalty, setIsFetchingLoyalty] = useState(false);
-  const [isRedeemActive, setIsRedeemActive] = useState(false);
-  const [redeemPoints, setRedeemPoints] = useState(0);
-  const [loyaltyDiscountAmount, setLoyaltyDiscountAmount] = useState(0);
-
-  const fetchCustomerLoyalty = useCallback(async (customerId) => {
-    const id = typeof customerId === 'object' ? (customerId?.value || customerId?._id) : customerId;
-    if (!id) {
-      setLoyaltyInfo(null);
-      setIsRedeemActive(false);
-      setRedeemPoints(0);
-      setLoyaltyDiscountAmount(0);
-      return;
-    }
-    setIsFetchingLoyalty(true);
-    try {
-      let res = await LoyaltyServices.getPointsBalance(id);
-      if (res && res.success) {
-        setLoyaltyInfo(res);
-      } else {
-        // Fallback to legacy endpoint if deployed server hasn't updated yet
-        try {
-          const legacyRes = await LoyaltyServices.getCustomerLoyaltyPoints(id);
-          setLoyaltyInfo({
-            success: true,
-            balance: legacyRes?.totalPoints || 0,
-            pointValueInRs: 1,
-            visitCount: 0,
-            tier: null,
-            entries: legacyRes?.transactions || []
-          });
-        } catch {
-          setLoyaltyInfo({
-            success: true,
-            balance: 0,
-            pointValueInRs: 1,
-            visitCount: 0,
-            tier: null,
-            entries: []
-          });
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching loyalty info:", err);
-      // Fallback to legacy endpoint on error
-      try {
-        const legacyRes = await LoyaltyServices.getCustomerLoyaltyPoints(id);
-        setLoyaltyInfo({
-          success: true,
-          balance: legacyRes?.totalPoints || 0,
-          pointValueInRs: 1,
-          visitCount: 0,
-          tier: null,
-          entries: legacyRes?.transactions || []
-        });
-      } catch {
-        setLoyaltyInfo({
-          success: true,
-          balance: 0,
-          pointValueInRs: 1,
-          visitCount: 0,
-          tier: null,
-          entries: []
-        });
-      }
-    } finally {
-      setIsFetchingLoyalty(false);
-    }
-  }, []);
-
   const fetchCustomers = useCallback(async (query = "", page = 1) => {
     return await CustomerServices.activeCustomer(query, { params: { page, limit: 100 } });
   }, []);
@@ -204,17 +128,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
       setLoadingMoreCustomers(false);
     }
   }, [customerPage, hasMoreCustomers, loadingMoreCustomers, fetchCustomers]);
-
-  // Recalculate loyalty discount when points or status changes
-  useEffect(() => {
-    if (isRedeemActive && loyaltyInfo && Number(redeemPoints) > 0) {
-      const pointVal = loyaltyInfo.pointValueInRs || 1;
-      const discount = Math.round(Number(redeemPoints) * pointVal * 100) / 100;
-      setLoyaltyDiscountAmount(discount);
-    } else {
-      setLoyaltyDiscountAmount(0);
-    }
-  }, [isRedeemActive, loyaltyInfo, redeemPoints]);
 
   const customerOptions = useMemo(() => {
     return customerList?.map((item) => {
@@ -386,8 +299,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
           // Fix: Properly format customer value for SearchableDropdown
           // Use populated customer data from API response directly
           if (data.customer) {
-            const customerIdForLoyalty = typeof data.customer === 'object' ? data.customer._id : data.customer;
-            fetchCustomerLoyalty(customerIdForLoyalty);
+            
             if (typeof data.customer === 'object' && data.customer._id) {
               // Customer is already populated with full details from API
               setSelectedCustomer({
@@ -616,11 +528,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
           setTotalDiscountAmount(data.totalDiscountAmount || 0);
           setTotalQuantity(data.totalQuantity || 0);
           setNetAmount(data.netAmount || 0);
-          if (data.loyaltyPointsRedeemed > 0) {
-            setIsRedeemActive(true);
-            setRedeemPoints(data.loyaltyPointsRedeemed);
-            setLoyaltyDiscountAmount(data.loyaltyDiscountAmount || 0);
-          }
+          
         })
         .catch((error) => {
           console.error("Error fetching sale order:", error);
@@ -806,12 +714,12 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
     setTotalSgstSundries(Number(sgstAmount.toFixed(2)));
     setTotalIgstSundries(Number((cgstAmount + sgstAmount).toFixed(2)));
 
-    // Step 5: Final net amount = Subtotal after discount + GST - Loyalty Discount
-    const finalNetAmount = subtotalAfterDiscount + cgstAmount + sgstAmount - (Number(loyaltyDiscountAmount) || 0);
+    // Step 5: Final net amount = Subtotal after discount + GST
+    const finalNetAmount = subtotalAfterDiscount + cgstAmount + sgstAmount;
     setNetAmount(Number(Math.max(0, finalNetAmount).toFixed(2)));
 
 
-  }, [items, vendorDiscount, loyaltyDiscountAmount]);
+  }, [items, vendorDiscount]);
 
   const handleAddItem = () => {
     setItems(prev => [...prev, {
@@ -884,10 +792,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
     setItemDiscount(0);
     setSelectedItem(null);
     setItemCode(null);
-    setLoyaltyInfo(null);
-    setIsRedeemActive(false);
-    setRedeemPoints(0);
-    setLoyaltyDiscountAmount(0);
+    
   };
 
   // Auto-select salesman if logged in user is a salesman
@@ -945,13 +850,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
         );
       }
 
-      if (isRedeemActive && Number(loyaltyDiscountAmount) > 0) {
-        sundriesArray.push({
-          Name: "Loyalty Points Discount",
-          DiscountAmount: Number(loyaltyDiscountAmount).toFixed(2),
-          DiscountPercent: 0
-        });
-      }
+      
 
       console.log("Sundries Array: ", items);
       const saleOrderData = {
@@ -986,8 +885,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
         totalDiscountAmount,
         totalQuantity,
         netAmount: totalNetAmount,
-        loyaltyPointsRedeemed: isRedeemActive ? Number(redeemPoints) || 0 : 0,
-        loyaltyDiscountAmount: isRedeemActive ? Number(loyaltyDiscountAmount) || 0 : 0,
+        
       };
 
       await onSubmit(saleOrderData);
@@ -1195,7 +1093,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                     const custId = value?.value || value?._id || (typeof value === 'string' ? value : null);
                     const selected = customerList.find((cust) => cust._id === custId);
                     setSelectedCustomer(value);
-                    fetchCustomerLoyalty(custId);
+                    
 
                     if (selected?.code) {
                       const oldParty = getParty;
@@ -1262,115 +1160,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                 />
               </div>
             </div>
-
-            {/* Customer Loyalty Points Card */}
-            {selectedCustomer && (
-              <div className="mb-4">
-                {isFetchingLoyalty ? (
-                  <div className="p-3 bg-emerald-50 dark:bg-gray-800 rounded-lg border border-emerald-100 dark:border-gray-700 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
-                    Checking customer loyalty points & tier benefits...
-                  </div>
-                ) : loyaltyInfo ? (
-                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-white dark:from-gray-800 dark:via-gray-800 dark:to-gray-800/80 p-4 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-emerald-100 dark:border-gray-700">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-emerald-600 text-white shadow-sm">
-                          <FiAward className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-gray-900 dark:text-white text-sm">
-                              Customer Loyalty Program
-                            </span>
-                            {loyaltyInfo.tier && (
-                              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
-                                <FiStar className="w-3 h-3 fill-current" />
-                                {loyaltyInfo.tier.name}
-                              </span>
-                            )}
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              ({loyaltyInfo.visitCount || 0} visits)
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                            Available: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{loyaltyInfo.balance || 0} Points</strong>
-                            {' '}(Worth <strong className="text-emerald-700 dark:text-emerald-400">₹{((loyaltyInfo.balance || 0) * (loyaltyInfo.pointValueInRs || 1)).toFixed(2)}</strong>)
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Redeem Toggle */}
-                      {loyaltyInfo.balance > 0 ? (
-                        <label className="inline-flex items-center cursor-pointer select-none bg-emerald-100/70 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-700">
-                          <input
-                            type="checkbox"
-                            checked={isRedeemActive}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setIsRedeemActive(checked);
-                              if (checked && (!redeemPoints || redeemPoints === 0)) {
-                                setRedeemPoints(loyaltyInfo.balance);
-                              }
-                            }}
-                            disabled={isViewOnly}
-                            className="rounded border-gray-300 text-emerald-600 shadow-sm focus:border-emerald-300 focus:ring focus:ring-emerald-200 focus:ring-opacity-50 w-4 h-4 cursor-pointer"
-                          />
-                          <span className="ml-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                            Redeem Points on this Bill
-                          </span>
-                        </label>
-                      ) : (
-                        <span className="text-xs text-gray-500 italic bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded">
-                          0 points available to redeem
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Redemption controls when active */}
-                    {isRedeemActive && loyaltyInfo.balance > 0 && (
-                      <div className="pt-3 flex flex-wrap items-center justify-between gap-3 bg-white/80 dark:bg-gray-700/60 p-3 rounded-lg mt-2 border border-emerald-100 dark:border-gray-600">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                            Points to Redeem:
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={loyaltyInfo.balance}
-                            value={redeemPoints}
-                            onChange={(e) => {
-                              const val = Math.max(0, Math.min(loyaltyInfo.balance, Number(e.target.value) || 0));
-                              setRedeemPoints(val);
-                            }}
-                            disabled={isViewOnly}
-                            className="w-24 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-right font-semibold text-gray-800 dark:text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setRedeemPoints(loyaltyInfo.balance)}
-                            disabled={isViewOnly}
-                            className="px-2 py-1 text-xs font-semibold rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 transition-colors"
-                          >
-                            Use Max ({loyaltyInfo.balance})
-                          </button>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Bill Discount: </span>
-                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                            - ₹{loyaltyDiscountAmount.toFixed(2)}
-                          </span>
-                          <span className="text-[11px] text-gray-400 block">
-                            (@ ₹{loyaltyInfo.pointValueInRs || 1} per point)
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            )}
 
             {/* Responsive Grid wrapper */}
             <div className="space-y-4">
@@ -1723,27 +1512,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                       </div>
                     </div>
                   </>
-                )}
-
-                {/* Loyalty Discount Sundry */}
-                {isRedeemActive && loyaltyDiscountAmount > 0 && (
-                  <div className="sm:col-span-2">
-                    <div className="rounded bg-emerald-50 dark:bg-emerald-950/30 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-emerald-200 dark:border-emerald-800">
-                      <div className="font-semibold col-span-1 text-emerald-700 dark:text-emerald-400">5. (-)</div>
-                      <div className="font-semibold col-span-2 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                        <FiAward className="w-4 h-4" />
-                        Loyalty Discount ({redeemPoints} pts)
-                      </div>
-                      <div className="col-span-1 text-right text-xs text-gray-500">
-                        @ ₹{loyaltyInfo?.pointValueInRs || 1}/pt
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className="font-bold text-emerald-700 dark:text-emerald-400 text-base">
-                          - ₹{loyaltyDiscountAmount.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
                 )}
               </div>
             </div>

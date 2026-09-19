@@ -41,6 +41,7 @@ const Stock = lazy(() => import("@/pages/Stock"));
 const POS = lazy(() => import("@/pages/POS"));
 const SalesMan = lazy(() => import("@/pages/SalesMan"));
 const PartyLedger = lazy(() => import("@/pages/PartyLedger"));
+const Sale = lazy(() => import("@/pages/Sale"));
 const SaleOrder = lazy(() => import("@/pages/SaleOrder"));
 const BillReceivable = lazy(() => import("@/pages/BillReceivable"));
 const WhatsappSetting = lazy(() => import("@/pages/WhatsappSetting"));
@@ -102,6 +103,7 @@ const allRoutes = [
   { path: "/sales-man", component: SalesMan, permission: "view_sales_man" },
   { path: "/stock", component: Stock, permission: "view_stock" },
   { path: "/pos", component: POS, permission: "view_pos" },
+  { path: "/sale", component: Sale, permission: "view_sale_order" },
   { path: "/sale-order", component: SaleOrder, permission: "view_sale_order" },
   { path: "/party-ledger", component: PartyLedger, permission: "view_party_ledger" },
   { path: "/bill-receivable", component: BillReceivable, permission: "view_party_ledger" },
