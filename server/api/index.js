@@ -139,6 +139,8 @@ const allowedOrigins = [
   'http://www.medikart24.in',
   'http://admin.medikart24.in',
   'http://api.medikart24.in',
+  'https://jewellery-admin-woad.vercel.app',
+  'https://jewellery-client-omega.vercel.app',
   // Development — localhost
   'http://localhost:3000',
   'http://localhost:3001',
