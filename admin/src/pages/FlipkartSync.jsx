@@ -430,14 +430,15 @@ const FlipkartSync = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <FiSearch className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
+                  <FiSearch className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5 z-10" />
                   <input
                     type="text"
                     placeholder="Search product by name or SKU..."
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && fetchProducts(1)}
-                    className="pl-9 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg w-64 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="has-icon-left !pl-9 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg w-64 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    style={{ paddingLeft: "2.35rem" }}
                   />
                 </div>
                 <button

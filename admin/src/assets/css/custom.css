@@ -1756,8 +1756,8 @@ table input[type="checkbox"]:checked,
  * Ynex Global Form Controls (Text Boxes, Inputs, Selects, Textareas)
  * Reference: https://laravelui.spruko.com/ynex/index6
  * ============================================================================ */
-html:not(.dark) input[type="text"]:not([class*="react-switch"]):not(.header-search-input):not(.has-icon-left):not(.page-search-input),
-html:not(.dark) input[type="search"]:not(.header-search-input):not(.table-search-input):not(.page-search-input):not(.has-icon-left),
+html:not(.dark) input[type="text"]:not([class*="react-switch"]):not(.header-search-input):not(.has-icon-left):not(.page-search-input):not([class*="pl-"]),
+html:not(.dark) input[type="search"]:not(.header-search-input):not(.table-search-input):not(.page-search-input):not(.has-icon-left):not([class*="pl-"]),
 html:not(.dark) input[type="number"],
 html:not(.dark) input[type="password"],
 html:not(.dark) input[type="email"],

@@ -99,7 +99,7 @@ const ConvertSaleOrderModal = ({ isOpen, onClose, onSuccess }) => {
         {/* Search Bar */}
         <div className="my-4">
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 z-10">
               <FiSearch className="w-4 h-4" />
             </span>
             <input
@@ -107,7 +107,8 @@ const ConvertSaleOrderModal = ({ isOpen, onClose, onSuccess }) => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by Voucher No, Customer name, or Mobile..."
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all"
+              className="has-icon-left w-full !pl-10 pr-4 py-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all"
+              style={{ paddingLeft: "2.6rem" }}
             />
           </div>
         </div>

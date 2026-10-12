@@ -432,7 +432,7 @@ const LoyaltyPoints = () => {
                     <Label>
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Search Party / Customer</span>
                       <div className="relative mt-1">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 z-10">
                           <FiSearch size={16} />
                         </span>
                         <Input
@@ -443,7 +443,8 @@ const LoyaltyPoints = () => {
                             setPage(1);
                           }}
                           placeholder="Search name, code, phone, email..."
-                          className="pl-9 pr-8 w-full text-sm"
+                          className="has-icon-left page-search-input !pl-10 !pr-8 w-full text-sm h-10"
+                          style={{ paddingLeft: "2.6rem" }}
                         />
                         {search && (
                           <button
