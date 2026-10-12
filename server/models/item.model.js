@@ -53,11 +53,55 @@ const ItemSchema = new Schema({
   application_type: { type: String },
   is_active: { type: Boolean, required: true },
   item_attribute: ItemAttributeSchema,
+  showOnWebsite: {
+    type: Boolean,
+    default: true
+},
   created_by: { type: String },
   created_date: { type: Date, default: Date.now },
   modified_by: { type: String },
   modified_date: { type: Date, default: Date.now },
+  gmc: {
+    synced: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ["PENDING", "SYNCING", "SYNCED", "FAILED"],
+      default: "PENDING",
+    },
+    offerId: { type: String, default: null },
+    productName: { type: String, default: null },
+    lastSyncedAt: { type: Date, default: null },
+    lastError: { type: String, default: null },
+    attempts: { type: Number, default: 0 },
+  },
+  flipkart: {
+    sku: { type: String, default: "" },
+    fsn: { type: String, default: "" },
+    synced: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ["UNMAPPED", "PENDING", "SYNCED", "FAILED"],
+      default: "UNMAPPED",
+    },
+    lastSyncedAt: { type: Date, default: null },
+    lastError: { type: String, default: null },
+  },
+  amazon: {
+    asin: { type: String, default: "" },
+    sku: { type: String, default: "" },
+    synced: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ["UNMAPPED", "PENDING", "SYNCED", "FAILED"],
+      default: "UNMAPPED",
+    },
+    lastSyncedAt: { type: Date, default: null },
+    lastError: { type: String, default: null },
+  },
 });
+
+ItemSchema.index({ "gmc.status": 1 });
+ItemSchema.index({ "gmc.synced": 1 });
 
 // Single field indexes for frequently queried fields
 ItemSchema.index({ category_id: 1 });

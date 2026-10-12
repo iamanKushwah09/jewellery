@@ -11,7 +11,7 @@ const fs = require('fs');
 const { pathToBase64 } = require('../common/folderToBase64');
 env.config();
 
-const uri = process.env.BASE_URL || 'https://api.vellorajewels.com';
+const uri = process.env.BASE_URL || 'https://api.selectionfootwear.com';
 
 
 // Create new Customer

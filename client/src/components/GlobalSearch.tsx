@@ -22,6 +22,7 @@ import { setSearchQuery } from '../store/slices/productSlice';
 import type { RootState } from '../store/types';
 import Image from 'next/image';
 import { showingTranslateValue } from '../lib/utils';
+import { fbPixel } from '../lib/fbPixel';
 
 interface GlobalSearchProps {
   isOpen: boolean;
@@ -49,6 +50,11 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       const newRecent = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5);
       setRecentSearches(newRecent);
       localStorage.setItem('recentSearches', JSON.stringify(newRecent));
+
+      // Track Facebook Pixel Search
+      fbPixel.trackSearch({
+        searchString: searchQuery.trim(),
+      });
 
       dispatch(setSearchQuery(searchQuery));
       onClose();
@@ -273,7 +279,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                   <span><kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-gray-500">Esc</kbd> to close</span>
                 </div>
                 <div className="font-medium">
-                  Vellora Jewels <span className="text-blue-500">Global Search</span>
+                  Bioinnovate Pharma <span className="text-blue-500">Global Search</span>
                 </div>
               </div>
             </DialogPanel>

@@ -9,45 +9,60 @@ import spinnerLoadingImage from "@/assets/img/spinner.gif";
 const DrawerButton = ({ id, title, isSubmitting, nextBtn, flag = true, setTapValue, setNextBtn, tapValue = "" }) => {
   const { t } = useTranslation();
   const { toggleDrawer, isDrawerOpen } = useContext(SidebarContext);
+
+  if (!isDrawerOpen) {
+    return null;
+  }
+
   return (
     <>
       <div
-        className="fixed z-10 bottom-0 w-full right-0 py-4 lg:py-8 px-6 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex bg-gray-50 border-t border-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-        style={{ right: !isDrawerOpen && -50 }}
+        className="sticky bottom-0 z-20 w-full py-3.5 px-6 flex items-center justify-end gap-3 bg-white dark:bg-[#1a2352] border-t border-[#e9edf4] dark:border-[#263168] shadow-[0_-4px_12px_rgba(0,0,0,0.03)] mt-auto"
       >
-        <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+        <div className="w-full sm:w-auto">
           <Button
-            onClick={()=>{
+            onClick={() => {
               toggleDrawer();
-              setNextBtn(false)
-              setTapValue("Item Info")
+              if (setNextBtn) setNextBtn(false);
+              if (setTapValue) setTapValue("Item Info");
             }}
-            className="h-12 bg-white w-full text-red-500 hover:bg-red-50 hover:border-red-100 hover:text-red-600 dark:bg-gray-700 dark:border-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-red-700"
+            className="h-10 px-5 w-full sm:w-auto border border-[#e9edf4] dark:border-[#263168] bg-white dark:bg-[#111c43] text-[#4b5563] dark:text-[#a3aed1] hover:bg-gray-50 dark:hover:bg-[#1e2753] font-medium rounded-lg transition-colors"
             layout="outline"
           >
             {t("CancelBtn")}
           </Button>
         </div>
-        <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-          {nextBtn ? <Button type="submit" className="w-full h-12">Next</Button> :
-            isSubmitting ? (
-              <Button disabled={true} type="button" className="w-full h-12">
-                <img
-                  src={spinnerLoadingImage}
-                  alt="Loading"
-                  width={20}
-                  height={10}
-                />{" "}
-                <span className="font-serif ml-2 font-light">Processing</span>
-              </Button>
-            ) : (
-              tapValue == "Item Attribute" || flag ? <Button type={"submit"} className="w-full h-12">
-                {id ? (<span>{t("UpdateBtn")} {title}</span>) : (<span>Add {title}</span>)}
-              </Button> : <Button onClick={() => setTapValue("Item Attribute")} className="w-full h-12">Next</Button>
-            )}
-
+        <div className="w-full sm:w-auto">
+          {nextBtn ? (
+            <Button type="submit" className="h-10 px-6 w-full sm:w-auto rounded-lg font-medium bg-[#845adf] hover:bg-[#7248cf] text-white shadow-sm transition-colors">
+              Next
+            </Button>
+          ) : isSubmitting ? (
+            <Button disabled={true} type="button" className="h-10 px-6 w-full sm:w-auto rounded-lg font-medium flex items-center justify-center bg-[#845adf]/70 text-white cursor-not-allowed">
+              <img
+                src={spinnerLoadingImage}
+                alt="Loading"
+                width={18}
+                height={18}
+                className="animate-spin mr-2"
+              />
+              <span>Processing</span>
+            </Button>
+          ) : tapValue === "Item Attribute" || flag ? (
+            <Button type={"submit"} className="h-10 px-6 w-full sm:w-auto rounded-lg font-medium bg-[#845adf] hover:bg-[#7248cf] text-white shadow-sm transition-colors">
+              {id ? (
+                <span>{t("UpdateBtn")} {title}</span>
+              ) : (
+                <span>Add {title}</span>
+              )}
+            </Button>
+          ) : (
+            <Button onClick={() => setTapValue && setTapValue("Item Attribute")} className="h-10 px-6 w-full sm:w-auto rounded-lg font-medium bg-[#845adf] hover:bg-[#7248cf] text-white shadow-sm transition-colors">
+              Next
+            </Button>
+          )}
         </div>
-      </div >
+      </div>
     </>
   );
 };

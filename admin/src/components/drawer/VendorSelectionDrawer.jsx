@@ -183,7 +183,7 @@ const VendorSelectionDrawer = ({ isOpen, onClose, catalogData, onSendPdf }) => {
 
               {loading ? (
                 <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary-color)] mx-auto"></div>
                   <p className="mt-2 text-sm text-gray-600">Loading {activeTab === 'vendorGroups' ? 'vendor groups' : 'vendors'}...</p>
                 </div>
               ) : (
@@ -237,7 +237,7 @@ const VendorSelectionDrawer = ({ isOpen, onClose, catalogData, onSendPdf }) => {
               <Button
                 onClick={handleSendPdf}
                 disabled={selectedItems.length === 0 || sending}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-primary hover:bg-primary-hover text-white rounded-xl shadow-button font-medium"
               >
                 {sending ? "Sending..." : `Send PDF (${selectedItems.length})`}
               </Button>

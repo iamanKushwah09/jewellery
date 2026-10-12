@@ -127,7 +127,7 @@ const PartyLedgerPDF = ({ data, vendorName, startDate, endDate }) => {
             <Page size="A4" style={styles.page}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Party Ledger</Text>
-                    <Text style={styles.subTitle}>Vellora Jewels</Text>
+                    <Text style={styles.subTitle}>Selection Footwear</Text>
                 </View>
 
                 <View style={styles.infoContainer}>

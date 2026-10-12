@@ -13,7 +13,7 @@ const TextAreaCom = ({
   return (
     <>
       <Textarea
-        className="border text-sm border-gray-200 focus:border-gray-300 block w-full bg-gray-100"
+        className="block w-full rounded-md border border-[#e9edf4] dark:border-[#263168] bg-white dark:bg-[#1a2352] p-3 text-sm text-[#2c3138] dark:text-white placeholder:text-[#8c9097] placeholder:opacity-75 focus:border-[#845adf] focus:ring-2 focus:ring-[#845adf]/15 outline-none transition duration-150"
         {...register(`${name}`, {
           required: required ? `${label} is required!` : false,
         })}

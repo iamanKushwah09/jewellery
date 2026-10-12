@@ -10,6 +10,10 @@ router.route('/')
   .get(itemGroupController.getAllItemGroups)       // Get all item groups
   .delete(itemGroupController.deleteAllItemGroups);
 
+router.route('/show')
+  .get(itemGroupController.showItemGroups);        // Get item groups visible on store
+
+
 router.route('/active')
   .get(itemGroupController.activeItemGroups)        // Get an item group by ID
 

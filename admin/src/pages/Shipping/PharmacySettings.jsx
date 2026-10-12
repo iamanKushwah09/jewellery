@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, Input, Button, Label } from '@windmill/react-ui';
 import PageTitle from '@/components/Typography/PageTitle';
-import { useGetStoreSettingsQuery, useUpdateStoreSettingsMutation } from '@/reduxStore/slice/shippingApiSlice';
+import { useGetPharmacySettingsQuery, useUpdatePharmacySettingsMutation } from '@/reduxStore/slice/shippingApiSlice';
 import { toast } from 'react-toastify';
 
-const StoreSettings = () => {
-  const { data, isLoading } = useGetStoreSettingsQuery();
-  const [updatePharmacy, { isLoading: isUpdating }] = useUpdateStoreSettingsMutation();
+const PharmacySettings = () => {
+  const { data, isLoading } = useGetPharmacySettingsQuery();
+  const [updatePharmacy, { isLoading: isUpdating }] = useUpdatePharmacySettingsMutation();
   const [formData, setFormData] = useState({
     officeName: '',
     officeAddress: '',
@@ -38,9 +38,9 @@ const StoreSettings = () => {
         officeLatitude: Number(formData.officeLatitude),
         officeLongitude: Number(formData.officeLongitude)
       }).unwrap();
-      toast.success('Store Location updated successfully');
+      toast.success('Pharmacy location updated successfully');
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to update Store Location');
+      toast.error(err?.data?.message || 'Failed to update pharmacy location');
     }
   };
 
@@ -48,7 +48,7 @@ const StoreSettings = () => {
 
   return (
     <>
-      <PageTitle>Store Location Settings</PageTitle>
+      <PageTitle>Pharmacy Location Settings</PageTitle>
       <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5">
         <CardBody>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -80,4 +80,4 @@ const StoreSettings = () => {
   );
 };
 
-export default StoreSettings;
+export default PharmacySettings;

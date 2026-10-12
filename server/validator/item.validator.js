@@ -132,6 +132,9 @@ const itemValidationSchema = Joi.object({
     .messages({
       'string.base': 'Default image must be a string.',
     }),
+  showOnWebsite: Joi.boolean().optional().messages({
+    "boolean.base": "Show on website must be a boolean.",
+  }),
   application_type: Joi.string()
     .optional()
     .allow(null, '')

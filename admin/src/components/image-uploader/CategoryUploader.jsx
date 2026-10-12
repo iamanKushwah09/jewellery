@@ -59,7 +59,15 @@ const Uploader = ({ initialImages = [], setNewImage }) => {
         }
         // Update the parent state with new images
         console.log("newImages:", newImages);
-        setNewImage((prevState) => Array.isArray(prevState) ? [...prevState, ...newImages] : [...newImages]);
+        setNewImage((prevState) => {
+          const filteredPrev = Array.isArray(prevState) 
+            ? prevState.filter(img => {
+                const str = typeof img === 'string' ? img : (img?.url || img?.fileName || img?.path || '');
+                return !str.includes('default_image.png') && !str.includes('placeholder_kvepfp.png');
+              })
+            : [];
+          return [...newImages, ...filteredPrev];
+        });
         setLoading(false); // Hide loading
       }
     };
@@ -139,15 +147,15 @@ const Uploader = ({ initialImages = [], setNewImage }) => {
     <div className="w-full text-center">
       {/* Dropzone */}
       <div
-        className="border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer px-6 pt-5 pb-6"
+        className="border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer px-3 py-2 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-gray-800/40 hover:bg-gray-100/60 dark:hover:bg-gray-800/80 transition-colors"
         {...getRootProps()}
       >
         <input {...getInputProps()} />
         <span className="mx-auto flex justify-center">
-          <FiUploadCloud className="text-3xl text-blue-500" />
+          <FiUploadCloud className="text-xl text-blue-500" />
         </span>
-        <p className="text-sm mt-2">Drag your images here, or click to select files</p>
-        <em className="text-xs text-gray-400">Only .jpeg, .jpg, .png, .webp formats allowed</em>
+        <p className="text-xs mt-0.5 text-gray-700 dark:text-gray-300 font-medium">Drag images here, or click to select</p>
+        <em className="text-[10px] text-gray-400">.jpeg, .jpg, .png, .webp</em>
       </div>
       {/* Loading and error messages */}
       <div className="text-blue-500">{loading && "Uploading..."}</div>

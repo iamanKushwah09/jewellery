@@ -10,12 +10,14 @@ const salesmanSchema = new mongoose.Schema({
         default: ''
     },
     code: {
-        type: Number,
-        required: true
+        type: Number
     },
     app_code: {
-        type: Number,
-        required: true
+        type: Number
+    },
+    created_date: {
+        type: Date,
+        default: Date.now
     },
     is_active: {
         type: Boolean,

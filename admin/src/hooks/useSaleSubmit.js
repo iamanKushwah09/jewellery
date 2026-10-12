@@ -38,7 +38,18 @@ const useSaleSubmit = (id) => {
             }
             setIsUpdate(true);
             setIsSubmitting(false);
-            notifySuccess(res.message || "Sale saved successfully");
+
+            let successMsg = res.message || "Sale saved successfully";
+            const redeemed = Number(res.pointsRedeemed ?? data.loyaltyPointsRedeemed ?? 0);
+            const earned = Number(res.pointsEarned ?? res.data?.loyaltyPointsEarned ?? 0);
+            if (redeemed > 0 || earned > 0) {
+                const parts = [];
+                if (redeemed > 0) parts.push(`−${redeemed} pts redeemed`);
+                if (earned > 0) parts.push(`+${earned} pts earned`);
+                successMsg += ` (${parts.join(", ")})`;
+            }
+
+            notifySuccess(successMsg);
             closeDrawer();
         } catch (err) {
             notifyError(err?.response?.data?.message || err?.message);

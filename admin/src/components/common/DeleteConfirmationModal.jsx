@@ -33,31 +33,31 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
             >
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
                 <div className="text-center">
-                  <div className="text-red-500 flex justify-center mb-4 text-3xl">
-                    <FiTrash2 />
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FEEAEA] text-[#DC2626] shadow-sm">
+                    <FiTrash2 className="h-7 w-7" />
                   </div>
                   <Dialog.Title
                     as="h3"
-                    className="text-lg font-semibold leading-6 text-gray-900 dark:text-white"
+                    className="text-lg font-bold text-black"
                   >
-                    Are You Sure! Want to Delete?
+                    Are you sure you want to delete?
                   </Dialog.Title>
-                  <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
+                  <p className="text-sm mt-2 text-body leading-relaxed">
                     Do you really want to delete these records? You can't view this in your list anymore if you delete!
                   </p>
                 </div>
 
-                <div className="mt-6 flex justify-end gap-3">
+                <div className="mt-6 flex justify-center gap-3">
                   <button
                     type="button"
-                    className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+                    className="rounded-lg border border-stroke bg-white px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-gray-50"
                     onClick={onClose}
                   >
                     No, Keep It
                   </button>
                   <button
                     type="button"
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    className="rounded-lg bg-danger px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-600"
                     onClick={onConfirm}
                   >
                     Yes, Delete It

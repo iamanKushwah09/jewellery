@@ -2,14 +2,13 @@ import api from './api';
 import { User } from '../types';
 
 export class AuthService {
-  // Login user
   static async login(credentials: any): Promise<any> {
     const response = await api.post<any>('/store/customer/login', credentials);
     const { token, ...user } = response.data;
     // Store tokens and user info
     if (token) {
       localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      localStorage.setItem('userInfo', JSON.stringify(user));
     }
     return response.data;
   }
@@ -24,19 +23,16 @@ export class AuthService {
   static async register(userData: any): Promise<any> {
     const response = await api.post<any>('/store/customer/register', userData);
     const { token } = response.data;
-    if (token) {
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(response.data));
-    }
+    if (token) localStorage.setItem('authToken', token);
     return response.data;
   }
 
   // Logout user
   static async logout(): Promise<void> {
-    // Clear tokens and user
+    // Clear tokens and user info
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    localStorage.removeItem('userInfo');
   }
 
   // Forgot password
@@ -80,7 +76,6 @@ export class AuthService {
   static clearAuthData(): void {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
   }
 }
 

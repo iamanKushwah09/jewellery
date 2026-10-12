@@ -22,7 +22,7 @@ import toast from 'react-hot-toast';
 import type { RootState } from '../../store/types';
 import { showingTranslateValue } from '../../lib/utils';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5056/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5055/api';
 
 interface MembershipInfo {
   tier: {

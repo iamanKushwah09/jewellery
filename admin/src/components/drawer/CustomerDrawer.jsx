@@ -7,7 +7,7 @@ import InputArea from "@/components/form/input/InputArea";
 import LabelArea from "@/components/form/selectOption/LabelArea";
 import useCustomerSubmit from "@/hooks/useCustomerSubmit";
 import DrawerButton from "@/components/form/button/DrawerButton";
-import { Select, Textarea, Button } from "@windmill/react-ui";
+import { Select, Textarea } from "@windmill/react-ui";
 import { useTranslation } from "react-i18next";
 import SelectCountry from "../form/selectOption/SelectCountry";
 import SelectCity from "../form/selectOption/SelectCity";
@@ -88,7 +88,7 @@ const CustomerDrawer = ({ id }) => {
   // }, [salesman, setValue]);
 
   return (<>
-    <div className="w-full relative p-6 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+    <div className="w-full relative px-6 py-2.5 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
       {id ? (
         <Title
           title={"Update Customer"}
@@ -103,9 +103,11 @@ const CustomerDrawer = ({ id }) => {
     </div>
     <Scrollbars className="w-full md:w-7/12 lg:w-8/12 xl:w-8/12 relative dark:bg-gray-700 dark:text-gray-200">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="px-4 sm:px-6 pt-8 flex-grow scrollbar-hide w-full max-h-full pb-40">
+        <div className="px-4 sm:px-6 pt-2 flex-grow scrollbar-hide w-full max-h-full pb-28">
 
-          <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+          {/* Unified Compact Grid for Customer & Vendor Fields */}
+          <div className="grid grid-cols-12 gap-x-2.5 sm:gap-x-3 gap-y-1 sm:gap-y-1.5 mb-2">
+            {/* Row 1 */}
             <div className="col-span-12 sm:col-span-6 md:col-span-3">
               <LabelArea label={"Name"} status />
               <InputArea
@@ -137,7 +139,7 @@ const CustomerDrawer = ({ id }) => {
                 register={register}
                 label="Phone"
                 name="phone"
-                type="number"
+                type="text"
                 placeholder={"Phone"}
               />
               <Error errorName={errors.phone} />
@@ -160,23 +162,20 @@ const CustomerDrawer = ({ id }) => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400" />
+                    <FiEyeOff className="h-4 w-4 text-gray-400" />
                   ) : (
-                    <FiEye className="h-5 w-5 text-gray-400" />
+                    <FiEye className="h-4 w-4 text-gray-400" />
                   )}
                 </button>
               </div>
               <Error errorName={errors.password} />
             </div>
 
-          </div>
-
-          {/* Shipping Address, Password, Type Selection, and GST no */}
-          <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+            {/* Row 2 */}
             <div className="col-span-12 sm:col-span-6 md:col-span-3">
               <LabelArea label={"Address"} />
               <Textarea
-                className="border text-sm  block w-full bg-gray-100 border-gray-200"
+                className="h-8 py-1 px-3 text-xs sm:text-sm block w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 resize-none"
                 {...register("address")}
                 name="address"
                 placeholder="Address"
@@ -250,7 +249,7 @@ const CustomerDrawer = ({ id }) => {
                   register={register}
                   label="Aadhar no"
                   name="aadhaar_no"
-                  type="number"
+                  type="text"
                   placeholder={"Aadhar no"}
                 />
                 <Error errorName={errors.aadhaar_no} />
@@ -261,7 +260,7 @@ const CustomerDrawer = ({ id }) => {
                   register={register}
                   label="Tel no"
                   name="tel_no"
-                  type="number"
+                  type="text"
                   placeholder={"Tel no"}
                 />
                 <Error errorName={errors.tel_no} />
@@ -272,7 +271,7 @@ const CustomerDrawer = ({ id }) => {
                   register={register}
                   label="Contact Person"
                   name="contact_person"
-                  type="number"
+                  type="text"
                   placeholder={"Contact Person"}
                 />
                 <Error errorName={errors.contact_person} />
@@ -321,7 +320,7 @@ const CustomerDrawer = ({ id }) => {
                   register={register}
                   label="Pincode"
                   name="pincode"
-                  type="number"
+                  type="text"
                   placeholder={"Pincode"}
                   required={false}
                 />
@@ -356,51 +355,53 @@ const CustomerDrawer = ({ id }) => {
 
 
 
-          <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+          {/* Shipping Address Section */}
+          <div className="space-y-2 mb-3">
             {shipping_address?.map((address, index) => (
-              <React.Fragment key={index}>
-                <div className="col-span-12 sm:col-span-10 md:col-span-8">
-                  <label htmlFor={`shipping_address[${index}].shipping_address`} className="block text-sm font-medium text-gray-700">
-                    Shipping Address {index + 1}
-                  </label>
+              <div key={index} className="w-full">
+                <label
+                  htmlFor={`shipping_address[${index}].shipping_address`}
+                  className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Shipping Address {index + 1}
+                </label>
+                <div className="flex items-center gap-2">
                   <Textarea
-                    className="border text-sm block w-full bg-gray-100 border-gray-200"
+                    className="h-8 py-1 px-3 text-xs sm:text-sm block flex-grow rounded-md border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 resize-none outline-none focus:border-[#845adf]"
                     {...register(`shipping_address.${index}.shipping_address`)}
-                    placeholder="Shipping Address"
+                    placeholder={`Shipping Address ${index + 1}`}
                     rows="1"
                     spellCheck="false"
                   />
-                  {errors?.shipping_address?.[index]?.shipping_address && (
-                    <p className="text-red-500">{errors.shipping_address[index].shipping_address.message}</p>
+                  {shipping_address.length > 1 && (
+                    <button
+                      type="button"
+                      className="h-8 w-8 rounded-md border border-red-300 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center transition-all cursor-pointer flex-shrink-0"
+                      onClick={() => handleRemoveField(index)}
+                      title="Remove this address"
+                    >
+                      <FiTrash className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {index === shipping_address.length - 1 && shipping_address.length < 5 && (
+                    <button
+                      type="button"
+                      className="h-8 px-2.5 rounded-md border border-[#845adf] text-[#845adf] hover:bg-[#845adf] hover:text-white flex items-center justify-center gap-1 text-xs font-semibold transition-all cursor-pointer flex-shrink-0 shadow-xs"
+                      onClick={handleAddField}
+                      title="Add another shipping address"
+                    >
+                      <FiPlusCircle className="w-3.5 h-3.5" />
+                      <span>+ Add</span>
+                    </button>
                   )}
                 </div>
-                {shipping_address.length > 1 && (
-                  <div className="col-span-12 sm:col-span-2 md:col-span-1 flex items-center justify-center">
-                    <Button
-                      type="button"
-                      layout="outline"
-                      size="small"
-                      className="text-red-500 border-red-500 hover:bg-red-100 mt-4"
-                      onClick={() => handleRemoveField(index)}
-                    >
-                      <FiTrash className="w-4 h-4" />
-                    </Button>
-                  </div>
+                {errors?.shipping_address?.[index]?.shipping_address && (
+                  <p className="text-red-500 text-xs mt-0.5">
+                    {errors.shipping_address[index].shipping_address.message}
+                  </p>
                 )}
-              </React.Fragment>
-            ))}
-            {shipping_address.length < 5 && (
-              <div className="col-span-12 sm:col-span-2 md:col-span-1 flex items-center">
-                <Button
-                  type="button"
-                  layout="outline"
-                  className="flex items-center text-green-500 border-green-500 hover:bg-green-100 mt-4"
-                  onClick={handleAddField}
-                >
-                  <FiPlusCircle className="w-4 h-4" />
-                </Button>
               </div>
-            )}
+            ))}
           </div>
 
         </div>

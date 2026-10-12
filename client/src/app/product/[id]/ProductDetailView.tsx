@@ -25,6 +25,7 @@ import { fetchProducts } from '../../../store/slices/productSlice';
 import { showingTranslateValue, getImageUrl, getQuantityStep } from '../../../lib/utils';
 import type { RootState } from '../../../store/types';
 import ProductService from '../../../services/productService';
+import { fbPixel } from '../../../lib/fbPixel';
 
 export default function ProductDetailView() {
   const params = useParams();
@@ -87,6 +88,19 @@ export default function ProductDetailView() {
     }
   }, [product]);
 
+  // Track Facebook Pixel ViewContent when product loads
+  useEffect(() => {
+    if (product) {
+      const title = showingTranslateValue(product.title);
+      fbPixel.trackViewContent({
+        contentName: title,
+        contentIds: [product._id],
+        contentType: 'product',
+        value: product.prices?.price || 0,
+      });
+    }
+  }, [product?._id]);
+
   if (!product && (isLoadingSingle || reduxLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -120,6 +134,15 @@ export default function ProductDetailView() {
       quantity,
     }));
     toast.success('Added to bag successfully!');
+
+    // Track Facebook Pixel AddToCart
+    fbPixel.trackAddToCart({
+      contentName: productTitle,
+      contentIds: [product._id],
+      contentType: 'product',
+      value: (product.prices?.price || 0) * quantity,
+      numItems: quantity,
+    });
   };
 
   const productTitle = showingTranslateValue(product.title);

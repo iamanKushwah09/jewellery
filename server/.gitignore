@@ -1,3 +1,30 @@
-node_modules
-# .env
+# Dependencies
+node_modules/
 
+# Environment files
+.env
+.env.*
+*.env
+*.env.*
+env.*
+env.production
+env.development
+env.local
+!.env.example
+
+# Keys & Certificates
+*.pem
+*.key
+*.pfx
+*.p12
+*service-account*.json
+gmc-key*.json
+google-key*.json
+credentials.json
+
+# Logs
+logs/
+*.log
+
+# Vercel
+.vercel/

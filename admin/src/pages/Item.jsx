@@ -12,7 +12,7 @@ import {
 
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiFilter, FiChevronDown, FiSearch } from "react-icons/fi";
 import MainDrawer from "@/components/drawer/MainDrawer";
 import ItemDrawer from "@/components/drawer/ItemDrawer";
 import TableLoading from "@/components/preloader/TableLoading";
@@ -22,24 +22,24 @@ import PageTitle from "@/components/Typography/PageTitle";
 import { AdminContext } from "@/context/AdminContext";
 import { SidebarContext } from "@/context/SidebarContext";
 import ItemServices from "@/services/ItemServices";
+import GmcServices from "@/services/GmcServices";
 import AnimatedContent from "@/components/common/AnimatedContent";
 import { notifySuccess, notifyError } from "@/utils/toast";
 // import ConfirmDialog from "@/components/common/ConfirmDialog";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import SelectItemGroupFilter from "@/components/form/selectOption/SelectItemGroupFilter";
 import SelectCategoryFilter from "@/components/form/selectOption/SelectCategoryFilter";
-import ItemImportModal from "@/components/item/ItemImportModal";
 
 const Item = () => {
 
   const { state } = useContext(AdminContext);
   const { adminInfo } = state;
-  const { toggleDrawer, lang } = useContext(SidebarContext);
+  const { toggleDrawer, lang, isUpdate, setIsUpdate } = useContext(SidebarContext);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   // Server-side pagination/search state
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(20);
@@ -62,19 +62,20 @@ const Item = () => {
     stockMax: ""
   });
 
-  const fetchItems = async (page = 1, limit = resultsPerPage, q = "") => {
+  const fetchItems = async (page = 1, limit = resultsPerPage, q = "", activeFilters = filters) => {
     // Block unintended resets to page 1 unless explicitly allowed
     if (page === 1 && !allowPageOneRef.current) {
       console.log("Blocked unintended page=1 fetch");
       return;
     }
     const requestId = ++requestIdRef.current;
-    console.log("fetchItems called:", { page, limit, q, requestId, filters });
+    const currentFilters = activeFilters !== undefined ? activeFilters : filters;
+    console.log("fetchItems called:", { page, limit, q, requestId, filters: currentFilters });
     setLoading(true);
     setError("");
     try {
       const { items, totalDoc /*, limits, pages*/ } =
-        await ItemServices.getAllItem({ page, limit, q, ...filters });
+        await ItemServices.getAllItem({ page, limit, q, ...currentFilters });
       if (requestId !== requestIdRef.current) {
         console.log("fetchItems ignored stale response:", {
           page,
@@ -109,7 +110,7 @@ const Item = () => {
     const isDropdownField = field === 'itemGroup' || field === 'category';
     const value = isDropdownField ? (selectedOption?.label || selectedOption || "") : (selectedOption?.value || selectedOption || "");
     const newFilters = { ...filters, [field]: value };
-    console.log(newFilters,'newFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFilters')
+    console.log(newFilters, 'newFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFiltersnewFilters')
     setFilters(newFilters);
     console.log('Filter changed:', field, selectedOption, newFilters);
     // Don't apply filters immediately - only update the state
@@ -141,10 +142,20 @@ const Item = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (isUpdate) {
+      allowPageOneRef.current = true;
+      fetchItems(currentPage, resultsPerPage, searchQuery, filters);
+      setIsUpdate(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUpdate]);
+
   const { toggleModal } = useContext(SidebarContext);
   const { t } = useTranslation();
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncStockLoading, setSyncStockLoading] = useState(false);
+  const [gmcSyncLoading, setGmcSyncLoading] = useState(false);
   // handle reset field
   const handleResetField = () => {
     setSearchQuery("");
@@ -198,6 +209,22 @@ const Item = () => {
     }
   };
 
+  const syncAllGMC = async () => {
+    setGmcSyncLoading(true);
+    try {
+      await GmcServices.syncAllProducts();
+      notifySuccess("GMC batch synchronization started in background!");
+      setTimeout(() => {
+        fetchItems(currentPage, resultsPerPage, searchQuery);
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      notifyError(err.response?.data?.message || err.message || "Failed to start GMC sync");
+    } finally {
+      setGmcSyncLoading(false);
+    }
+  };
+
   // Debounced search as-you-type
   const onSearchChange = (e) => {
     const value = e.target.value;
@@ -231,9 +258,9 @@ const Item = () => {
       typeof p === "number"
         ? p
         : p && typeof p === "object"
-        ? // if it's an object with .page or a native event with target.value
+          ? // if it's an object with .page or a native event with target.value
           Number(p.page ?? p.target?.value ?? NaN)
-        : Number(p);
+          : Number(p);
 
     const nextPage =
       Number.isInteger(incoming) && incoming > 0 ? incoming : NaN;
@@ -299,192 +326,217 @@ const Item = () => {
         <ItemDrawer />
       </MainDrawer>
       <AnimatedContent>
-        <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5">
+        <Card className="min-w-0 shadow-xs bg-white dark:bg-gray-800 mb-5" style={{ overflow: 'visible' }}>
           <CardBody>
             {/* Filters Section */}
-            {false && (
-            <div className="mb-6 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 dark:text-white">Filters</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-                {/* Item Group Filter */}
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Item Group
-                  </label>
-                  <SelectItemGroupFilter
-                    setRole={(selectedOption) => handleFilterChange('itemGroup', selectedOption)}
-                    value={filters.itemGroup || ""}
-                  />
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/60 border border-gray-100 dark:border-gray-700 rounded-lg">
+              <div
+                className="flex items-center justify-between cursor-pointer sm:cursor-default"
+                onClick={() => setShowFilters((prev) => !prev)}
+              >
+                <div className="flex items-center gap-1.5 text-sm sm:text-base font-semibold text-gray-800 dark:text-white">
+                  <FiFilter className="text-primary w-4 h-4" />
+                  <span>Filters</span>
+                  {(filters.itemGroup || filters.category || filters.stockMin || filters.stockMax) && (
+                    <span className="ml-1 text-[10px] sm:text-xs px-2 py-0.5 bg-primary/20 text-primary font-bold rounded-full">
+                      Active
+                    </span>
+                  )}
                 </div>
-
-                {/* Category Filter */}
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Category
-                  </label>
-                  <SelectCategoryFilter
-                    setRole={(selectedOption) => handleFilterChange('category', selectedOption)}
-                    value={filters.category || ""}
-                  />
-                </div>
-
-                {/* Stock Min Filter */}
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Stock Min
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={filters.stockMin}
-                    onChange={(e) => handleFilterChange('stockMin', e.target.value)}
-                    className="w-full text-sm py-2"
-                  />
-                </div>
-
-                {/* Stock Max Filter */}
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Stock Max
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={filters.stockMax}
-                    onChange={(e) => handleFilterChange('stockMax', e.target.value)}
-                    className="w-full text-sm py-2"
-                  />
-                </div>
-
-                {/* Apply Filters Button */}
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-medium text-transparent mb-1">.</label>
-                  <Button
-                    onClick={applyFilters}
-                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium"
+                <div className="flex items-center gap-2">
+                  {(filters.itemGroup || filters.category || filters.stockMin || filters.stockMax) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearFilters();
+                      }}
+                      className="text-xs text-red-500 hover:underline font-medium"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="sm:hidden text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-600"
                   >
-                    <span className="block sm:hidden">Apply</span>
-                    <span className="hidden sm:block">Apply Filters</span>
-                  </Button>
+                    <span>{showFilters ? "Hide" : "Show"}</span>
+                    <FiChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        showFilters ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
                 </div>
+              </div>
 
-                {/* Clear Filters Button */}
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-medium text-transparent mb-1">.</label>
-                  <Button
-                    onClick={clearFilters}
-                    layout="outline"
-                    className="w-full px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-500 dark:text-gray-300 dark:hover:bg-gray-600 rounded-md text-sm font-medium"
-                  >
-                    <span className="block sm:hidden">Clear</span>
-                    <span className="hidden sm:block">Clear Filters</span>
-                  </Button>
+              <div className={`mt-3 sm:mt-4 ${showFilters ? "block" : "hidden sm:block"}`}>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-4 items-end">
+                  {/* Item Group Filter */}
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Item Group
+                    </label>
+                    <SelectItemGroupFilter
+                      setRole={(selectedOption) => handleFilterChange('itemGroup', selectedOption)}
+                      value={filters.itemGroup || ""}
+                    />
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Category
+                    </label>
+                    <SelectCategoryFilter
+                      setRole={(selectedOption) => handleFilterChange('category', selectedOption)}
+                      value={filters.category || ""}
+                    />
+                  </div>
+
+                  {/* Stock Min Filter */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Stock Min
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Min"
+                      value={filters.stockMin}
+                      onChange={(e) => handleFilterChange('stockMin', e.target.value)}
+                      className="w-full text-xs sm:text-sm h-10"
+                    />
+                  </div>
+
+                  {/* Stock Max Filter */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Stock Max
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Max"
+                      value={filters.stockMax}
+                      onChange={(e) => handleFilterChange('stockMax', e.target.value)}
+                      className="w-full text-xs sm:text-sm h-10"
+                    />
+                  </div>
+
+                  {/* Apply Filters Button */}
+                  <div className="col-span-1">
+                    <Button
+                      onClick={applyFilters}
+                      className="w-full h-10 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs sm:text-sm font-medium flex items-center justify-center shadow-button transition-all"
+                    >
+                      <span className="block sm:hidden">Apply</span>
+                      <span className="hidden sm:block">Apply Filters</span>
+                    </Button>
+                  </div>
+
+                  {/* Clear Filters Button */}
+                  <div className="col-span-1">
+                    <Button
+                      onClick={clearFilters}
+                      layout="outline"
+                      className="w-full h-10 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-danger hover:text-danger rounded-lg text-xs sm:text-sm font-medium flex items-center justify-center transition-all"
+                    >
+                      <span className="block sm:hidden">Clear</span>
+                      <span className="hidden sm:block">Clear Filters</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
-            )}
 
             <form
               onSubmit={handleSubmitUser}
-              className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex"
+              className="py-1 flex flex-col xl:flex-row xl:items-center gap-2.5 2xl:gap-3"
             >
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                <Input
-                  ref={userRef}
-                  type="search"
-                  name="search"
-                  placeholder={t("Search Item")}
-                  onChange={onSearchChange}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-0 top-0 mt-5 mr-1"
-                ></button>
+              {/* Search Bar - Expands smoothly to eliminate empty space */}
+              <div className="w-full xl:flex-1 min-w-0">
+                <div className="relative flex items-center w-full">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-400 z-10">
+                    <FiSearch className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <input
+                    ref={userRef}
+                    type="text"
+                    name="search"
+                    placeholder={t("Search Item")}
+                    onChange={onSearchChange}
+                    className="w-full h-10 rounded-lg text-xs sm:text-sm bg-white dark:bg-[#1a2352] border border-gray-200 dark:border-[#263168] text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-all"
+                    style={{ paddingLeft: "2.75rem", paddingRight: "1rem" }}
+                  />
+                  <button type="submit" className="hidden"></button>
+                </div>
               </div>
-                <div className="w-full md:w-35 lg:w-35 xl:w-56">
-                  <Button
-                    layout="outline"
-                    onClick={handleResetField}
-                    type="reset"
-                    className="px-4 md:py-1 py-3 text-sm dark:bg-gray-700"
-                  >
-                    <span className="text-black dark:text-gray-200">Reset</span>
-                  </Button>
-                </div>
-              {/* <div className="w-full md:w-56 lg:w-56 xl:w-56">
-                <div className="w-full mx-1">
-                  <Button type="submit" className="h-12 w-full bg-blue-700">
-                    Search
-                  </Button>
-                </div>
-              </div> */}
-              <div className="mt-2 md:mt-0 flex items-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+
+              {/* Actions Toolbar - Fits on 1 row on Desktop (xl:flex-nowrap), 2-col grid on Mobile */}
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap xl:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full xl:w-auto flex-shrink-0">
+                {/* Sync Items Button */}
+                <Button
+                  onClick={syncItem}
+                  disabled={syncLoading}
+                  type="button"
+                  className="btn-action-sync h-9 sm:h-10 !px-2 2xl:!px-3 flex items-center justify-center text-xs font-medium w-full sm:w-auto whitespace-nowrap flex-shrink-0"
+                >
+                  <span>{syncLoading ? "Syncing..." : "Sync Items"}</span>
+                </Button>
+
+                {/* Sync Stock Button */}
+                <Button
+                  onClick={syncStock}
+                  disabled={syncStockLoading}
+                  type="button"
+                  className="btn-action-sync h-9 sm:h-10 !px-2 2xl:!px-3 flex items-center justify-center text-xs font-medium w-full sm:w-auto whitespace-nowrap flex-shrink-0"
+                >
+                  <span>{syncStockLoading ? "Syncing..." : "Sync Stock"}</span>
+                </Button>
+
+                {/* Sync All GMC Button */}
+                <Button
+                  onClick={syncAllGMC}
+                  disabled={gmcSyncLoading}
+                  type="button"
+                  className="btn-action-outline-primary h-9 sm:h-10 !px-2 2xl:!px-3 flex items-center justify-center text-xs font-medium w-full sm:w-auto whitespace-nowrap flex-shrink-0"
+                >
+                  <span>{gmcSyncLoading ? "Syncing GMC..." : "Sync to GMC"}</span>
+                </Button>
+
+                {/* Reset Button */}
+                <Button
+                  onClick={handleResetField}
+                  type="reset"
+                  className="btn-action-reset h-9 sm:h-10 !px-2.5 2xl:!px-3 flex items-center justify-center text-xs font-medium w-full sm:w-auto whitespace-nowrap flex-shrink-0"
+                >
+                  Reset
+                </Button>
+
+                {/* Delete All Button */}
+                <Button
+                  onClick={() => setConfirmOpen(true)}
+                  type="button"
+                  className="btn-action-danger h-9 sm:h-10 !px-2 2xl:!px-3 flex items-center justify-center text-xs font-medium w-full sm:w-auto whitespace-nowrap flex-shrink-0"
+                >
+                  <span>{t("Delete All")}</span>
+                </Button>
+
+                {/* Add Item Button (Primary Action) */}
                 <Button
                   onClick={toggleDrawer}
-                  className="w-full rounded-md h-12"
+                  type="button"
+                  className="h-9 sm:h-10 !px-3 2xl:!px-4 bg-primary hover:bg-primary-hover shadow-button text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1 w-full sm:w-auto transition-all whitespace-nowrap flex-shrink-0"
                 >
-                  <span className="mr-3">
-                    <FiPlus />
-                  </span>
-                  {t("Add Item")}
+                  <FiPlus className="w-3.5 h-3.5" />
+                  <span>{t("Add Item")}</span>
                 </Button>
-              </div>
-              <div className="mt-2 md:mt-0 flex items-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                <Button
-                  onClick={() => setImportModalOpen(true)}
-                  className="w-full rounded-md h-12 bg-blue-600 hover:bg-blue-700"
-                >
-                  {t("Import Items")}
-                </Button>
-              </div>
-              <div className="mt-2 md:mt-0 flex items-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                {false && (
-                <div className="w-full">
-                  <Button
-                    layout="outline"
-                    onClick={syncItem}
-                    disabled={syncLoading}
-                    type="button"
-                    className="px-4 md:py-1 py-3 text-sm border border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 dark:border-blue-400"
-                  >
-                    <span className="text-blue-900 dark:text-blue-300 font-medium">
-                      {syncLoading ? "Syncing..." : "Sync Items"}
-                    </span>
-                  </Button>
-                </div>
-                )}
-                {false && (
-                <div className="w-full">
-                  <Button
-                    layout="outline"
-                    onClick={syncStock}
-                    disabled={syncStockLoading}
-                    type="button"
-                    className="px-4 md:py-1 py-3 text-sm border border-green-500 hover:bg-green-50 dark:hover:bg-green-900 dark:border-green-400"
-                  >
-                    <span className="text-green-900 dark:text-green-300 font-medium">
-                      {syncStockLoading ? "Syncing..." : "Sync Stock"}
-                    </span>
-                  </Button>
-                </div>
-                )}
-                <div className="w-full">
-                  <Button
-                    layout="outline"
-                    onClick={() => setConfirmOpen(true)}
-                    type="button"
-                    className="px-4 md:py-1 py-3 text-sm border  hover:bg-red-50 dark:hover:bg-red-900 dark:border-red-400"
-                  >
-                    <span className="  font-medium">{t("Delete All")}</span>
-                  </Button>
-                </div>
               </div>
             </form>
           </CardBody>
         </Card>
       </AnimatedContent>
       {loading ? (
-        <TableLoading row={12} col={7} width={163} height={20} />
+        <TableLoading row={10} col={9} message="Loading inventory & catalog items..." />
       ) : error ? (
         <span className="text-center mx-auto text-red-500">{error}</span>
       ) : items?.length !== 0 ? (
@@ -511,15 +563,21 @@ const Item = () => {
                 {/* <TableCell>{t("Specification")}</TableCell>
                 <TableCell>{t("Short description")}</TableCell>
                 <TableCell>{t("Long description")}</TableCell> */}
+                <TableCell className="text-center">{t("Store Show")}</TableCell>
                 <TableCell className="text-center">{t("Active")}</TableCell>
-                <TableCell className="text-right">{t("Actions")}</TableCell>
+                <TableCell className="text-center">{t("GMC")}</TableCell>
+                <TableCell className="action-col">{t("Actions")}</TableCell>
               </tr>
             </TableHeader>
 
-            <ItemTable dataTable={items} lang={lang} />
+            <ItemTable
+              dataTable={items}
+              lang={lang}
+              onRefresh={() => fetchItems(currentPage, resultsPerPage, searchQuery)}
+            />
           </Table>
           <TableFooter>
-            <div className="w-full flex items-center justify-between px-4 py-2">
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-2">
               <div className="text-sm">
                 {totalResults > 0 ? (
                   <span>
@@ -535,30 +593,29 @@ const Item = () => {
                   <span>Showing 0 of 0</span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
                 <Button
                   layout="outline"
+                  size="small"
                   onClick={handlePrevPage}
                   disabled={currentPage <= 1}
+                  className="!px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
                 >
                   Prev
                 </Button>
-                {startPage > 1 && (
-                  <>
-                    <Button
-                      layout="outline"
-                      onClick={() => handleChangePage(1)}
-                      className={
-                        currentPage === 1
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium"
-                          : ""
-                      }
-                    >
-                      1
-                    </Button>
-                    {startPage > 2 && <span className="px-1">...</span>}
-                  </>
-                )}
+                <Button
+                  layout="outline"
+                  size="small"
+                  onClick={() => handleChangePage(1)}
+                  className={`!px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                    currentPage === 1
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200 border-emerald-300 font-medium"
+                      : ""
+                  }`}
+                >
+                  1
+                </Button>
+                {startPage > 2 && <span className="px-1 text-xs">...</span>}
                 {Array.from(
                   { length: Math.max(0, endPage - startPage + 1) },
                   (_, idx) => {
@@ -568,12 +625,13 @@ const Item = () => {
                       <Button
                         key={`p-${p}`}
                         layout="outline"
+                        size="small"
                         onClick={() => handleChangePage(p)}
-                        className={
+                        className={`!px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
                           currentPage === p
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200 border-emerald-300 font-medium"
                             : ""
-                        }
+                        }`}
                       >
                         {p}
                       </Button>
@@ -583,16 +641,17 @@ const Item = () => {
                 {endPage < totalPages && (
                   <>
                     {endPage < totalPages - 1 && (
-                      <span className="px-1">...</span>
+                      <span className="px-1 text-xs">...</span>
                     )}
                     <Button
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(totalPages)}
-                      className={
+                      className={`!px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
                         currentPage === totalPages
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200 border-emerald-300 font-medium"
                           : ""
-                      }
+                      }`}
                     >
                       {totalPages}
                     </Button>
@@ -600,8 +659,10 @@ const Item = () => {
                 )}
                 <Button
                   layout="outline"
+                  size="small"
                   onClick={handleNextPage}
                   disabled={currentPage >= totalPages}
+                  className="!px-2 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
                 >
                   Next
                 </Button>
@@ -610,7 +671,7 @@ const Item = () => {
           </TableFooter>
         </TableContainer>
       ) : (
-        <NotFound title="Sorry, There are no role right now." />
+        <NotFound title="Item" />
       )}
       <DeleteConfirmationModal
         isOpen={confirmOpen}
@@ -619,11 +680,6 @@ const Item = () => {
           deleteAllItems();
           setConfirmOpen(false);
         }}
-      />
-      <ItemImportModal 
-        isOpen={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
-        onSuccess={() => fetchItems(1, resultsPerPage, searchQuery)}
       />
     </>
   );

@@ -40,5 +40,5 @@ export default function RouteLoader() {
 
   if (!loading) return null;
 
-  return <Loader text="Vellora Jewels" />;
+  return <Loader text="Bioinnovate Pharma" />;
 }

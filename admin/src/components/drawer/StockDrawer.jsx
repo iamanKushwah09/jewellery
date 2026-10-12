@@ -1,306 +1,177 @@
-import React, { Fragment } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Scrollbars } from "react-custom-scrollbars-2";
-import { Card, CardBody, Input, Button, Select } from "@windmill/react-ui";
+import { Input, Button } from "@windmill/react-ui";
 import { useTranslation } from "react-i18next";
+import { FiBox } from "react-icons/fi";
+
 // Internal imports
-import Error from "@/components/form/others/Error";
-import useAsync from "@/hooks/useAsync";
-import useFilter from "@/hooks/useFilter";
 import Title from "@/components/form/others/Title";
-import InputArea from "@/components/form/input/InputArea";
-import DrawerButton from "@/components/form/button/DrawerButton";
-import LabelArea from "@/components/form/selectOption/LabelArea";
-import useItemSubmit from "@/hooks/useItemSubmit";
-import AttributeGroupServices from "@/services/AttributeGroupServices";
-import AttributeValueServices from "@/services/AttributeValueServices";
-import CategoryUploader from "@/components/image-uploader/CategoryUploader";
-import { FiPlusCircle, FiTrash } from "react-icons/fi";
-import { notifyError } from "@/utils/toast";
+import { SidebarContext } from "@/context/SidebarContext";
+import ItemServices from "@/services/ItemServices";
+import Loading from "@/components/preloader/Loading";
+import { notifyError, notifySuccess } from "@/utils/toast";
 
-const StockDrawer = ({ id }) => {
-  const {
-    register,
-    errors,
-    handleSubmit,
-    attributeSubmit,
-    setNewImage,
-    isSubmitting,
-    handleSelectLanguage,
-    setTapValue,
-    tapValue,
-    watch,
-    setNextBtn,
-    nextBtn,
-    setValue,
-    setGSTData, gstData,
-    setCheckedItems, checkedItems
-  } = useItemSubmit(id);
+const StockDrawer = ({ id, onStockUpdated }) => {
   const { t } = useTranslation();
+  const { closeDrawer, setIsUpdate } = useContext(SidebarContext);
 
-  const { data: attributeData } = useAsync(() => AttributeValueServices.getByAttributeValueByValue())
-  const variant = watch("variant", [{ price: "", selling_price: "", stock: "", groupArrSelections: {} }]);
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stock, setStock] = useState("");
 
-  const handleCheckboxChange = (e, _id) => {
-    setCheckedItems((prev) => {
-      const updatedCheckedItems = {
-        ...prev,
-        [_id]: !prev[_id],  // Toggle state manually
+  useEffect(() => {
+    if (!id) {
+      setItem(null);
+      setStock("");
+      return;
+    }
+
+    let isMounted = true;
+    const fetchItemDetails = async () => {
+      try {
+        setLoading(true);
+        const res = await ItemServices.getItemById(id);
+        if (!isMounted) return;
+        if (res) {
+          setItem(res);
+          // Input field is always empty when opened so user can enter quantity to add
+          setStock("");
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Error fetching item for StockDrawer:", err);
+        notifyError(err.response?.data?.message || err.message || "Failed to load item details");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchItemDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const handleStockSubmit = async (e) => {
+    e.preventDefault();
+    if (!id || !item) return;
+
+    const addQty = Number(stock);
+    if (isNaN(addQty) || stock.toString().trim() === "") {
+      notifyError(t("Please enter stock quantity"));
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const prevStock = Number(item.stock) || 0;
+      // Add entered quantity to previous stock
+      const newStock = prevStock + addQty;
+
+      let payload = {
+        stock: newStock,
+        source_code: 2,
+        source_name: "Stock",
+        notes: `Added ${addQty} to stock (Previous: ${prevStock}, Current: ${newStock})`,
       };
-      return updatedCheckedItems;
-    });
-  };
 
-  const handleAddField = () => {
-    setValue("variant", [...variant, { price: "", selling_price: "", stock: "", groupArrSelections: {} }]);
-  }
-  const handleRemoveField = (index) => {
-    const updatedAddresses = variant.filter((_, idx) => idx !== index);
-    setValue("variant", updatedAddresses);
-  };
-  // handleChange
-  const handleChange = (e, index, _id) => {
-    const { name, value } = e.target;
-    const updatedVariant = [...variant];
-    updatedVariant[index] = {
-      ...updatedVariant[index],
-      [name]: value,
-      _id
-    };
-    setValue("variant", updatedVariant);
-  };
-  // Handle Change for Group Dropdown Selections
-  const handleGroupChange = (e, index, groupName) => {
-    const { value } = e.target;
-    const updatedVariant = [...variant];
-    updatedVariant[index] = {
-      ...updatedVariant[index],
-      groupArrSelections: {
-        ...updatedVariant[index].groupArrSelections,
-        [groupName]: value, // Update the selected group value dynamically
-      },
-    };
-    setValue("variant", updatedVariant);
+      // Also update variant stocks if item has variants
+      if (Array.isArray(item.item_attribute?.variant) && item.item_attribute.variant.length > 0) {
+        payload.item_attribute = {
+          ...(item.item_attribute || {}),
+          variant: item.item_attribute.variant.map((v) => ({
+            ...v,
+            stock: (Number(v.stock) || 0) + addQty,
+          })),
+        };
+      }
+
+      await ItemServices.updateItem(id, payload);
+      notifySuccess(t("Stock updated successfully!"));
+      setIsSubmitting(false);
+      setStock("");
+      if (setIsUpdate) setIsUpdate(true);
+      if (onStockUpdated) onStockUpdated();
+      closeDrawer();
+    } catch (err) {
+      console.error("Error updating stock:", err);
+      const errMsg =
+        err.response?.data?.message || err.message || "Failed to update stock";
+      notifyError(errMsg);
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <>
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+      {/* Header */}
       <div className="w-full relative p-6 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-        <Title
-          register={register}
-          handleSelectLanguage={handleSelectLanguage}
-          title={id ? t("Update Stock") : t("Add Stock")}
-        />
+        <Title title={t("Update Stock")} />
       </div>
 
-      <Scrollbars className="w-full md:w-7/12 lg:w-8/12 xl:w-8/12 relative dark:bg-gray-700 dark:text-gray-200">
-        <Card className="overflow-y-scroll flex-grow scrollbar-hide w-full max-h-full">
-          <CardBody>
-            <form onSubmit={handleSubmit(attributeSubmit)}>
-              <div className="px-6 flex-grow scrollbar-hide w-full max-h-full pb-40">
-
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
-                  {/* <div className="col-span-12 md:col-span-12">
-                    <LabelArea label="Including GST ?" />
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center">
-                        <Input {...register("gst_check")} type="radio" value="Yes" className="mr-2" onChange={(e) => setGSTData(e.target?.value)} />
-                        <span className="ml-0">Yes</span>
-                      </div>
-                      <div className="flex items-center ml-4">
-                        <Input {...register("gst_check")} type="radio" value="No" className="mr-2" onChange={(e) => setGSTData(e.target?.value)} />
-                        <span className="ml-0">No</span>
-                      </div>
-                    </div>
-                  </div> */}
-
-                  {/* {gstData === "No" ? <div className="col-span-12 md:col-span-12">
-                    <LabelArea label="GST" status />
-                    <InputArea
-                      required
-                      register={register}
-                      label="GST"
-                      name="gst"
-                      type="text"
-                      autoComplete="gst"
-                      placeholder="GST"
-                    />
-                    <Error errorName={errors.gst} />
-                  </div> : null} */}
-
-                  {/* <div className="col-span-12 md:col-span-12">
-                    <LabelArea label="Offer" status />
-                    <InputArea
-                      required
-                      register={register}
-                      label="Offer"
-                      name="offer"
-                      type="text"
-                      autoComplete="offer"
-                      placeholder="Offer"
-                    />
-                    <Error errorName={errors.offer} />
-                  </div> */}
-
-                  {/* <div className="col-span-12 md:col-span-12">
-                    <LabelArea label="Attribute" />
-                    {attributeData?.map((e, i) => {
-                      return (
-                        <Fragment key={i}>
-                          <Input type="checkbox" checked={!!checkedItems?.[e.id]} className="mr-2 ml-3" onChange={(ev) => handleCheckboxChange(ev, e.id)} />
-                          <span className="ml-0">{e.name}</span>
-                        </Fragment>
-                      )
-                    })}
-                  </div> */}
-
+      {/* Drawer Body */}
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center p-12">
+          <Loading loading={loading} />
+        </div>
+      ) : !item ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-500">
+          <FiBox className="w-12 h-12 mb-3 text-gray-400 stroke-1" />
+          <p className="text-base font-medium">
+            {t("Please select an item from the stock list to update.")}
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={handleStockSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <Scrollbars
+            style={{ height: "calc(100vh - 160px)" }}
+            className="w-full flex-1 relative dark:bg-gray-700 dark:text-gray-200"
+          >
+            <div className="p-6">
+              <div className="grid grid-cols-6 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <label className="block text-gray-700 dark:text-gray-400 font-semibold text-sm leading-none mb-2">
+                  {t("Stock")} <span className="text-red-500">*</span>
+                </label>
+                <div className="col-span-8 sm:col-span-4">
+                  <Input
+                    type="number"
+                    name="stock"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    placeholder={t("Stock")}
+                    className="border h-12 text-sm focus:outline-none block w-full bg-gray-100 dark:bg-white border-transparent focus:bg-white"
+                    autoFocus
+                    required
+                  />
                 </div>
-
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
-                  {variant?.map((x, index) => (
-                    <React.Fragment key={index}>
-                      {/* Form fields on the left side (spanning 10 columns) */}
-                      <div className="col-span-6 space-y-4">
-                        {/* <div className="col-span-8">
-                          <label htmlFor={`variant[${index}].price`} className="block text-sm font-medium text-gray-700">
-                            Price <span style={{ color: "red" }}>*</span>
-                          </label>
-                          <Input
-                            className="border text-sm block w-full bg-gray-100 border-gray-200"
-                            {...register(`variant.${index}.price`, {
-                              required: "Price is required!",
-                            })}
-                            name={`price`}
-                            placeholder="Price"
-                            spellCheck="false"
-                            value={x.price || ""}
-                            onChange={(e) => handleChange(e, index, x._id)}
-                          />
-                          {errors?.price?.[index]?.price && (
-                            <p className="text-red-500">{errors.price[index].price.message}</p>
-                          )}
-                        </div> */}
-
-                        {/* <div className="col-span-8">
-                          <label htmlFor={`variant[${index}].selling_price`} className="block text-sm font-medium text-gray-700">
-                            Selling Price <span style={{ color: "red" }}>*</span>
-                          </label>
-                          <Input
-                            className="border text-sm block w-full bg-gray-100 border-gray-200"
-                            {...register(`variant.${index}.selling_price`, {
-                              required: "Selling Price is required!",
-                            })}
-                            name="selling_price"
-                            placeholder="Selling Price"
-                            value={x?.selling_price || ""}
-                            spellCheck="false"
-                            onChange={(e) => handleChange(e, index)}
-                          />
-                          {errors?.selling_price?.[index]?.selling_price && (
-                            <p className="text-red-500">{errors.selling_price[index].selling_price.message}</p>
-                          )}
-                        </div> */}
-
-                        <div className="col-span-8">
-                          <label htmlFor={`variant[${index}].stock`} className="block text-sm font-medium text-gray-700">
-                            Stock <span style={{ color: "red" }}>*</span>
-                          </label>
-                          <Input
-                            className="border text-sm block w-full bg-gray-100 border-gray-200"
-                            {...register(`variant.${index}.stock`, {
-                              required: "Stock is required!",
-                            })}
-                            name="stock"
-                            placeholder="Stock"
-                            spellCheck="false"
-                            value={x?.stock || ""}
-                            onChange={(e) => handleChange(e, index)}
-                          />
-                          {errors?.stock?.[index]?.stock && (
-                            <p className="text-red-500">{errors.stock[index].stock.message}</p>
-                          )}
-                        </div>
-
-                        {/* Attribute Selection */}
-                        {/* <div className="col-span-8">
-                          {attributeData.map(
-                            (item) => {
-                              return checkedItems?.[item.id] && (
-                                <div key={item.id}>
-                                  <label
-                                    htmlFor={`group-select-${item.name}`}
-                                    className="mt-2 block text-sm font-medium text-gray-700"
-                                  >
-                                    Attribute for {item.name}
-                                  </label>
-                                  <Select
-                                    id={`group-select-${item.name}`}
-                                    value={x.groupArrSelections?.[item.id] || ""}
-                                    onChange={(e) => handleGroupChange(e, index, item.id)}
-                                  >
-                                    <option value="" defaultValue>
-                                      Select
-                                    </option>
-                                    {item.groupArr.map((groupItem, idx) => {
-                                      return (
-                                        <option key={idx} value={groupItem.attribute_id}>
-                                          {groupItem.name}
-                                        </option>
-                                      )
-                                    })}
-                                  </Select>
-                                </div>
-                              )
-                            }
-                          )}
-                        </div> */}
-                      </div>
-
-                      {/* <div className="col-span-3">
-                        <LabelArea label="Image" />
-                        <CategoryUploader folder="admin" setNewImage={setNewImage} />
-                      </div> */}
-
-                      {/* Remove Button */}
-                      {/* {variant.length > 1 && (
-                        <div className="col-span-1 flex items-center justify-center">
-                          <Button
-                            layout="outline"
-                            size="small"
-                            className="text-red-500 border-red-500 hover:bg-red-100 mt-4"
-                            onClick={() => handleRemoveField(index)}
-                          >
-                            <FiTrash className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )} */}
-                      <div className="col-span-12 my-4 border-t border-gray-300"></div>
-                      {/* Image uploader on the right side (spanning 2 columns) */}
-
-                    </React.Fragment>
-                  ))}
-
-                  {/* Add New Variant Button */}
-                  {/* {variant.length < 5 && (
-                    <div className="col-span-2 flex items-center justify-center">
-                      <Button
-                        layout="outline"
-                        onClick={handleAddField}
-                        className="flex items-center text-green-500 border-green-500 hover:bg-green-100 mt-4"
-                      >
-                        Add Variant <FiPlusCircle className="ml-1 w-4 h-4" />
-                      </Button>
-                    </div>
-                  )} */}
-                </div>
-
-
               </div>
-              <DrawerButton id={id} title="Stock" isSubmitting={isSubmitting} nextBtn={false} setNextBtn={setNextBtn} setTapValue={setTapValue} tapValue={"Item Attribute"} flag />
-            </form>
-          </CardBody>
-        </Card>
-      </Scrollbars>
-    </>
+            </div>
+          </Scrollbars>
+
+          {/* Sticky Bottom Actions */}
+          <div className="fixed bottom-0 w-full right-0 py-4 px-6 md:py-6 flex justify-end gap-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+            <Button
+              layout="outline"
+              onClick={closeDrawer}
+              type="button"
+              className="w-full sm:w-auto h-12 px-6 border border-gray-200 dark:border-gray-700 text-red-500 hover:bg-red-50 dark:hover:bg-gray-700 font-medium rounded-lg"
+            >
+              {t("Cancel")}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto h-12 px-8 rounded-lg font-medium bg-[#0e9f6e] hover:bg-[#046c4e] text-white"
+            >
+              {isSubmitting ? t("Processing") : t("Update Stock")}
+            </Button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 };
 

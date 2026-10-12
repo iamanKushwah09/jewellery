@@ -20,7 +20,7 @@ const InputAreaTwo = ({
         placeholder={placeholder}
         name={name}
         autoComplete="new-password"
-        className="mr-2 p-2"
+        className="h-8 text-xs sm:text-sm"
       />
     </>
   );

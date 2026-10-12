@@ -12,6 +12,21 @@ router.route('/search')
 router.route('/filter')
   .get(saleController.getSalesByFilter);
 
+// Convert Sale Order to Sale Invoice (Business Logic Route)
+router.route('/convert-order/:saleOrderId')
+  .post(saleController.convertSaleOrderToSale);
+
+router.route('/convert-order')
+  .post(saleController.convertSaleOrderToSale);
+
+// Fetch unbilled sale orders available to convert
+router.route('/unbilled-orders')
+  .get(saleController.getUnbilledSaleOrders);
+
+// Fetch pending sale orders for a specific customer
+router.route('/pending-orders/:customerId')
+  .get(saleController.getPendingOrdersByCustomer);
+
 router.route('/process/:id')
   .post(saleController.processSale)
   .get(saleController.processSale);

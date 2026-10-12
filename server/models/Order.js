@@ -111,6 +111,54 @@ const orderSchema = new mongoose.Schema(
     shippingStrategy: String,
     matchedRuleId: { type: mongoose.Schema.Types.ObjectId, ref: 'ShippingRule' },
     grandTotal: Number,
+    source: {
+      type: String,
+      enum: ["store", "admin", "flipkart", "amazon"],
+      default: "store",
+    },
+    flipkartOrderId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
+    flipkartOrderItemId: {
+      type: String,
+      sparse: true,
+    },
+    flipkartTrackingId: {
+      type: String,
+      default: "",
+    },
+    flipkartOrderStatus: {
+      type: String,
+      default: "",
+    },
+    flipkartSku: {
+      type: String,
+      default: "",
+    },
+    // Amazon SP-API fields
+    amazonOrderId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
+    amazonOrderItemId: {
+      type: String,
+      sparse: true,
+    },
+    amazonTrackingId: {
+      type: String,
+      default: "",
+    },
+    amazonOrderStatus: {
+      type: String,
+      default: "",
+    },
+    amazonAsin: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

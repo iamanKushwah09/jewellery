@@ -37,7 +37,7 @@ const InputArea = ({
     placeholder,
     name,
     autoComplete,
-    className: "mr-2 h-12 p-2",
+    className: "h-8 text-xs sm:text-sm",
     ...(type === 'number' && {
       step: step || "any", // Allow any decimal precision
       ...(min !== undefined && { min }),

@@ -272,8 +272,29 @@ const getShowingStoreProducts = async (req, res) => {
   try {
     const baseUrl = (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, "");
     const { category, itemgroup, title, slug, query, userCode, group_type, itemgroupIds } = req.query;
-    let vendorDiscount = 0;
-    let categoryQuery = { is_active: true };
+      // Fetch all active and website-visible item groups
+    const activeItemGroups = await ItemGroup.find({
+      is_active: true,
+      $or: [{ showOnWebsite: true }, { showOnWebsite: { $exists: false } }],
+    }).select("_id");
+    const activeItemGroupIds = activeItemGroups.map((ig) => ig._id);
+
+    let categoryQuery = {
+      $and: [
+        { is_active: true },
+        { $or: [{ showOnWebsite: true }, { showOnWebsite: { $exists: false } }] },
+        {
+          $or: [
+            { item_group_id: { $in: activeItemGroupIds } },
+            { item_group_id: { $exists: false } },
+            { item_group_id: null },
+          ],
+        },
+      ],
+    };
+    // let vendorDiscount = 0;
+    // let categoryQuery = { is_active: true };
+    
 
     // Build base filter for category
     const actualCategory = category && category !== 'multi' ? category : req.query._id;
@@ -298,10 +319,11 @@ const getShowingStoreProducts = async (req, res) => {
       const ids = actualItemGroup.split(',').filter(id => id && id !== 'multi' && id !== 'undefined');
       if (ids.length > 0) {
         const itemGroups = await ItemGroup.find({
-          $or: [
-            { _id: { $in: ids } },
-            { parent_id: { $in: ids } }
-          ]
+          $and: [
+            { $or: [{ _id: { $in: ids } }, { parent_id: { $in: ids } }] },
+            { is_active: true },
+            { $or: [{ showOnWebsite: true }, { showOnWebsite: { $exists: false } }] },
+          ],
         });
         const allItemGroupIds = itemGroups.map(ig => ig._id.toString());
         const finalItemGroupIds = Array.from(new Set([...ids, ...allItemGroupIds]));
@@ -372,14 +394,21 @@ const getShowingStoreProducts = async (req, res) => {
         orQuery.push({ mrp: queryNum });
         orQuery.push({ sale_price: queryNum });
       }
-
-      // Add $or condition to categoryQuery
-      categoryQuery.$or = orQuery;
+      // Add $or condition to categoryQuery (push into $and to preserve showOnWebsite filter)
+      categoryQuery.$and.push({ $or: orQuery });
     }
     // Handle slug-based product lookup
     if (slug) {
-
-      const items = await Item.find({ stock: { $gte: 5 }, is_active: true }).populate('category_id item_group_id brand_id unit_id').lean();
+      const items = await Item.find({
+        stock: { $gte: 5 },
+        is_active: true,
+        $or: [{ showOnWebsite: true }, { showOnWebsite: { $exists: false } }],
+        $or: [
+          { item_group_id: { $in: activeItemGroupIds } },
+          { item_group_id: { $exists: false } },
+          { item_group_id: null },
+        ],
+      }).populate('category_id item_group_id brand_id unit_id').lean();
       const formattedItems = await Promise.all(
         items.map(async (item) => {
           // Calculate vendor-specific pricing for slug-based lookup
@@ -429,18 +458,14 @@ const getShowingStoreProducts = async (req, res) => {
                 .map((img) => {
                   if (!img) return null;
                   if (typeof img === "string") {
-                    if (img.startsWith("http://") || img.startsWith("https://")) {
-                      return img;
-                    }
+                    if (img.startsWith("http://") || img.startsWith("https://")) return img;
                     const pathOnly = img.startsWith("/") ? img : `/${img}`;
                     return `${baseUrl}${pathOnly}`;
                   }
                   if (typeof img === "object") {
                     const candidate = img.url || img.path || img.filePath || "";
                     if (!candidate) return null;
-                    if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
-                      return candidate;
-                    }
+                    if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate;
                     const pathOnly = candidate.startsWith("/")
                       ? candidate
                       : `/${candidate}`;
@@ -563,6 +588,7 @@ const getShowingStoreProducts = async (req, res) => {
         const itemDiscount = item.discount ?? 0;
         const itemCode = item.item_code;
 
+        let vendorDiscount = 0;
         if (itemCode && req.query?.session) {
           const sessionNum = Number(req.query.session);
           if (!isNaN(sessionNum)) {
@@ -570,7 +596,7 @@ const getShowingStoreProducts = async (req, res) => {
               partyCode: sessionNum,
               itemCode: itemCode,
             });
-            vendorDiscount = getItemDiscount?.discount1;
+            vendorDiscount = getItemDiscount?.discount1 ?? 0;
           }
         }
         const finalPrice = basePrice > 0 ? vendorDiscount > 0
@@ -600,18 +626,14 @@ const getShowingStoreProducts = async (req, res) => {
               .map((img) => {
                 if (!img) return null;
                 if (typeof img === "string") {
-                  if (img.startsWith("http://") || img.startsWith("https://")) {
-                    return img;
-                  }
+                  if (img.startsWith("http://") || img.startsWith("https://")) return img;
                   const pathOnly = img.startsWith("/") ? img : `/${img}`;
                   return `${baseUrl}${pathOnly}`;
                 }
                 if (typeof img === "object") {
                   const candidate = img.url || img.path || img.filePath || "";
                   if (!candidate) return null;
-                  if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
-                    return candidate;
-                  }
+                  if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate;
                   const pathOnly = candidate.startsWith("/")
                     ? candidate
                     : `/${candidate}`;
@@ -761,7 +783,8 @@ const getSearchSuggestions = async (req, res) => {
         { name: { $regex: escapedSearch, $options: 'i' } },
         { name: { $regex: fuzzyPattern, $options: 'i' } }
       ],
-      is_active: true
+      is_active: true,
+      $or: [{ showOnWebsite: true }, { showOnWebsite: { $exists: false } }],
     })
       .select('_id name')
       .limit(5)
@@ -778,6 +801,7 @@ const getSearchSuggestions = async (req, res) => {
         { print_name: { $regex: fuzzyPattern, $options: 'i' } }
       ],
       is_active: true,
+      $or: [{ showOnWebsite: true }, { showOnWebsite: { $exists: false } }],
       stock: { $gte: 5 }
     })
       .select('_id name alias print_name')

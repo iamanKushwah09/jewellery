@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { 
   fetchProducts, 
@@ -9,6 +10,7 @@ import {
   toggleCategory, 
   toggleItemGroup,
   setSubCategory, 
+  setSearchQuery,
   clearFilters 
 } from '../store/slices/productSlice';
 import Hero from '../components/Hero';
@@ -22,6 +24,7 @@ import { showingTranslateValue } from '../lib/utils';
 
 export default function Home() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { 
     filteredProducts, 
     loading,
@@ -35,7 +38,13 @@ export default function Home() {
     totalDoc
   } = useAppSelector((state: RootState) => state.products);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const searchParams = useSearchParams();
   const observer = useRef<IntersectionObserver | null>(null);
+
+  const handleClearFilters = () => {
+    dispatch(clearFilters());
+    router.push('/');
+  };
 
   const lastProductElementRef = useCallback((node: HTMLDivElement | null) => {
     if (loading || loadingMore) return;
@@ -50,6 +59,14 @@ export default function Home() {
     if (node) observer.current.observe(node);
   }, [loading, loadingMore, hasMore, dispatch]);
 
+  // Sync URL search params with Redux state on load
+  useEffect(() => {
+    const urlSearch = searchParams.get('search');
+    if (urlSearch && urlSearch !== searchQuery) {
+      dispatch(setSearchQuery(urlSearch));
+    }
+  }, [searchParams, dispatch, searchQuery]);
+
   // Initial load
   useEffect(() => {
     dispatch(fetchCategories());
@@ -63,15 +80,15 @@ export default function Home() {
 
   const getPageTitle = () => {
     if (searchQuery) return `Results for "${searchQuery}"`;
-    if (selectedItemGroups.length > 0) return 'Collections';
-    if (selectedCategories.length === 0) return 'Our Finest Collections';
+    if (selectedItemGroups.length > 0) return 'Branding';
+    if (selectedCategories.length === 0) return 'Premium Collection';
     
     if (selectedCategories.length === 1) {
       const cat = categories.find(c => c._id === selectedCategories[0]);
-      return (cat && showingTranslateValue(cat.name)) || 'Jewellery';
+      return (cat && showingTranslateValue(cat.name)) || 'Products';
     }
     
-    return 'Selected Collections';
+    return 'Multiple Categories';
   };
   
   const getActiveFiltersCount = () => {
@@ -91,29 +108,25 @@ export default function Home() {
             {/* Browse Collections removed as per user request */}
 
             <div className="mb-12">
-              <h2
-                className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter uppercase italic break-words"
-                style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif' }}
-              >
+              <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter uppercase italic break-words">
                 {getPageTitle()}
               </h2>
-              <div className="h-1 w-32 mt-6" style={{ background: 'linear-gradient(90deg, #C9920A, #E8B84B, transparent)' }}></div>
+              <div className="h-2 w-32 bg-blue-600 rounded-full mt-6"></div>
             </div>
 
             {/* Quick Brands Filter - Visible on all screens for better UX */}
-            <ItemGroupFilter />
+            {/* <ItemGroupFilter /> */}
 
             {/* Filter & Info Bar - Always visible for better UX */}
             <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
               <div className="flex flex-col min-w-0 flex-1 pr-0 sm:pr-4">
                 <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] sm:tracking-[0.3em] mb-1 line-clamp-2">
-                  {loading ? 'Discovering Collections...' : `Showing ${filteredProducts.length} Jewellery Pieces`}
+                  {loading ? 'Discovering Excellence...' : `Displaying ${filteredProducts.length} Health Essentials`}
                 </div>
                 {getActiveFiltersCount() > 0 && (
                   <button 
-                    onClick={() => dispatch(clearFilters())}
-                    className="text-[9px] font-black uppercase tracking-widest text-left hover:underline inline-block mt-1"
-                    style={{ color: '#C9920A' }}
+                    onClick={handleClearFilters}
+                    className="text-[9px] font-black text-blue-600 uppercase tracking-widest text-left hover:underline inline-block mt-1"
                   >
                     Clear {getActiveFiltersCount()} Filter(s)
                   </button>
@@ -124,8 +137,7 @@ export default function Home() {
               {/* Mobile Filter Trigger */}
               <button 
                 onClick={() => setIsMobileFilterOpen(true)}
-                className="lg:hidden flex items-center space-x-2 text-white px-5 py-3 active:scale-95 transition-all"
-                style={{ background: 'linear-gradient(135deg, #8B6508, #C9920A)', borderRadius: '0' }}
+                className="lg:hidden flex items-center space-x-2 bg-gray-900 text-white px-5 py-3 rounded-xl active:scale-95 transition-all shadow-lg shadow-gray-200"
               >
                 <FunnelIcon className="w-4 h-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Filter</span>
@@ -166,9 +178,9 @@ export default function Home() {
                 {/* Loading More Indicator */}
                 {loadingMore && (
                   <div className="mt-16 flex flex-col items-center justify-center space-y-4">
-                    <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#C9920A', borderTopColor: 'transparent' }}></div>
+                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
-                      Loading More Collections...
+                      Fetching More Excellence...
                     </span>
                   </div>
                 )}
@@ -183,14 +195,13 @@ export default function Home() {
                 )}
               </>
             ) : (
-              <div className="text-center py-32 border-2 border-dashed" style={{ background: '#FFFDF8', borderColor: 'rgba(201,146,10,0.2)', borderRadius: '0' }}>
-                <div className="text-7xl mb-8">💍</div>
-                <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tighter uppercase" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>No Jewellery Found</h3>
-                <p className="text-gray-500 font-bold mb-10 text-sm uppercase tracking-widest">Your search didn't match any collections.</p>
+              <div className="text-center py-32 bg-gray-50 rounded-[4rem] border-2 border-dashed border-gray-200">
+                <div className="text-7xl mb-8">📭</div>
+                <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tighter uppercase">No Products Found</h3>
+                <p className="text-gray-500 font-bold mb-10 text-sm uppercase tracking-widest">Your search didn't match any premium items.</p>
                 <button
-                  onClick={() => dispatch(clearFilters())}
-                  className="text-white px-12 py-5 font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 shadow-2xl"
-                  style={{ background: 'linear-gradient(135deg, #8B6508, #C9920A)', borderRadius: '0' }}
+                  onClick={handleClearFilters}
+                  className="bg-gray-900 text-white px-12 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all active:scale-95 shadow-2xl shadow-gray-300"
                 >
                   Clear All Filters
                 </button>
@@ -204,57 +215,30 @@ export default function Home() {
         onClose={() => setIsMobileFilterOpen(false)} 
       />
 
-      {/* Trust Badges — Jewellery Themed */}
-      <section className="py-20 border-t" style={{ background: '#FFFDF8', borderColor: 'rgba(201,146,10,0.1)' }}>
+      {/* Trust Badges */}
+      <section className="bg-white py-24 border-t border-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
-          <div className="text-center mb-14">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, transparent, #C9920A)' }} />
-              <span className="text-[10px] font-bold tracking-[0.35em] uppercase" style={{ color: '#C9920A' }}>Our Promise</span>
-              <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, #C9920A, transparent)' }} />
-            </div>
-            <h2
-              className="text-3xl md:text-4xl font-bold text-gray-900"
-              style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontStyle: 'italic' }}
-            >
-              Crafted With Integrity
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
             <div className="text-center group">
-              <div
-                className="w-20 h-20 flex items-center justify-center mx-auto mb-8 transition-all duration-500 group-hover:scale-110"
-                style={{ background: 'linear-gradient(135deg, #F5E6C8, #fff)', border: '1px solid rgba(201,146,10,0.3)', borderRadius: '0' }}
-              >
-                <span className="text-3xl">🏅</span>
+              <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:bg-blue-600 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-6">
+                <span className="text-3xl group-hover:scale-110 transition-transform">🚀</span>
               </div>
-              <h3 className="text-lg font-black text-gray-900 mb-3 uppercase tracking-tight">BIS Hallmarked Gold</h3>
-              <div className="h-px w-8 mx-auto mb-3" style={{ background: '#C9920A' }} />
-              <p className="text-gray-500 font-medium text-xs uppercase tracking-widest leading-loose">Every piece certified by the Bureau of Indian Standards for authentic gold purity.</p>
+              <h3 className="text-lg font-black text-gray-900 mb-4 uppercase tracking-tight">Express Pharmacy</h3>
+              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest leading-loose">Premium global delivery for all medical essentials within 24 hours.</p>
             </div>
             <div className="text-center group">
-              <div
-                className="w-20 h-20 flex items-center justify-center mx-auto mb-8 transition-all duration-500 group-hover:scale-110"
-                style={{ background: 'linear-gradient(135deg, #F5E6C8, #fff)', border: '1px solid rgba(201,146,10,0.3)', borderRadius: '0' }}
-              >
-                <span className="text-3xl">💎</span>
+              <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:bg-green-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+                <span className="text-3xl group-hover:scale-110 transition-transform">💎</span>
               </div>
-              <h3 className="text-lg font-black text-gray-900 mb-3 uppercase tracking-tight">Certified Diamonds</h3>
-              <div className="h-px w-8 mx-auto mb-3" style={{ background: '#C9920A' }} />
-              <p className="text-gray-500 font-medium text-xs uppercase tracking-widest leading-loose">Each diamond graded and certified by leading gemological institutes worldwide.</p>
+              <h3 className="text-lg font-black text-gray-900 mb-4 uppercase tracking-tight">FDA Approved</h3>
+              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest leading-loose">Each product undergoes a rigorous quality inspection for your safety.</p>
             </div>
             <div className="text-center group">
-              <div
-                className="w-20 h-20 flex items-center justify-center mx-auto mb-8 transition-all duration-500 group-hover:scale-110"
-                style={{ background: 'linear-gradient(135deg, #F5E6C8, #fff)', border: '1px solid rgba(201,146,10,0.3)', borderRadius: '0' }}
-              >
-                <span className="text-3xl">🤝</span>
+              <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:bg-purple-600 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-3">
+                <span className="text-3xl group-hover:scale-110 transition-transform">🛡️</span>
               </div>
-              <h3 className="text-lg font-black text-gray-900 mb-3 uppercase tracking-tight">Lifetime Exchange</h3>
-              <div className="h-px w-8 mx-auto mb-3" style={{ background: '#C9920A' }} />
-              <p className="text-gray-500 font-medium text-xs uppercase tracking-widest leading-loose">Enjoy our lifetime jewellery exchange policy — because your treasure deserves care forever.</p>
+              <h3 className="text-lg font-black text-gray-900 mb-4 uppercase tracking-tight">Secure Vault</h3>
+              <p className="text-gray-400 font-bold text-xs uppercase tracking-widest leading-loose">Military-grade encryption for all your financial transactions.</p>
             </div>
           </div>
         </div>

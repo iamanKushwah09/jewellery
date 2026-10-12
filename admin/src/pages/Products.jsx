@@ -168,26 +168,23 @@ const Products = () => {
           <CardBody>
             <form
               onSubmit={handleSubmitForAll}
-              className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex"
+              className="py-3 flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-stretch md:items-center gap-3 md:gap-4"
             >
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="flex-1 min-w-[200px] max-w-sm sm:max-w-md w-full">
                 <Input
                   ref={searchRef}
                   type="search"
                   name="search"
                   placeholder="Search Product"
+                  className="page-search-input"
                 />
-                <button
-                  type="submit"
-                  className="absolute right-0 top-0 mt-5 mr-1"
-                ></button>
               </div>
 
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="w-full sm:w-48 flex-shrink-0">
                 <SelectCategory setCategory={setCategory} lang={lang} />
               </div>
 
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="w-full sm:w-48 flex-shrink-0">
                 <Select onChange={(e) => setSortedField(e.target.value)}>
                   <option value="All" defaultValue hidden>
                     {t("Price")}
@@ -210,23 +207,22 @@ const Products = () => {
                   </option>
                 </Select>
               </div>
-              <div className="flex items-center gap-2 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                <div className="w-full mx-1">
-                  <Button type="submit" className="h-12 w-full bg-blue-700">
-                    Filter
-                  </Button>
-                </div>
 
-                <div className="w-full mx-1">
-                  <Button
-                    layout="outline"
-                    onClick={handleResetField}
-                    type="reset"
-                    className="px-4 md:py-1 py-2 h-12 text-sm dark:bg-gray-700"
-                  >
-                    <span className="text-black dark:text-gray-200">Reset</span>
-                  </Button>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+                <Button
+                  type="submit"
+                  className="h-10 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-button text-xs sm:text-sm font-medium transition-all"
+                >
+                  Filter
+                </Button>
+
+                <Button
+                  onClick={handleResetField}
+                  type="reset"
+                  className="btn-action-reset"
+                >
+                  <span>Reset</span>
+                </Button>
               </div>
             </form>
           </CardBody>

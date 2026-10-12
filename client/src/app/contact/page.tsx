@@ -24,32 +24,32 @@ export default function ContactPage() {
     {
       icon: PhoneIcon,
       title: 'Phone',
-      details: '+1 (555) 019-8372',
+      details: '+91 9258558611',
       description: 'Call or WhatsApp us anytime'
     },
     {
       icon: PhoneIcon,
-      title: 'Showroom',
-      details: '+1 (555) 019-8373',
+      title: 'Landline',
+      details: '0562-4313181',
       description: 'Available during business hours'
     },
     {
       icon: EnvelopeIcon,
       title: 'Email',
-      details: 'contact@Vellorajewels.com',
+      details: 'hello@bioinnovatepharma.com',
       description: 'We respond within 24 hours'
     },
     {
       icon: MapPinIcon,
       title: 'Address',
-      details: '123 Luxury Avenue, Golden Estate, New York, NY 10001',
-      description: 'Visit our flagship boutique'
+      details: 'Barua House, Jangjeet nagar, Rajpur, Agra - 282001',
+      description: 'Visit our headquarters'
     },
     {
       icon: ClockIcon,
-      title: 'Boutique Hours',
-      details: 'Mon - Fri: 10 AM - 8 PM',
-      description: 'Saturday: 11 AM - 6 PM'
+      title: 'Business Hours',
+      details: 'Mon - Fri: 9 AM - 6 PM EST',
+      description: 'Saturday: 10 AM - 4 PM EST'
     }
   ];
 
@@ -57,7 +57,7 @@ export default function ContactPage() {
     e.preventDefault();
     // Handle form submission
     console.log('Contact form submitted:', formData);
-    alert('Thank you for your message! Our jewellery experts will get back to you soon.');
+    alert('Thank you for your message! We\'ll get back to you soon.');
     setFormData({ name: '', email: '', subject: '', message: '' });
   };
 
@@ -69,7 +69,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFDF8]">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
       {/* Hero Section */}
@@ -77,23 +77,18 @@ export default function ContactPage() {
         {/* Background Image */}
         <img 
           src="/contact-bg.jpg"
-          alt="Contact Vellora Jewels"
+          alt="Contact Bioinnovate Pharma"
           className="absolute inset-0 z-0 w-full h-full object-cover"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
         {/* Dark Gradient Overlay for Readability */}
-        <div className="absolute inset-0 z-10" style={{ background: 'linear-gradient(135deg, rgba(26,18,9,0.85) 0%, rgba(107,26,26,0.7) 100%)' }} />
-        
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-blue-900/80 to-purple-900/80 mix-blend-multiply" />
+        <div className="absolute inset-0 z-10 bg-black/20" />
+
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, transparent, #C9920A)' }} />
-              <span className="text-[10px] font-bold tracking-[0.4em] uppercase" style={{ color: '#C9920A' }}>Reach Out</span>
-              <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, #C9920A, transparent)' }} />
-            </div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontStyle: 'italic' }}>Contact Us</h1>
-            <p className="text-xl md:text-2xl mb-8 drop-shadow-md" style={{ color: '#F5E6C8' }}>
-              We're here to assist you in finding or crafting your perfect piece of jewellery.
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">Contact Us</h1>
+            <p className="text-xl md:text-2xl mb-8 drop-shadow-md text-blue-50">
+              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
             </p>
           </div>
         </div>
@@ -103,21 +98,21 @@ export default function ContactPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>Get in Touch</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Get in Touch</h2>
             <p className="text-lg text-gray-600">
-              Choose your preferred way to reach our concierge team
+              Choose your preferred way to reach us
             </p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-8">
             {contactInfo.map((info, index) => (
-              <div key={index} className="text-center p-4 md:p-6 rounded-lg border border-gray-100 hover:shadow-xl transition-all duration-300 bg-white w-full overflow-hidden flex flex-col items-center group">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ background: 'rgba(201,146,10,0.1)' }}>
-                  <info.icon className="h-6 w-6" style={{ color: '#C9920A' }} />
+              <div key={index} className="text-center p-4 md:p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow bg-white w-full overflow-hidden flex flex-col items-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4 flex-shrink-0">
+                  <info.icon className="h-6 w-6 text-blue-600" />
                 </div>
                 <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">{info.title}</h3>
-                <p className="font-medium mb-2 break-all text-sm md:text-base w-full px-1" style={{ color: '#8B6508' }}>{info.details}</p>
-                <p className="text-xs md:text-sm text-gray-500 px-1">{info.description}</p>
+                <p className="text-blue-600 font-medium mb-2 break-all text-sm md:text-base w-full px-1">{info.details}</p>
+                <p className="text-xs md:text-sm text-gray-600 px-1">{info.description}</p>
               </div>
             ))}
           </div>
@@ -125,13 +120,13 @@ export default function ContactPage() {
       </section>
 
       {/* Contact Form */}
-      <section className="py-16 bg-[#FFFDF8]">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-yellow-900/5 p-8 md:p-12">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>Send an Inquiry</h2>
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Send us a Message</h2>
               <p className="text-lg text-gray-600">
-                Whether you're looking for a custom design or need help with an order, we are at your service.
+                Fill out the form below and we'll get back to you as soon as possible.
               </p>
             </div>
             
@@ -148,7 +143,7 @@ export default function ContactPage() {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#C9920A] focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -164,7 +159,7 @@ export default function ContactPage() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
                     placeholder="Enter your email address"
                   />
                 </div>
@@ -180,14 +175,15 @@ export default function ContactPage() {
                   required
                   value={formData.subject}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none text-sm transition-all text-gray-900"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all text-gray-900"
                 >
                   <option value="">Select a subject</option>
                   <option value="general">General Inquiry</option>
-                  <option value="custom">Custom Design Consultation</option>
+                  <option value="product">Product Question</option>
                   <option value="order">Order Status</option>
                   <option value="return">Return/Exchange</option>
-                  <option value="support">Aftercare & Support</option>
+                  <option value="support">Technical Support</option>
+                  <option value="feedback">Feedback</option>
                 </select>
               </div>
               
@@ -202,18 +198,17 @@ export default function ContactPage() {
                   rows={6}
                   value={formData.message}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
-                  placeholder="Tell us how we can assist you..."
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all text-gray-900 placeholder:text-gray-400"
+                  placeholder="Tell us how we can help you..."
                 />
               </div>
               
-              <div className="text-center pt-4">
+              <div className="text-center">
                 <button
                   type="submit"
-                  className="text-white px-10 py-4 rounded-full font-semibold transition-all duration-300 shadow-[0_4px_14px_0_rgba(201,146,10,0.39)] hover:shadow-[0_6px_20px_rgba(201,146,10,0.23)] hover:scale-[1.02]"
-                  style={{ background: 'linear-gradient(135deg, #8B6508 0%, #C9920A 100%)' }}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
-                  Send Inquiry
+                  Send Message
                 </button>
               </div>
             </form>
@@ -224,56 +219,53 @@ export default function ContactPage() {
       {/* Live Chat Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="rounded-2xl p-8 md:p-12 text-white relative overflow-hidden" style={{ background: '#6B1A1A' }}>
-            <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 rounded-full bg-white opacity-5"></div>
-            <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-48 h-48 rounded-full bg-white opacity-5"></div>
-            
-            <div className="relative z-10">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-10 rounded-full mb-6 backdrop-blur-sm">
-                <ChatBubbleLeftRightIcon className="h-8 w-8 text-[#E8B84B]" />
-              </div>
-              <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>Looking for Expert Advice?</h2>
-              <p className="text-xl mb-8 text-[#F5E6C8] max-w-2xl mx-auto">
-                Connect with our master jewelers and diamond experts for personalized recommendations.
-              </p>
-              <button className="bg-white text-[#6B1A1A] px-8 py-3 rounded-full font-semibold hover:bg-gray-50 transition-colors shadow-lg">
-                Start Consultation
-              </button>
+          <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-lg p-8 text-white">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-6">
+              <ChatBubbleLeftRightIcon className="h-8 w-8" />
             </div>
+            <h2 className="text-3xl font-bold mb-4">Need Immediate Help?</h2>
+            <p className="text-xl mb-6">
+              Chat with our customer service team in real-time
+            </p>
+            <button className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+              Start Live Chat
+            </button>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-[#FFFDF8]">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
           </div>
           
           <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-yellow-900/5 p-6 md:p-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Do your diamonds come with certification?</h3>
-              <p className="text-gray-600 leading-relaxed">Yes, all our diamonds above 0.30 carats come with a grading report from internationally recognized laboratories such as GIA, IGI, or HRD.</p>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">How can I track my order?</h3>
+              <p className="text-gray-600">You can track your order by logging into your account and visiting the "My Orders" section, or by using the tracking number sent to your email.</p>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm border border-yellow-900/5 p-6 md:p-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">What is your exchange and buyback policy?</h3>
-              <p className="text-gray-600 leading-relaxed">We offer a 100% exchange value on diamond jewellery within 30 days. For lifetime buyback, we offer 100% on gold weight at prevailing market rates and 90% on diamond value.</p>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">What is your return policy?</h3>
+              <p className="text-gray-600">We offer a 30-day return policy for most items. Visit our Returns page for detailed information about our return process.</p>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm border border-yellow-900/5 p-6 md:p-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Can I request a custom design?</h3>
-              <p className="text-gray-600 leading-relaxed">Absolutely. Our bespoke design service allows you to work directly with our master craftsmen to create a unique piece tailored perfectly to your vision.</p>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Do you ship internationally?</h3>
+              <p className="text-gray-600">Yes, we ship to over 50 countries worldwide. Shipping costs and delivery times vary by location.</p>
             </div>
             
-            <div className="bg-white rounded-xl shadow-sm border border-yellow-900/5 p-6 md:p-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">How do I care for my jewellery?</h3>
-              <p className="text-gray-600 leading-relaxed">We recommend professional cleaning every 6 months. For day-to-day care, gently clean with mild soap and warm water using a soft brush, and store in the provided suede pouch when not worn.</p>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">How can I change or cancel my order?</h3>
+              <p className="text-gray-600">Orders can be modified or cancelled within 1 hour of placement. Contact our customer service team immediately for assistance.</p>
             </div>
           </div>
         </div>
       </section>
+
+
     </div>
   );
 } 

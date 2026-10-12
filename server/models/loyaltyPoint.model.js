@@ -39,4 +39,6 @@ const loyaltyPointSchema = new mongoose.Schema({
   timestamps: true
 });
 
+loyaltyPointSchema.index({ totalPoints: 1 });
+
 module.exports = mongoose.model('LoyaltyPoint', loyaltyPointSchema);

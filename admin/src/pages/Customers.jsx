@@ -200,8 +200,8 @@ const Customers = () => {
   };
 
   const totalPages = Math.max(1, Math.ceil((totalResults || 0) / (resultsPerPage || 1)));
-  const startPage = Math.max(1, Number(currentPage) - 2);
-  const endPage = Math.min(totalPages, Number(currentPage) + 2);
+  const startPage = Math.max(1, Number(currentPage) - 1);
+  const endPage = Math.min(totalPages, Number(currentPage) + 1);
 
 
   return (
@@ -212,66 +212,56 @@ const Customers = () => {
       </MainDrawer>
       <AnimatedContent>
         <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5">
-          <CardBody>
+          <CardBody className="p-3 sm:p-4">
             <form
               onSubmit={handleSubmitUser}
-              className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex"
+              className="py-1 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4"
             >
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="flex-1 w-full min-w-0 sm:max-w-md lg:max-w-lg">
                 <Input
                   ref={userRef}
                   type="search"
                   name="search"
                   placeholder={t("Search Vendor")}
                   onChange={onSearchChange}
+                  className="page-search-input w-full"
                 />
-                <button
+              </div>
+
+              <div className="grid grid-cols-4 sm:flex items-center gap-1.5 sm:gap-2.5 w-full sm:w-auto flex-shrink-0">
+                <Button
                   type="submit"
-                  className="absolute right-0 top-0 mt-5 mr-1"
-                ></button>
-              </div>
-              <div className="w-full md:w-56 lg:w-56 xl:w-56">
-                <div className="w-full mx-1">
-                  <Button type="submit" className="h-12 w-full bg-blue-700">
-                    Search
-                  </Button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+                  className="h-9 sm:h-10 px-2 sm:px-4 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-button text-xs sm:text-sm font-medium transition-all flex items-center justify-center"
+                >
+                  Search
+                </Button>
+
                 <Button
                   onClick={toggleDrawer}
-                  className="w-full rounded-md h-12"
+                  className="h-9 sm:h-10 px-1.5 sm:px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-medium shadow-button flex items-center justify-center transition-all whitespace-nowrap"
                 >
-                  <span className="mr-3">
+                  <span className="hidden sm:inline mr-1.5">
                     <FiPlus />
                   </span>
-                  {t("Add Vendor")}
+                  <span className="truncate">{t("Add Vendor")}</span>
                 </Button>
-              </div>
-              <div className="flex items-center gap-2 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                <div className="w-full">
-                  <Button
-                    layout="outline"
-                    disabled={syncLoading}
-                    onClick={refreshCustomer}
-                    type="button"
-                    className="px-4 md:py-1 py-3 text-sm border border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 dark:border-blue-400"
-                  >
-                    <span className="text-black dark:hover:text-gray-200">
-                      {syncLoading ? "Syncing..." : "Sync"}
-                    </span>
-                  </Button>
-                </div>
-                <div className="w-full mx-1">
-                  <Button
-                    layout="outline"
-                    onClick={handleResetField}
-                    type="reset"
-                    className="px-4 md:py-1 py-2 h-12 text-sm dark:bg-gray-700"
-                  >
-                    <span className="text-black dark:text-gray-200">Reset</span>
-                  </Button>
-                </div>
+
+                <Button
+                  disabled={syncLoading}
+                  onClick={refreshCustomer}
+                  type="button"
+                  className="btn-action-sync h-9 sm:h-10 px-2 sm:px-4 flex items-center justify-center text-xs sm:text-sm"
+                >
+                  <span>{syncLoading ? "..." : "Sync"}</span>
+                </Button>
+
+                <Button
+                  onClick={handleResetField}
+                  type="reset"
+                  className="btn-action-reset h-9 sm:h-10 px-2 sm:px-4 flex items-center justify-center text-xs sm:text-sm"
+                >
+                  <span>Reset</span>
+                </Button>
               </div>
             </form>
           </CardBody>
@@ -302,8 +292,8 @@ const Customers = () => {
             <CustomerTable customers={customers} />
           </Table>
           <TableFooter>
-            <div className="w-full flex items-center justify-between px-4 py-2">
-              <div className="text-sm">
+            <div className="w-full flex items-center justify-center sm:justify-between px-4 py-2">
+              <div className="text-sm hidden sm:block">
                 {totalResults > 0 ? (
                   <span>
                     Showing {Math.min((currentPage - 1) * resultsPerPage + 1, totalResults)}-
@@ -313,31 +303,43 @@ const Customers = () => {
                   <span>Showing 0 of 0</span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <Button layout="outline" onClick={handlePrevPage} disabled={currentPage <= 1}>
+              <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-2">
+                <Button
+                  layout="outline"
+                  size="small"
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  className="!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
+                >
                   Prev
                 </Button>
                 {startPage > 1 && (
                   <>
                     <Button
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(1)}
-                      className={currentPage === 1 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === 1 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       1
                     </Button>
-                    {startPage > 2 && <span className="px-1">...</span>}
+                    {startPage > 2 && <span className="px-0.5">...</span>}
                   </>
                 )}
                 {Array.from({ length: Math.max(0, endPage - startPage + 1) }, (_, idx) => {
                   const p = startPage + idx;
-                  if (p === 1 || p === totalPages) return null;
+                  if ((p === 1 && startPage > 1) || (p === totalPages && endPage < totalPages)) return null;
                   return (
                     <Button
                       key={`p-${p}`}
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(p)}
-                      className={currentPage === p ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === p ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       {p}
                     </Button>
@@ -345,17 +347,26 @@ const Customers = () => {
                 })}
                 {endPage < totalPages && (
                   <>
-                    {endPage < totalPages - 1 && <span className="px-1">...</span>}
+                    {endPage < totalPages - 1 && <span className="px-0.5">...</span>}
                     <Button
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(totalPages)}
-                      className={currentPage === totalPages ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === totalPages ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       {totalPages}
                     </Button>
                   </>
                 )}
-                <Button layout="outline" onClick={handleNextPage} disabled={currentPage >= totalPages}>
+                <Button
+                  layout="outline"
+                  size="small"
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages}
+                  className="!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
+                >
                   Next
                 </Button>
               </div>

@@ -56,6 +56,10 @@ const SaleOrderSchema = new mongoose.Schema(
       amount: { type: Number },
       color: { type: String },
       size: { type: String },
+      billedQuantity: {
+        type: Number,
+        default: 0
+      },
       description: {
         type: String,
         default: '' // Make it explicitly optional with empty string default
@@ -72,10 +76,26 @@ const SaleOrderSchema = new mongoose.Schema(
     totalAmount: { type: Number },
     totalDiscountAmount: { type: Number },
     totalQuantity: { type: Number },
+    totalBilledQuantity: {
+      type: Number,
+      default: 0
+    },
     status: {
       type: String,
       enum: ["Start", "Dispatched", "Processing", "Delivered", "Cancelled"],
       default: 'Start'
+    },
+    invoicedStatus: {
+      type: String,
+      enum: ["Unbilled", "Partially Billed", "Fully Billed"],
+      default: 'Unbilled'
+    },
+    convertedSaleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Sale'
+    },
+    saleVoucherNo: {
+      type: String
     },
     description: { type: String },
     grNo: { type: String },
@@ -85,23 +105,17 @@ const SaleOrderSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true
-    },
-    loyaltyPointsRedeemed: {
-      type: Number,
-      default: 0
-    },
-    loyaltyDiscountAmount: {
-      type: Number,
-      default: 0
-    },
-    loyaltyPointsEarned: {
-      type: Number,
-      default: 0
     }
   },
   {
     timestamps: true
   }
 );
+
+SaleOrderSchema.index({ createdAt: -1 });
+SaleOrderSchema.index({ date: -1 });
+SaleOrderSchema.index({ status: 1 });
+SaleOrderSchema.index({ salesman: 1, createdAt: -1 });
+SaleOrderSchema.index({ "items.itemId": 1 });
 
 module.exports = mongoose.models.SaleOrder || mongoose.model("SaleOrder", SaleOrderSchema);

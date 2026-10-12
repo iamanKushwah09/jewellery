@@ -91,4 +91,12 @@ customerSchema.pre('save', function(next) {
     }
 });
 
+// Performance indexes for fast search and pagination
+customerSchema.index({ name: 1 });
+customerSchema.index({ mobile: 1 });
+customerSchema.index({ email: 1 });
+customerSchema.index({ code: 1 });
+customerSchema.index({ group_type: 1 });
+customerSchema.index({ loyaltyTier: 1 });
+
 module.exports = mongoose.models.Customer || mongoose.model("Customer", customerSchema);

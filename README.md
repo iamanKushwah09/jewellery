@@ -1,124 +1,130 @@
-# Vellora Jewels - E-Commerce Platform
+# VTC Shoe / E-Commerce Platform
 
-Welcome to **Vellora Jewels**, a premium e-commerce platform for jewelry. This repository is structured as a monorepo containing three core components: the customer storefront, the administrative dashboard, and a robust Node.js backend.
+A comprehensive, full-stack B2B/B2C E-commerce platform featuring a modern storefront, a powerful admin dashboard, and a robust RESTful API backend.
 
----
+## 🚀 Features
 
-## 📁 Repository Structure
+### Client Storefront
+- **Modern UI/UX**: Built with Next.js 15 (App Router) and Tailwind CSS 4.
+- **Product Catalog**: Advanced search, filtering, and categorization.
+- **Shopping Cart & Checkout**: Seamless checkout experience with guest and authenticated user flows.
+- **Payment Gateways**: Secure payments via Razorpay, Stripe, and Cash on Delivery (COD).
+- **Customer Dashboard**: Track orders, view purchase history, and manage profile.
+- **Loyalty Program**: Earn points on purchases and redeem them on future orders.
 
-The project is split into three main directories:
+### Admin Dashboard
+- **Comprehensive Management**: Manage products, categories, attributes, and inventory.
+- **Order Processing**: View, process, and dispatch customer and vendor orders (Sale Orders).
+- **User Management**: Manage customers, vendors, and internal staff roles.
+- **Analytics & Reporting**: Interactive charts and data tables for sales and stock.
+- **Discounts & Coupons**: Create and manage promotional campaigns, promo codes, and sundry discounts.
+- **System Settings**: Configure shipping rules, currencies, languages, and notifications.
 
-*   **[`client`](file:///c:/Users/Shivani%20Sharma/Desktop/jewellary/client)**: Customer-facing storefront built with **Next.js 15 (TypeScript)**, **React 19**, **Tailwind CSS v4**, **Redux Toolkit**, and **Zustand**.
-*   **[`admin`](file:///c:/Users/Shivani%20Sharma/Desktop/jewellary/admin)**: Administrative dashboard built with **React 18**, **Vite**, **Windmill UI**, and **Tailwind CSS v3**. Runs on port `4100` by default.
-*   **[`server`](file:///c:/Users/Shivani%20Sharma/Desktop/jewellary/server)**: REST API backend server built with **Node.js**, **Express**, and **Mongoose (MongoDB)**. It features payment integrations (Stripe, Razorpay, PayPal) and Swagger API documentation.
+### Backend API
+- **Secure & Scalable**: Node.js & Express API with MongoDB (Mongoose) database.
+- **Authentication**: JWT-based secure authentication and role-based access control (RBAC).
+- **Integrations**: Cloudinary for media management, Nodemailer for emails, and payment providers.
+- **API Documentation**: Built-in Swagger UI for API endpoint reference.
 
----
+## 🛠️ Technology Stack
 
-## ⚙️ Getting Started & Installation
+| Component | Technologies |
+| :--- | :--- |
+| **Frontend (Store)** | Next.js 15, React 19, Tailwind CSS 4, Redux Toolkit, Zustand |
+| **Frontend (Admin)** | React 18, Vite, Tailwind CSS, Redux Toolkit, Windmill UI |
+| **Backend (API)** | Node.js, Express, MongoDB, Mongoose, JWT, Swagger |
+| **Integrations** | Razorpay, Stripe, Cloudinary, PayPal |
+
+## 📦 Project Structure
+
+The project is structured into three main directories:
+
+- `/client` - The Next.js storefront application.
+- `/admin` - The Vite + React administrative dashboard.
+- `/server` - The Node.js + Express backend API.
+
+## ⚙️ Installation & Setup
 
 ### Prerequisites
-Make sure you have the following installed on your system:
-- **Node.js** (v18.x or higher recommended)
-- **MongoDB** (Local instance or MongoDB Atlas URI)
-- **npm** or **yarn**
+- Node.js (v18+ recommended)
+- MongoDB (Local or Atlas)
+- Accounts for Cloudinary, Razorpay, or Stripe (optional, for full feature functionality)
 
----
+### 1. Clone the Repository
+```bash
+git clone https://github.com/iamanKushwah09/pharma.git
+cd pharma
+```
 
-### 1. Backend Server Setup (`/server`)
+### 2. Environment Setup
+You will need to configure environment variables for all three directories (`server`, `client`, `admin`). 
+Create `.env` files in each respective directory based on their `.env.example` (if provided) or setup the following essential variables:
 
-The backend handles database interactions, authentication, orders, payments, and product management.
+**Server (`/server/.env`)**
+```env
+PORT=5056
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+CLOUDINARY_URL=your_cloudinary_url
+RAZORPAY_KEY_ID=your_razorpay_key
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+STRIPE_KEY=your_stripe_key
+```
 
-1. Navigate to the server folder:
-   ```bash
-   cd server
-   ```
-2. Install the dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up the environment variables:
-   - Rename `.env.development` or configure a `.env` file in the `server` directory.
-   - Ensure the following variables are configured:
-     ```env
-     PORT=5000
-     MONGO_URI=mongodb://localhost:27017/vellora_jewels
-     JWT_SECRET=your_jwt_secret_key
-     ```
-4. Seed the database with sample jewelry data:
-   ```bash
-   npm run data:import
-   ```
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
+**Client (`/client/.env`)**
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5056/api
+NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key
+```
 
----
+**Admin (`/admin/.env`)**
+```env
+VITE_APP_API_BASE_URL=http://localhost:5056/api
+```
 
-### 2. Admin Dashboard Setup (`/admin`)
+### 3. Install Dependencies
+Install dependencies for each part of the application:
 
-The admin panel allows management of categories, products, orders, customers, and discount coupons.
+```bash
+# Install Server dependencies
+cd server
+npm install
 
-1. Navigate to the admin folder:
-   ```bash
-   cd ../admin
-   ```
-2. Install the dependencies:
-   ```bash
-   npm install
-   ```
-3. Configure the env variables:
-   - Create a `.env` file containing the backend URL pointing to your running server (e.g., `http://localhost:5000/api`).
-4. Start the development server (runs on `http://localhost:4100`):
-   ```bash
-   npm run dev
-   ```
+# Install Client dependencies
+cd ../client
+npm install
 
----
+# Install Admin dependencies
+cd ../admin
+npm install
+```
 
-### 3. Customer Storefront Setup (`/client`)
+### 4. Running the Development Servers
 
-The Next.js storefront allows customers to browse jewelry, add items to their cart, apply coupons, and make purchases.
+You can run the servers individually in separate terminal windows:
 
-1. Navigate to the client folder:
-   ```bash
-   cd ../client
-   ```
-2. Install the dependencies:
-   ```bash
-   npm install
-   ```
-3. Configure the env variables:
-   - Create/modify the `.env` file to reference the backend API endpoint.
-4. Start the Next.js development server:
-   ```bash
-   npm run dev
-   ```
-5. Open your browser and navigate to `http://localhost:3000` to see the storefront.
+**Run Server:**
+```bash
+cd server
+npm run dev
+```
 
----
+**Run Storefront:**
+```bash
+cd client
+npm run dev
+```
 
-## 🛠️ Summary of Available Scripts
+**Run Admin Dashboard:**
+```bash
+cd admin
+npm run dev
+```
 
-| Directory | Script | Command | Description |
-| :--- | :--- | :--- | :--- |
-| **`server`** | `npm run dev` | `nodemon api/index.js` | Starts server in development mode |
-| **`server`** | `npm run start` | `node api/index.js` | Runs server in production mode |
-| **`server`** | `npm run data:import` | `node script/seed.js` | Seeds DB with sample products & categories |
-| **`admin`** | `npm run dev` | `vite --force --port 4100` | Starts Admin dashboard on port 4100 |
-| **`admin`** | `npm run build` | `vite build` | Builds Admin dashboard for production |
-| **`client`** | `npm run dev` | `next dev` | Starts Client Next.js storefront |
-| **`client`** | `npm run build` | `next build` | Builds Next.js storefront for production |
+- **Storefront**: [http://localhost:3000](http://localhost:3000)
+- **Admin Panel**: [http://localhost:4100](http://localhost:4100)
+- **API Server**: [http://localhost:5056](http://localhost:5056)
+- **Swagger Docs**: [http://localhost:5056/api-docs](http://localhost:5056/api-docs)
 
----
-
-## 🔐 Payment & Third-Party Integrations
-The backend is integrated with:
-- **PayPal Checkout SDK**
-- **Stripe**
-- **Razorpay**
-- **Cloudinary** (For product image uploads)
-- **Nodemailer** (For transactional emails)
-
-
-## Developed by Aman and Team
+## 📄 License
+This project is licensed under the ISC License.

@@ -69,6 +69,9 @@ const itemGroupValidationSchema = Joi.object({
     .messages({
       'string.pattern.base': 'Parent_id must be a valid 24-character hexadecimal string.',
     }),
+  showOnWebsite: Joi.boolean().optional().messages({
+    "boolean.base": "Show on website must be a boolean.",
+    }),
 }).unknown(true);
 
 const validateItemGroup = (req, res, next) => {

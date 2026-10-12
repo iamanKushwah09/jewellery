@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5056/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5055/api';
 
 const TIER_STYLES: Record<string, { bg: string; border: string; badge: string; icon: string; textColor: string }> = {
   default: {

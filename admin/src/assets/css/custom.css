@@ -1,3 +1,258 @@
+/* ============================================================================
+ * Central CSS Variables (Synchronized with src/theme/themeConfig.js)
+ * Change fonts or core palette tokens here or in themeConfig.js
+ * ============================================================================ */
+:root {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --primary-color: #845adf;
+  --primary-hover: #7344d4;
+  --primary-rgb: 132, 90, 223;
+  --primary-light: rgba(132, 90, 223, 0.1);
+  --primary-ring: rgba(132, 90, 223, 0.25);
+  --color-primary: var(--primary-color);
+  --color-primary-hover: var(--primary-hover);
+  --color-canvas: #f0f1f7;
+  --color-stroke: #e9edf4;
+  --color-dark-canvas: #111c43;
+  --color-dark-card: #1a2352;
+  --color-dark-border: #263168;
+}
+
+/* ============================================================================
+ * Dynamic Theme & Primary Color Overrides
+ * Automatically reflects user-configured admin colors across components
+ * ============================================================================ */
+.bg-\[\#845adf\],
+.\!bg-\[\#845adf\],
+.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.text-\[\#845adf\],
+.\!text-\[\#845adf\],
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+.border-\[\#845adf\],
+.\!border-\[\#845adf\],
+.border-primary {
+  border-color: var(--primary-color) !important;
+}
+
+.\!bg-\[\#845adf\]\/15 {
+  background-color: var(--primary-light) !important;
+}
+
+.hover\:bg-\[\#7344d4\]:hover,
+.hover\:bg-primary-hover:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.hover\:bg-\[\#845adf\]\/10:hover {
+  background-color: var(--primary-light) !important;
+}
+
+.hover\:border-\[\#845adf\]\/30:hover {
+  border-color: var(--primary-ring) !important;
+}
+
+.hover\:text-\[\#845adf\]:hover {
+  color: var(--primary-color) !important;
+}
+
+.focus\:border-\[\#845adf\]:focus,
+.focus\:border-\[\#845adf\]:focus-within {
+  border-color: var(--primary-color) !important;
+}
+
+.focus\:ring-\[\#845adf\]\/15:focus,
+.focus\:ring-\[\#845adf\]\/20:focus,
+.focus\:ring-\[\#845adf\]\/30:focus {
+  --tw-ring-color: var(--primary-ring) !important;
+}
+
+/* Custom Primary Utilities */
+.bg-custom-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.text-custom-primary {
+  color: var(--primary-color) !important;
+}
+
+.border-custom-primary {
+  border-color: var(--primary-color) !important;
+}
+
+/* Sidebar dynamic active links */
+.active-sidebar-link,
+a.active.active-sidebar-link,
+a.active[class*="active-sidebar-link"],
+.sidebar-active-link,
+aside a.active,
+.custom-scrollbar a.active {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px var(--primary-light) !important;
+}
+
+.active-subnav-link,
+a.active.active-subnav-link,
+a.active[class*="active-subnav-link"] {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px var(--primary-light) !important;
+}
+
+.active-subnav-link span:first-child,
+a.active.active-subnav-link span:first-child {
+  background-color: #ffffff !important;
+}
+
+/* ============================================================================
+ * Modal & Popup Theme Synchronization (SweetAlert, Windmill & React Responsive)
+ * ============================================================================ */
+.swal-modal {
+  border-radius: 1.25rem !important;
+  background-color: #ffffff !important;
+  font-family: var(--font-sans) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid #e9edf4 !important;
+}
+
+.dark .swal-modal {
+  background-color: #1a2352 !important;
+  border-color: #263168 !important;
+  color: #ffffff !important;
+}
+
+.dark .swal-title {
+  color: #ffffff !important;
+}
+
+.dark .swal-text {
+  color: #a3aed1 !important;
+}
+
+.swal-button {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  border-radius: 0.625rem !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  padding: 0.625rem 1.5rem !important;
+  box-shadow: 0 4px 14px var(--primary-light) !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal-button:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.swal-button--cancel {
+  background-color: #f0f1f7 !important;
+  color: #536485 !important;
+  box-shadow: none !important;
+}
+
+.dark .swal-button--cancel {
+  background-color: #111c43 !important;
+  color: #a3aed1 !important;
+}
+
+.swal-button--danger {
+  background-color: #e6533c !important;
+  color: #ffffff !important;
+}
+
+.swal-button--danger:hover {
+  background-color: #d4432c !important;
+}
+
+.swal-icon--success:before,
+.swal-icon--success:after,
+.swal-icon--success__hide-corners {
+  background: transparent !important;
+}
+
+/* Windmill & Custom Modals - Ensure always above rc-drawer (z-index: 9999) */
+.custom-modal,
+[role="dialog"] {
+  border-radius: 1.25rem !important;
+  font-family: var(--font-sans) !important;
+  z-index: 100001 !important;
+}
+
+.modal-backdrop-high-z {
+  z-index: 100000 !important;
+}
+
+/* React Responsive Modal */
+.react-responsive-modal-modal {
+  border-radius: 1.25rem !important;
+  font-family: var(--font-sans) !important;
+  border: 1px solid #e9edf4 !important;
+  padding: 1.5rem !important;
+}
+
+.dark .react-responsive-modal-modal {
+  background-color: #1a2352 !important;
+  border-color: #263168 !important;
+  color: #ffffff !important;
+}
+
+.react-responsive-modal-closeButton:hover svg {
+  fill: var(--primary-color) !important;
+}
+
+/* Tabs & Tab-Panels Synchronization */
+.react-tabs__tab--selected {
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+}
+
+.react-tabs__tab:focus:after {
+  background: var(--primary-color) !important;
+}
+
+
+html,
+body,
+button,
+input,
+select,
+textarea,
+label {
+  font-family: var(--font-sans) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Flipkart & Amazon high-impact executive headings with tight optical tracking */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sans) !important;
+  letter-spacing: -0.025em;
+}
+
+/* Precision tabular figures for financial tables, metrics, and pricing */
+table,
+.price,
+[class*="price"],
+[class*="Amount"],
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv02" 1;
+}
+
 /* for hiding process is not defined bug from console */
 body
   > iframe[style*="2147483647"]:not([id="webpack-dev-server-client-overlay"]) {
@@ -1266,14 +1521,55 @@ input[type="file"] {
 }
 
 .btn-red {
-  background-color: red !important;
+  background-color: #DC2626 !important;
+  color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease-in-out !important;
 }
+.btn-red:hover {
+  background-color: #B91C1C !important;
+}
+
 .btn-orange {
-  background-color: orange !important;
+  background-color: #D97706 !important;
+  color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease-in-out !important;
 }
+.btn-orange:hover {
+  background-color: #B45309 !important;
+}
+
 .btn-gray {
-  color: #020202 !important;
-  background-color: #e5e7eb !important;
+  color: #536485 !important;
+  background-color: #f0f1f7 !important;
+  border: 1px solid #e9edf4 !important;
+  border-radius: 0.625rem !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+.btn-gray:hover {
+  background-color: #e9edf4 !important;
+  color: #2c3138 !important;
+  border-color: #d5dbe5 !important;
+}
+
+.btn-red {
+  color: #e6533c !important;
+  background-color: rgba(230, 83, 60, 0.1) !important;
+  border: 1px solid rgba(230, 83, 60, 0.25) !important;
+  border-radius: 0.625rem !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+.btn-red:hover {
+  background-color: #e6533c !important;
+  color: #ffffff !important;
 }
 
 /* input field spin button */
@@ -1329,36 +1625,686 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 46px !important
 }
 
+/* ============================================================================
+ * Ynex Master Global Elevation Styles (Tables, Cards, Inputs, Scrollbars)
+ * ============================================================================ */
 
+/* ============================================================================
+ * Ynex Master Global Elevation Styles (Tables, Cards, Inputs, Scrollbars)
+ * ============================================================================ */
 
-.custom-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  font-family: sans-serif;
+/* Dark mode surface harmonization */
+.dark .bg-gray-800 {
+  background-color: #1a2352 !important;
+  border-color: #263168 !important;
+}
+.dark .bg-gray-900,
+.dark .bg-gray-700 {
+  background-color: #111c43 !important;
+  border-color: #263168 !important;
 }
 
-.custom-table thead {
-  background-color: #f9fafb;
+/* Modern Ynex Global Table Elevation */
+.custom-table,
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+table thead th,
+table thead td,
+.custom-table thead th,
+.custom-table thead td {
+  background-color: #f9fafc !important;
+  color: #8c9097 !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid #e9edf4 !important;
+  border-top: none !important;
+  padding: 0.75rem 1rem !important;
+  white-space: nowrap !important;
   text-align: left;
 }
 
-.custom-table th,
-.custom-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb; /* light gray border */
+.dark table thead th,
+.dark table thead td,
+.dark .custom-table thead th,
+.dark .custom-table thead td {
+  background-color: rgba(17, 28, 67, 0.7) !important;
+  color: #a3aed1 !important;
+  border-bottom-color: #263168 !important;
+}
+
+table tbody td,
+.custom-table tbody td {
+  border-bottom: 1px solid #e9edf4 !important;
+  color: #2c3138;
+  font-size: 0.8125rem !important;
+  font-weight: 500;
+  padding: 0.75rem 1rem !important;
   white-space: nowrap;
+  vertical-align: middle !important;
+  background-color: transparent !important;
 }
 
+.dark table tbody td,
+.dark .custom-table tbody td {
+  border-bottom-color: rgba(38, 49, 104, 0.7) !important;
+  color: #ffffff;
+}
+
+table tbody tr,
+.custom-table tbody tr {
+  transition: background-color 0.15s ease-in-out !important;
+}
+
+table tbody tr:hover,
 .custom-table tbody tr:hover {
-  background-color: #f3f4f6; /* hover light gray */
+  background-color: rgba(132, 90, 223, 0.035) !important;
 }
 
-.custom-table th {
+.dark table tbody tr:hover,
+.dark .custom-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Table Container / Cards */
+.custom-table-container,
+[class*="TableContainer"] {
+  border: 1px solid #e9edf4 !important;
+  border-radius: 0.75rem !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  overflow: hidden !important;
+}
+
+.dark .custom-table-container,
+.dark [class*="TableContainer"] {
+  border-color: #263168 !important;
+  background-color: #1a2352 !important;
+}
+
+/* Table Checkboxes */
+table input[type="checkbox"],
+.form-check-input {
+  width: 1.05rem !important;
+  height: 1.05rem !important;
+  border: 1px solid #ced4da !important;
+  border-radius: 0.25rem !important;
+  accent-color: #845adf !important;
+  cursor: pointer !important;
+  vertical-align: middle !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+table input[type="checkbox"]:checked,
+.form-check-input:checked {
+  background-color: #845adf !important;
+  border-color: #845adf !important;
+}
+
+.dark table input[type="checkbox"],
+.dark .form-check-input {
+  border-color: #3b487e !important;
+  background-color: #1a2352 !important;
+}
+
+/* ============================================================================
+ * Ynex Global Form Controls (Text Boxes, Inputs, Selects, Textareas)
+ * Reference: https://laravelui.spruko.com/ynex/index6
+ * ============================================================================ */
+html:not(.dark) input[type="text"]:not([class*="react-switch"]):not(.header-search-input),
+html:not(.dark) input[type="search"]:not(.header-search-input):not(.table-search-input):not(.page-search-input),
+html:not(.dark) input[type="number"],
+html:not(.dark) input[type="password"],
+html:not(.dark) input[type="email"],
+html:not(.dark) input[type="tel"],
+html:not(.dark) input[type="date"],
+html:not(.dark) input[type="datetime-local"],
+html:not(.dark) input[type="time"],
+html:not(.dark) input[type="url"],
+html:not(.dark) select,
+html:not(.dark) .form-control,
+html:not(.dark) .form-select {
+  background-color: #ffffff !important;
+  border: 1px solid #e9edf4 !important;
+  border-radius: 0.375rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+  color: #2c3138 !important;
+  line-height: 1.25 !important;
+  padding: 0.25rem 0.65rem !important;
+  height: 2rem !important; /* 32px compact height */
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  box-shadow: none !important;
+}
+
+.header-search-input,
+input.header-search-input {
+  padding-left: 2.35rem !important;
+  padding-right: 3.5rem !important;
+  height: 2.25rem !important;
+}
+
+/* Page Action Bar Search Inputs & Date Inputs (Refined height 40px / rounded-lg for clean proportions) */
+html:not(.dark) form input[type="search"]:not(.header-search-input):not(.has-icon-left),
+html:not(.dark) .card form input[type="search"]:not(.header-search-input):not(.has-icon-left),
+html:not(.dark) form input[type="date"],
+html:not(.dark) .card form input[type="date"],
+html:not(.dark) .table-search-input,
+html:not(.dark) .page-search-input:not(.has-icon-left) {
+  height: 2.5rem !important; /* 40px standard clean height */
+  border-radius: 0.5rem !important; /* 8px rounded-lg */
+  font-size: 0.8125rem !important;
+  padding-left: 0.875rem !important;
+  padding-right: 0.875rem !important;
+  width: 100% !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+}
+
+.dark form input[type="search"]:not(.header-search-input):not(.has-icon-left),
+.dark .card form input[type="date"],
+.dark .card form input[type="search"]:not(.header-search-input):not(.has-icon-left),
+.dark .table-search-input,
+.dark .page-search-input:not(.has-icon-left) {
+  height: 2.5rem !important;
+  border-radius: 0.5rem !important;
+  background-color: #1a2352 !important;
+  border-color: #263168 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Explicit rule for search inputs with left icon */
+html:not(.dark) input.has-icon-left,
+html:not(.dark) form input.has-icon-left,
+html:not(.dark) .card input.has-icon-left,
+.dark input.has-icon-left,
+.dark form input.has-icon-left,
+.dark .card input.has-icon-left,
+input.has-icon-left,
+.has-icon-left {
+  padding-left: 2.6rem !important;
+}
+
+/* Action Buttons (Reset, Sync, Outline, Danger - Unified 40px Height) */
+.btn-action-reset {
+  height: 2.5rem !important;
+  border-radius: 0.5rem !important;
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 500 !important;
+  font-size: 0.8125rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-action-reset:hover {
+  background-color: #e2e8f0 !important;
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+}
+
+.dark .btn-action-reset {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+.dark .btn-action-reset:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-color: #475569 !important;
+}
+
+.btn-action-sync {
+  height: 2.5rem !important;
+  border-radius: 0.5rem !important;
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  border: 1px solid #bfdbfe !important;
+  font-weight: 500 !important;
+  font-size: 0.8125rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-action-sync:hover {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border-color: #93c5fd !important;
+}
+
+.dark .btn-action-sync {
+  background-color: rgba(37, 99, 235, 0.15) !important;
+  color: #60a5fa !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.dark .btn-action-sync:hover {
+  background-color: rgba(37, 99, 235, 0.25) !important;
+  color: #93c5fd !important;
+  border-color: rgba(37, 99, 235, 0.5) !important;
+}
+
+.btn-action-outline-primary {
+  height: 2.5rem !important;
+  border-radius: 0.5rem !important;
+  background-color: transparent !important;
+  color: var(--primary-color) !important;
+  border: 1px solid var(--primary-color) !important;
+  font-weight: 500 !important;
+  font-size: 0.8125rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-action-outline-primary:hover {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+.dark .btn-action-outline-primary {
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  background-color: rgba(var(--primary-rgb), 0.1) !important;
+}
+
+.dark .btn-action-outline-primary:hover {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+.btn-action-danger {
+  height: 2.5rem !important;
+  border-radius: 0.5rem !important;
+  background-color: #fef2f2 !important;
+  color: #ef4444 !important;
+  border: 1px solid #fecaca !important;
+  font-weight: 500 !important;
+  font-size: 0.8125rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-action-danger:hover {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.dark .btn-action-danger {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.dark .btn-action-danger:hover {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+/* ============================================================================
+ * Modern Theme-Synchronized Toast Notifications (react-toastify)
+ * ============================================================================ */
+.Toastify__toast-container {
+  z-index: 999999 !important;
+  padding: 1rem !important;
+  width: auto !important;
+  max-width: 480px !important;
+}
+
+.Toastify__toast {
+  border-radius: 0.875rem !important; /* 14px modern curve */
+  background: #ffffff !important;
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(var(--primary-rgb), 0.12) !important;
+  border: 1px solid rgba(var(--primary-rgb), 0.18) !important;
+  font-family: inherit !important;
+  padding: 0.75rem 1rem !important;
+  min-height: 3.25rem !important;
+  color: #1e293b !important;
+  overflow: hidden !important;
+}
+
+.dark .Toastify__toast {
+  background: #1a2352 !important;
+  border-color: rgba(var(--primary-rgb), 0.35) !important;
+  box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.Toastify__toast-body {
+  font-size: 0.84375rem !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  padding: 0 0.5rem !important;
+  margin: 0 !important;
+}
+
+/* Success Toast - Harmonized with dynamic Theme Primary Color */
+.Toastify__toast--success {
+  border-left: 4px solid var(--primary-color) !important;
+}
+
+.Toastify__toast--success .Toastify__toast-icon {
+  width: 24px !important;
+  height: 24px !important;
+  background: var(--primary-light) !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+}
+
+.Toastify__toast--success .Toastify__toast-icon svg {
+  fill: var(--primary-color) !important;
+}
+
+/* Error Toast */
+.Toastify__toast--error {
+  border-left: 4px solid #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+.Toastify__toast--error .Toastify__toast-icon {
+  width: 24px !important;
+  height: 24px !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+}
+
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: #ef4444 !important;
+}
+
+/* Close button */
+.Toastify__close-button {
+  align-self: center !important;
+  opacity: 0.5 !important;
+  transition: all 0.2s ease !important;
+  color: #64748b !important;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1 !important;
+  color: var(--primary-color) !important;
+}
+
+.dark .Toastify__close-button {
+  color: #cbd5e1 !important;
+}
+
+.dark .Toastify__close-button:hover {
+  color: #ffffff !important;
+}
+
+/* Progress bar matches theme primary gradient */
+.Toastify__progress-bar,
+.Toastify__progress-bar--success,
+.Toastify__progress-bar--default {
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-hover)) !important;
+  height: 3px !important;
+  border-bottom-left-radius: 0.875rem !important;
+  border-bottom-right-radius: 0.875rem !important;
+}
+
+.Toastify__progress-bar--error {
+  background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+  height: 3px !important;
+}
+
+textarea,
+.form-control-textarea {
+  background-color: #ffffff !important;
+  border: 1px solid #e9edf4 !important;
+  border-radius: 0.375rem !important;
+  font-size: 0.8125rem !important;
+  color: #2c3138 !important;
+  line-height: 1.35 !important;
+  padding: 0.45rem 0.65rem !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  box-shadow: none !important;
+}
+
+/* Ynex Custom Select SVG Chevron Dropdown Arrow */
+select,
+.form-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238c9097' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+  background-position: right 0.65rem center !important;
+  background-size: 11px 8px !important;
+  background-repeat: no-repeat !important;
+  padding-right: 1.85rem !important;
+  cursor: pointer !important;
+}
+
+/* Placeholders */
+input::placeholder,
+textarea::placeholder {
+  color: #8c9097 !important;
+  opacity: 0.75 !important;
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+}
+
+/* Focus States (Signature Ynex Purple Ring) */
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+input[type="time"]:focus,
+input[type="url"]:focus,
+select:focus,
+textarea:focus,
+.form-control:focus,
+.form-select:focus {
+  border-color: #845adf !important;
+  box-shadow: 0 0 0 3px rgba(132, 90, 223, 0.15) !important;
+  outline: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Disabled States */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background-color: #f0f1f7 !important;
+  border-color: #e9edf4 !important;
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+}
+
+/* Dark mode inputs (Comprehensive coverage with bulletproof specificity) */
+html.dark input[type="text"]:not([class*="react-switch"]),
+html.dark input[type="search"],
+html.dark input[type="number"],
+html.dark input[type="password"],
+html.dark input[type="email"],
+html.dark input[type="tel"],
+html.dark input[type="date"],
+html.dark input[type="datetime-local"],
+html.dark input[type="time"],
+html.dark input[type="url"],
+html.dark input:not([type]),
+html.dark select,
+html.dark textarea,
+html.dark .form-control,
+html.dark .form-select,
+.dark input[type="text"]:not([class*="react-switch"]),
+.dark input[type="search"],
+.dark input[type="number"],
+.dark input[type="password"],
+.dark input[type="email"],
+.dark input[type="tel"],
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="time"],
+.dark input[type="url"],
+.dark input:not([type]),
+.dark select,
+.dark textarea,
+.dark .form-control,
+.dark .form-select {
+  background-color: #1a2352 !important;
+  border-color: #263168 !important;
+  color: #ffffff !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #8c98ba !important;
+  opacity: 0.8 !important;
+}
+
+html.dark select option,
+.dark select option {
+  background-color: #1a2352 !important;
+  color: #ffffff !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus,
+.dark .form-control:focus,
+.dark .form-select:focus {
+  border-color: #845adf !important;
+  box-shadow: 0 0 0 3px rgba(132, 90, 223, 0.25) !important;
+  background-color: #1a2352 !important;
+}
+
+.dark input:disabled,
+.dark select:disabled,
+.dark textarea:disabled {
+  background-color: #111c43 !important;
+  border-color: #263168 !important;
+}
+
+/* Dark mode SearchableDropdown dropdown menu lists */
+.dark ul[style*="zIndex: 9999"],
+.dark ul[style*="z-index: 9999"] {
+  background-color: #1a2352 !important;
+  border-color: #263168 !important;
+  color: #ffffff !important;
+}
+
+.dark ul[style*="zIndex: 9999"] li,
+.dark ul[style*="z-index: 9999"] li {
+  color: #ffffff !important;
+  border-color: #263168 !important;
+}
+
+.dark ul[style*="zIndex: 9999"] li:hover,
+.dark ul[style*="z-index: 9999"] li:hover {
+  background-color: #263168 !important;
+}
+
+/* Calendar picker icon for Date Inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  filter: invert(0.5);
+  transition: opacity 0.15s ease;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+}
+
+/* Labels across forms and modals */
+label,
+.form-label {
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: #374151; /* dark gray */
+  color: #2c3138;
+  margin-bottom: 0.2rem;
+  display: block;
+}
+.dark label,
+.dark .form-label {
+  color: #f3f4f6;
 }
 
-.custom-table td {
-  color: #4b5563; /* medium gray */
-  font-size: 0.95rem;
+/* Compact form row spacing across drawer forms */
+form .grid.mb-6,
+.drawer-content .grid.mb-6 {
+  margin-bottom: 0.75rem !important;
+}
+
+/* TailAdmin Custom Scrollbar & Utilities */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: #111c43;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #263168;
+  border-radius: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #845adf;
+}
+
+/* Global clean scrollbar for main content */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #f0f1f7;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #111c43;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #263168;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #845adf;
+}
+
+/* ============================================================================
+ * Action Column – standard (non-sticky) sizing
+ * ============================================================================ */
+.action-col {
+  width: 110px;
+  min-width: 110px;
+  text-align: center;
 }

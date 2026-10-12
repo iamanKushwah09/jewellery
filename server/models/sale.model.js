@@ -77,6 +77,20 @@ const SaleSchema = new mongoose.Schema(
       enum: ["Completed", "Pending", "Cancelled"],
       default: 'Completed'
     },
+    saleOrder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SaleOrder'
+    },
+    saleOrderVoucherNo: {
+      type: String
+    },
+    saleOrders: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SaleOrder'
+    }],
+    saleOrderVouchers: [{
+      type: String
+    }],
     description: { type: String },
     busyApiStatus: { type: String, enum: ['SUCCESS', 'FAILED'], default: 'FAILED' },
     isActive: {
@@ -92,6 +106,36 @@ const SaleSchema = new mongoose.Schema(
       default: 0
     },
     loyaltyPointsEarned: {
+      type: Number,
+      default: 0
+    },
+    loyaltyTierId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LoyaltyMembershipTier',
+      default: null
+    },
+    loyaltyTierName: {
+      type: String,
+      default: ''
+    },
+    loyaltyTierDiscountPercent: {
+      type: Number,
+      default: 0
+    },
+    loyaltyTierDiscountAmount: {
+      type: Number,
+      default: 0
+    },
+    loyaltyCouponId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LoyaltyIssuedCoupon',
+      default: null
+    },
+    loyaltyCouponCode: {
+      type: String,
+      default: ''
+    },
+    loyaltyCouponDiscountAmount: {
       type: Number,
       default: 0
     }

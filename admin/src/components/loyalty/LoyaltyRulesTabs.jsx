@@ -23,7 +23,13 @@ import { notifySuccess, notifyError } from "@/utils/toast";
 function SectionHeader({ icon: Icon, title, subtitle }) {
   return (
     <div className="flex items-start gap-3 mb-5">
-      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-xs"
+        style={{
+          backgroundColor: "var(--primary-light)",
+          color: "var(--primary-color)",
+        }}
+      >
         {typeof Icon === 'function' ? <Icon size={20} /> : Icon}
       </div>
       <div>
@@ -36,10 +42,20 @@ function SectionHeader({ icon: Icon, title, subtitle }) {
 
 function FormPanel({ title, children, onSave, onCancel, isEditing }) {
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 border border-blue-100 dark:border-gray-600 rounded-xl p-5 mb-6">
+    <div
+      className="border rounded-xl p-5 mb-6 transition-all"
+      style={{
+        backgroundColor: "var(--primary-light)",
+        borderColor: "var(--primary-ring)",
+      }}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-          {isEditing ? <FiEdit2 size={15} className="text-blue-600 dark:text-blue-400" /> : <FiPlusCircle size={15} className="text-blue-600 dark:text-blue-400" />}
+          {isEditing ? (
+            <FiEdit2 size={15} style={{ color: "var(--primary-color)" }} />
+          ) : (
+            <FiPlusCircle size={15} style={{ color: "var(--primary-color)" }} />
+          )}
           <span>{title}</span>
         </h3>
       </div>
@@ -49,14 +65,14 @@ function FormPanel({ title, children, onSave, onCancel, isEditing }) {
       <div className="mt-4 flex gap-2">
         <button
           onClick={onSave}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg shadow-button transition-all"
         >
           {isEditing ? "Update Rule" : "Add Rule"}
         </button>
         {isEditing && (
           <button
             onClick={onCancel}
-            className="px-4 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 bg-white dark:bg-gray-800 border border-stroke text-body text-sm font-medium rounded-lg hover:border-primary hover:text-primary transition-all"
           >
             Cancel
           </button>
@@ -79,7 +95,7 @@ function StyledInput({ ...props }) {
   return (
     <input
       {...props}
-      className="w-full h-10 px-3 text-sm border border-gray-200 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+      className="w-full h-10 px-3 text-sm border border-gray-200 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:border-[var(--primary-color)] transition"
     />
   );
 }
@@ -88,7 +104,7 @@ function StyledSelect({ children, ...props }) {
   return (
     <select
       {...props}
-      className="w-full h-10 px-3 text-sm border border-gray-200 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+      className="w-full h-10 px-3 text-sm border border-gray-200 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:border-[var(--primary-color)] transition"
     >
       {children}
     </select>
@@ -96,15 +112,28 @@ function StyledSelect({ children, ...props }) {
 }
 
 function Badge({ children, color = "blue" }) {
+  if (color === "blue" || color === "primary") {
+    return (
+      <span
+        className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold"
+        style={{
+          backgroundColor: "var(--primary-light)",
+          color: "var(--primary-color)",
+        }}
+      >
+        {children}
+      </span>
+    );
+  }
   const colors = {
-    blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
     green: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
     purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     gray: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400",
     orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+    red: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${colors[color]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${colors[color] || colors.gray}`}>
       {children}
     </span>
   );
@@ -182,7 +211,7 @@ function DropdownCheckboxList({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full h-10 px-3 text-left text-sm border border-gray-200 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition flex items-center justify-between"
+        className="w-full h-10 px-3 text-left text-sm border border-gray-200 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition flex items-center justify-between"
       >
         <span className="truncate">{displayLabel}</span>
         <FiChevronDown size={14} className="text-gray-400 ml-1 flex-shrink-0" />
@@ -192,7 +221,8 @@ function DropdownCheckboxList({
         <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-500 rounded-lg p-2 bg-white dark:bg-gray-700 shadow-lg space-y-1">
           {options.length > 0 && (
             <div 
-              className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-600 p-1.5 rounded transition-colors border-b border-gray-100 dark:border-gray-600 pb-2 mb-1"
+              className="flex items-center gap-2 text-xs font-semibold cursor-pointer p-1.5 rounded transition-colors border-b border-gray-100 dark:border-gray-600 pb-2 mb-1 hover:bg-gray-50 dark:hover:bg-gray-600"
+              style={{ color: "var(--primary-color)" }}
               onClick={(e) => {
                 e.preventDefault();
                 handleToggleSelectAll(!isAllSelected);
@@ -202,7 +232,7 @@ function DropdownCheckboxList({
                 type="checkbox"
                 checked={isAllSelected}
                 readOnly
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 pointer-events-none"
+                className="rounded border-gray-300 accent-[var(--primary-color)] pointer-events-none"
               />
               <span className="select-none">Select All</span>
             </div>
@@ -223,7 +253,7 @@ function DropdownCheckboxList({
                   type="checkbox"
                   checked={isChecked}
                   readOnly
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 pointer-events-none"
+                  className="rounded border-gray-300 accent-[var(--primary-color)] pointer-events-none"
                 />
                 <span className="truncate select-none">{opt.name}</span>
               </div>
@@ -238,7 +268,15 @@ function DropdownCheckboxList({
 function ActionButtons({ onEdit, onDelete }) {
   return (
     <div className="flex gap-1.5">
-      <button onClick={onEdit} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" title="Edit">
+      <button
+        onClick={onEdit}
+        className="p-1.5 rounded-lg transition-colors hover:opacity-80"
+        style={{
+          color: "var(--primary-color)",
+          backgroundColor: "var(--primary-light)",
+        }}
+        title="Edit"
+      >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6H9v-2l6-6z" /></svg>
       </button>
       <button onClick={onDelete} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Delete">
@@ -890,9 +928,10 @@ export function CouponTemplatesTab({ items = [], brands = [] }) {
               onClick={() => setSubView("templates")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 subView === "templates"
-                  ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                  ? "bg-white dark:bg-gray-800 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
+              style={subView === "templates" ? { color: "var(--primary-color)" } : undefined}
             >
               Master Templates ({templates.length})
             </button>
@@ -900,9 +939,10 @@ export function CouponTemplatesTab({ items = [], brands = [] }) {
               onClick={() => { setSubView("issued"); fetchIssuedCoupons(); }}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 subView === "issued"
-                  ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                  ? "bg-white dark:bg-gray-800 shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
+              style={subView === "issued" ? { color: "var(--primary-color)" } : undefined}
             >
               Issued Coupons ({issuedCoupons.length})
             </button>
@@ -994,7 +1034,17 @@ export function CouponTemplatesTab({ items = [], brands = [] }) {
                         {c.customerId?.mobile || c.customerId?.email || ""}
                       </div>
                     </TD>
-                    <TD><span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">{c.couponCode}</span></TD>
+                    <TD>
+                      <span
+                        className="font-mono text-xs font-bold px-2 py-0.5 rounded"
+                        style={{
+                          backgroundColor: "var(--primary-light)",
+                          color: "var(--primary-color)",
+                        }}
+                      >
+                        {c.couponCode}
+                      </span>
+                    </TD>
                     <TD><span className="font-bold text-green-600 dark:text-green-400">₹{c.couponValue}</span></TD>
                     <TD><span className="text-xs text-gray-500">{c.description || "Loyalty Coupon"}</span></TD>
                     <TD><span className="text-xs text-gray-600 dark:text-gray-300">{new Date(c.expiryDate).toLocaleDateString()}</span></TD>

@@ -85,7 +85,7 @@ const Dispatch = () => {
                             <div className="w-full md:w-56 lg:w-56 xl:w-56">
                                 <Button
                                     onClick={toggleDrawer}
-                                    className="w-full rounded-md h-12"
+                                    className="w-full rounded-xl h-12 bg-primary hover:bg-primary-hover text-white font-medium shadow-button"
                                 >
                                     <span className="mr-3">
                                         <FiPlus />
@@ -95,7 +95,7 @@ const Dispatch = () => {
                             </div>
                             <div className="mt-2 md:mt-0 flex units-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
                                 <div className="w-full mx-1">
-                                    <Button type="submit" className="h-12 w-full bg-blue-700">
+                                    <Button type="submit" className="h-12 w-full bg-primary hover:bg-primary-hover text-white rounded-xl shadow-button font-medium">
                                         Filter
                                     </Button>
                                 </div>
@@ -105,9 +105,9 @@ const Dispatch = () => {
                                         layout="outline"
                                         onClick={handleResetField}
                                         type="reset"
-                                        className="px-4 md:py-1 py-3 text-sm dark:bg-gray-700"
+                                        className="px-4 md:py-1 py-3 text-sm rounded-xl border-stroke hover:border-primary hover:text-primary transition-all font-medium"
                                     >
-                                        <span className="text-black dark:text-gray-200">Reset</span>
+                                        <span>Reset</span>
                                     </Button>
                                 </div>
                             </div>
@@ -147,7 +147,7 @@ const Dispatch = () => {
                     </TableFooter>
                 </TableContainer>
             ) : (
-                <NotFound title="Sorry, There are no role right now." />
+                <NotFound title="No Dispatch records found" />
             )}
         </>
     );

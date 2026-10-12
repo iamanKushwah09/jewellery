@@ -21,6 +21,8 @@ import ItemDiscountServices from "@/services/ItemsDiscountServices";
 import ItemSearchableDropdown from "@/pages/ItemSearchableDropdown";
 import { AdminContext } from "@/context/AdminContext";
 import AttributeValueServices from "@/services/AttributeValueServices";
+
+
 const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
   const { isDrawerOpen } = useContext(SidebarContext);
   const { state: adminState } = useContext(AdminContext);
@@ -75,7 +77,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
   const [selectedSaleType, setSelectedSaleType] = useState(null);
   const [itemDiscount, setItemDiscount] = useState(0);
   const [vendorDiscount, setVendorDiscount] = useState(0);
-  const [hammaliDiscount, setHammaliDiscount] = useState(0);
+  const [hammaliDiscount, setHammaliDiscount] = useState({ name: "Hammali@20/CRT", discount: 0 });
   const [isCentralSale, setIsCentralSale] = useState(false);
   const [colorOptions, setColorOptions] = useState([]);
   const [sizeOptions, setSizeOptions] = useState([]);
@@ -177,50 +179,117 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
     // Handle item selection by itemId (dropdown change)
     if (field === 'itemId') {
       try {
+        const targetItemId = value?.value || value?._id || (typeof value === 'string' ? value : null);
+        if (!targetItemId) {
+          setItems(prev => {
+            const newItems = [...prev];
+            newItems[index] = {
+              ...newItems[index],
+              itemId: null,
+              name: '',
+              hsn: '',
+              image: '',
+              listPrice: '',
+              quantity: '',
+              discount: '',
+              totalDiscount: '',
+              price: '',
+              amount: '',
+              color: '',
+              size: '',
+              unit: null,
+              variantColors: [],
+              variantSizes: []
+            };
+            return newItems;
+          });
+          return;
+        }
 
-        const getItemList = await ItemServices.getItemById(value.value);
-        const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({ "PartyCode": getParty, "ItemCode": getItemList.item_code });
-        const itemDiscount = getIndividualDiscount.data.Discount1;
-        // console.log(getItemList,'getItemListgetItemListgetItemListgetItemList')
+        const getItemList = await ItemServices.getItemById(targetItemId);
+        if (!getItemList) return;
 
+        let itemDiscount = 0;
+        if (getParty && getItemList.item_code) {
+          try {
+            const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({
+              "PartyCode": getParty,
+              "ItemCode": getItemList.item_code
+            });
+            if (getIndividualDiscount?.data?.Discount1 !== undefined) {
+              itemDiscount = parseFloat(getIndividualDiscount.data.Discount1) || 0;
+            }
+          } catch (discErr) {
+            console.warn("Could not fetch party discount for item:", discErr?.message);
+            itemDiscount = 0;
+          }
+        }
+
+        const listPrice = parseFloat(getItemList.sale_price || '0');
+        const quantity = 6; // Default quantity
+        const discount = itemDiscount !== 0
+          ? itemDiscount
+          : (getItemList.discount !== undefined && getItemList.discount !== null
+              ? parseFloat(getItemList.discount)
+              : (parseFloat(vendorDiscount) || 0));
+
+        const totalDiscount = quantity * (listPrice * discount) / 100;
+        const price = listPrice - (listPrice * discount) / 100;
+        const amount = quantity * price;
+
+        // Extract variants color and size
+        const variants = getItemList.item_attribute?.variant || [];
+        const vColors = [...new Set(variants.map(v => v.color).filter(Boolean))].map(c => {
+          const global = colorOptions.find(opt => opt.label === c);
+          return global || { value: c, label: c };
+        });
+        const vSizes = [...new Set(variants.map(v => v.size).filter(Boolean))].map(s => {
+          const global = sizeOptions.find(opt => opt.label === s);
+          return global || { value: s, label: s };
+        });
+
+        // Resolve unit
+        let resolvedUnit = null;
+        if (getItemList?.unit_id) {
+          if (typeof getItemList.unit_id === 'object' && getItemList.unit_id._id) {
+            resolvedUnit = { value: getItemList.unit_id._id, label: getItemList.unit_id.name };
+          } else {
+            const matchedUnit = unitData?.find(u => String(u._id) === String(getItemList.unit_id));
+            resolvedUnit = { value: getItemList.unit_id, label: matchedUnit?.name || 'PCS' };
+          }
+        }
+
+        // Resolve image
+        let itemImage = '';
+        if (Array.isArray(getItemList.image) && getItemList.image.length > 0) {
+          itemImage = typeof getItemList.image[0] === 'object' ? (getItemList.image[0].url || '') : getItemList.image[0];
+        } else if (typeof getItemList.image === 'string') {
+          itemImage = getItemList.image;
+        } else if (getItemList.default_image) {
+          itemImage = getItemList.default_image;
+        }
 
         setItems(prev => {
           const newItems = [...prev];
-          const listPrice = parseFloat(getItemList.sale_price || '0');
-          const quantity = 6; // Default quantity as per your requirement
-          // Use vendorDiscount if set, otherwise use item discount
-          const discount = itemDiscount !== 0 ? itemDiscount : (getItemList.discount !== undefined ? parseFloat(getItemList.discount) : 0);
-          const totalDiscount = quantity * (listPrice * discount) / 100;
-          const price = listPrice - (listPrice * discount) / 100;
-          const amount = quantity * price;
-          // Extract variants color and size
-          const variants = getItemList.item_attribute?.variant || [];
-          const vColors = [...new Set(variants.map(v => v.color).filter(Boolean))].map(c => {
-            const global = colorOptions.find(opt => opt.label === c);
-            return global || { value: c, label: c };
-          });
-          const vSizes = [...new Set(variants.map(v => v.size).filter(Boolean))].map(s => {
-            const global = sizeOptions.find(opt => opt.label === s);
-            return global || { value: s, label: s };
-          });
-
           newItems[index] = {
             ...newItems[index],
-            itemId: value, // set itemId
-            name: getItemList.name, // keep name for display if needed
+            itemId: value,
+            name: getItemList.name || '',
             hsn: getItemList.hsn_code || '',
-            image: getItemList.image, // Add image to item data
+            image: itemImage,
             listPrice: listPrice.toFixed(2),
             quantity: quantity.toString(),
-            discount: itemDiscount,
+            discount: discount.toString(),
             totalDiscount: totalDiscount.toFixed(2),
             price: price.toFixed(2),
             amount: amount.toFixed(2),
-            conversion_factor: getItemList.conversion_factor,
-            description: getItemList.description,
-            unit: getItemList?.unit_id ? { value: getItemList.unit_id, label: unitData?.find(u => u._id === getItemList.unit_id)?.name || 'Unknown' } : null,
+            conversion_factor: getItemList.conversion_factor || 1,
+            description: getItemList.description || '',
+            unit: resolvedUnit,
             variantColors: vColors,
-            variantSizes: vSizes
+            variantSizes: vSizes,
+            color: vColors.length > 0 ? vColors[0].label : '',
+            size: vSizes.length > 0 ? vSizes[0].label : ''
           };
           return newItems;
         });
@@ -299,7 +368,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
           // Fix: Properly format customer value for SearchableDropdown
           // Use populated customer data from API response directly
           if (data.customer) {
-            
             if (typeof data.customer === 'object' && data.customer._id) {
               // Customer is already populated with full details from API
               setSelectedCustomer({
@@ -528,7 +596,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
           setTotalDiscountAmount(data.totalDiscountAmount || 0);
           setTotalQuantity(data.totalQuantity || 0);
           setNetAmount(data.netAmount || 0);
-          
         })
         .catch((error) => {
           console.error("Error fetching sale order:", error);
@@ -690,9 +757,11 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
     setTotalQuantity(Number(totalQty.toFixed(2)));
 
     // Calculate hammali (conversion factor based)
+    const hammaliRate = typeof hammaliDiscount === 'object' ? Number(hammaliDiscount?.discount || 0) : Number(hammaliDiscount || 0);
     const hammaliAmount = items.reduce((sum, item) => {
       const quantity = parseFloat(item.quantity) || 0;
-      return sum + ((quantity * Number(item.conversion_factor)) * Number(hammaliDiscount.discount) || 0);
+      const convFactor = Number(item.conversion_factor) || 1;
+      return sum + ((quantity * convFactor) * hammaliRate || 0);
     }, 0);
     setTotalHammli(Number(hammaliAmount.toFixed(2)));
 
@@ -716,7 +785,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
 
     // Step 5: Final net amount = Subtotal after discount + GST
     const finalNetAmount = subtotalAfterDiscount + cgstAmount + sgstAmount;
-    setNetAmount(Number(Math.max(0, finalNetAmount).toFixed(2)));
+    setNetAmount(Number(finalNetAmount.toFixed(2)));
 
 
   }, [items, vendorDiscount]);
@@ -792,7 +861,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
     setItemDiscount(0);
     setSelectedItem(null);
     setItemCode(null);
-    
   };
 
   // Auto-select salesman if logged in user is a salesman
@@ -850,13 +918,12 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
         );
       }
 
-      
-
       console.log("Sundries Array: ", items);
       const saleOrderData = {
+        ...(voucherNo && voucherNo.trim() ? { voucherNo: voucherNo.trim() } : {}),
         date,
         saleType: selectedSaleType?.value || '',
-        matCentre: "Vellora Jewels",
+        matCentre: "Selection Footwear",
         customer: selectedCustomer?.value || '',
         salesman: selectedSalesman?.value || '',
         items: items.map((item) => ({
@@ -869,23 +936,27 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
         sundries: {
           SundriesDetail: [
             {
-              Name: hammaliDiscount.name,
-              DiscountAmount: totalHammli,
-              DiscountPercent: hammaliDiscount.discount
+              Name: (typeof hammaliDiscount === 'object' && hammaliDiscount?.name) ? hammaliDiscount.name : "Hammali@20/CRT",
+              DiscountAmount: Number(totalHammli) || 0,
+              DiscountPercent: (typeof hammaliDiscount === 'object' && hammaliDiscount?.discount !== undefined) ? Number(hammaliDiscount.discount) || 0 : (Number(hammaliDiscount) || 0)
             },
             {
               Name: "Discount",
-              DiscountAmount: totalDiscountSundries,
-              DiscountPercent: vendorDiscount
+              DiscountAmount: Number(totalDiscountSundries) || 0,
+              DiscountPercent: Number(vendorDiscount) || 0
             },
             ...sundriesArray
-          ]
+          ].filter(s => s && s.Name && typeof s.Name === 'string' && s.Name.trim() !== '')
+           .map(s => ({
+             Name: String(s.Name).trim(),
+             DiscountAmount: Number(s.DiscountAmount) || 0,
+             DiscountPercent: Number(s.DiscountPercent) || 0
+           }))
         },
         totalAmount,
         totalDiscountAmount,
         totalQuantity,
         netAmount: totalNetAmount,
-        
       };
 
       await onSubmit(saleOrderData);
@@ -909,15 +980,26 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
 
   const getSundryDiscountsByPartyGroup = async (partyCode) => {
     try {
-      const { sundryDiscounts, hammali } = await SundryDiscountService.getSundryDiscountsByPartyGroup(partyCode);
-      if (Array.isArray(sundryDiscounts) && sundryDiscounts.length > 0 && sundryDiscounts[0].discount) {
-        setVendorDiscount(sundryDiscounts[0].discount);
-        setHammaliDiscount(hammali);
+      const response = await SundryDiscountService.getSundryDiscountsByPartyGroup(partyCode);
+      const sundryDiscounts = response?.sundryDiscounts;
+      const hammali = response?.hammali;
+      if (Array.isArray(sundryDiscounts) && sundryDiscounts.length > 0 && sundryDiscounts[0]?.discount !== undefined) {
+        setVendorDiscount(Number(sundryDiscounts[0].discount) || 0);
       } else {
         setVendorDiscount(0);
       }
+      if (hammali && typeof hammali === 'object') {
+        setHammaliDiscount({
+          name: hammali.name || "Hammali@20/CRT",
+          discount: Number(hammali.discount) || 0,
+          ...hammali
+        });
+      } else {
+        setHammaliDiscount({ name: "Hammali@20/CRT", discount: 0 });
+      }
     } catch (error) {
       setVendorDiscount(0);
+      setHammaliDiscount({ name: "Hammali@20/CRT", discount: 0 });
     }
   };
 
@@ -931,12 +1013,18 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
               const getItemList = await ItemServices.getItemById(item.itemId.value);
 
               // Get individual discount for the new party
-              const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({
-                "PartyCode": newPartyCode,
-                "ItemCode": getItemList.item_code
-              });
-
-              const itemDiscount = getIndividualDiscount.data.Discount1;
+              let itemDiscount = 0;
+              try {
+                const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({
+                  "PartyCode": newPartyCode,
+                  "ItemCode": getItemList.item_code
+                });
+                if (getIndividualDiscount?.data?.Discount1 !== undefined) {
+                  itemDiscount = parseFloat(getIndividualDiscount.data.Discount1) || 0;
+                }
+              } catch (discErr) {
+                itemDiscount = 0;
+              }
               const listPrice = parseFloat(getItemList.sale_price || '0');
               const quantity = parseFloat(item.quantity || '0');
 
@@ -1009,21 +1097,20 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
 
   return (
     <>
-      <div className="w-full relative p-4 sm:p-6 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+      <div className="w-full relative px-6 py-2.5 sm:py-3 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
         <Title
           register={register}
-          handleSelectLanguage={handleSelectLanguage}
           title={id ? (isViewOnly ? t("View Sale Order") : t("Update Sale Order")) : t("Add Sale Order")}
         />
       </div>
       <Scrollbars className="w-full md:w-7/12 lg:w-8/12 xl:w-8/12 relative dark:bg-gray-700 dark:text-gray-200">
         <Card className="overflow-y-scroll flex-grow scrollbar-hide w-full max-h-full">
-          <CardBody className={isViewOnly ? "pointer-events-none opacity-80" : ""}>
-            {/* Responsive grid for form fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4">
+          <CardBody className={`p-2 sm:p-2.5 ${isViewOnly ? "pointer-events-none opacity-80" : ""}`}>
+            {/* Responsive ultra-compact grid for form fields */}
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${id ? "md:grid-cols-5" : "md:grid-cols-4"} gap-x-1.5 gap-y-1 sm:gap-x-2 sm:gap-y-1 mb-1.5`}>
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Date
                 </label>
                 <InputArea
@@ -1040,7 +1127,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
 
               {
                 id ? <div className="col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                  <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                     Voucher No
                   </label>
                   <InputArea
@@ -1056,7 +1143,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                 </div> : ""
               }
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Sale Type
                 </label>
                 <SearchableDropdown
@@ -1079,8 +1166,8 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
               </div>
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
-                  Party Name <span className="text-red-500">*</span>
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
+                  Party Name
                 </label>
                 <SearchableDropdown
                   options={customerOptions}
@@ -1090,11 +1177,8 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                   loading={isSearchingCustomers}
                   loadingMore={loadingMoreCustomers}
                   onChange={(value) => {
-                    const custId = value?.value || value?._id || (typeof value === 'string' ? value : null);
-                    const selected = customerList.find((cust) => cust._id === custId);
+                    const selected = customerList.find((cust) => cust._id === value?.value);
                     setSelectedCustomer(value);
-                    
-
                     if (selected?.code) {
                       const oldParty = getParty;
                       setParty(selected.code);
@@ -1108,23 +1192,6 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                         recalculateItemDiscountsForNewParty(selected.code);
                       }
                     }
-
-                    // Auto-fill salesman from vendor's linked salesman_id
-                    if (selected?.salesman_id?._id && salesmanData && !selectedSalesman) {
-                      const linkedSalesman = salesmanData.find(s => s._id === selected.salesman_id._id);
-                      if (linkedSalesman) {
-                        setSelectedSalesman({
-                          value: linkedSalesman._id,
-                          label: linkedSalesman.name
-                        });
-                      } else if (selected.salesman_id.name) {
-                        // Fallback: use the populated data directly from API
-                        setSelectedSalesman({
-                          value: selected.salesman_id._id,
-                          label: selected.salesman_id.name
-                        });
-                      }
-                    }
                   }}
                   disabled={isViewOnly}
                   value={selectedCustomer}
@@ -1133,7 +1200,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                 />
               </div>
               {/* <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Material Centre
                 </label>
                 <InputArea
@@ -1147,7 +1214,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                 />
               </div> */}
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Salesman
                 </label>
                 <SearchableDropdown
@@ -1162,27 +1229,27 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
             </div>
 
             {/* Responsive Grid wrapper */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               {items.map((item, index) => (
                 <div
                   key={index}
-                  className="border border-gray-300 rounded-md p-4 shadow-sm bg-white relative"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-2 sm:p-2.5 shadow-xs bg-white dark:bg-gray-800 relative"
                 >
-                  <div className="absolute top-[6px] right-[8px]">
+                  <div className="absolute top-[4px] right-[6px]">
                     <button
                       onClick={() => handleRemoveItem(index)}
-                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
                       title="Remove Item"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     </button>
                   </div>
-                  <div className="grid lg:grid-cols-6 md:grid-cols-4 grid-cols-2 gap-4">
+                  <div className="grid lg:grid-cols-6 md:grid-cols-4 grid-cols-2 gap-x-1.5 gap-y-1 sm:gap-x-2 sm:gap-y-1">
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Image</label>
-                      <div className="w-12 h-12 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Image</label>
+                      <div className="w-8 h-8 border border-gray-200 dark:border-gray-600 rounded-md overflow-hidden bg-gray-50 dark:bg-gray-700 flex items-center justify-center shadow-xs">
                         {item.image ? (
                           <img
                             src={`${import.meta.env.VITE_APP_API_SOCKET_URL}${item.image}`}
@@ -1194,13 +1261,13 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                             }}
                           />
                         ) : null}
-                        <div className="text-gray-400 text-xs font-medium" style={{ display: item.image ? 'none' : 'flex', textAlign: 'center', padding: '4px' }}>
-                          No Image
+                        <div className="text-gray-400 text-[10px] font-medium" style={{ display: item.image ? 'none' : 'flex', textAlign: 'center' }}>
+                          No Img
                         </div>
                       </div>
                     </div>
                     <div className="col-span-2">
-                      <label className="text-xs font-semibold">Item</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Item</label>
                       <ItemSearchableDropdown
                         options={activeItems?.map((ai) => ({
                           value: ai._id,
@@ -1225,17 +1292,18 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                     </div>
 
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">HSN Code</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">HSN Code</label>
                       <Input
                         disabled={isViewOnly}
                         type="text"
                         value={item.hsn || ''}
                         onChange={(e) => handleItemChange(index, 'hsn', e.target.value)}
                         placeholder="HSN Code"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Color</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Color</label>
                       <SearchableDropdown
                         disabled={isViewOnly}
                         options={item.variantColors?.length > 0 ? item.variantColors : colorOptions}
@@ -1245,7 +1313,7 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Size</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Size</label>
                       <SearchableDropdown
                         disabled={isViewOnly}
                         options={item.variantSizes?.length > 0 ? item.variantSizes : sizeOptions}
@@ -1255,18 +1323,19 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Qty</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Qty</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.quantity || ''}
                         onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                         placeholder="Qty"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
 
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Unit</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Unit</label>
                       <SearchableDropdown
                         disabled={isViewOnly}
                         value={item.unit}
@@ -1280,17 +1349,18 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">List Price</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">List Price</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.listPrice || ''}
                         onChange={(e) => handleItemChange(index, 'listPrice', e.target.value)}
                         placeholder="List Price"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Disc. %</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Disc. %</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
@@ -1300,10 +1370,11 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                         step="0.01"
                         min="0"
                         max="100"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Total Disc.</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Total Disc.</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
@@ -1313,37 +1384,40 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                         step="0.01"
                         min="0"
                         max="100"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Price</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Price</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.price || ''}
                         onChange={(e) => handleItemChange(index, 'price', e.target.value)}
                         placeholder="Price"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Amount</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Amount</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.amount || ''}
                         readOnly
-                        className="bg-gray-100"
+                        className="h-8 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700/60 dark:text-gray-200"
                         placeholder="Amount"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Description</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Description</label>
                       <Input
                         // disabled={isViewOnly}
                         type="text"
                         value={item.description || ''}
                         onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                         placeholder="Description"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                   </div>
@@ -1352,75 +1426,77 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
               <div className="flex justify-end">
                 <button
                   onClick={handleAddItem}
-                  className="bg-blue-100 hover:bg-blue-200 text-blue-800 py-2 px-4 rounded text-sm"
+                  className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 py-1.5 px-3 rounded-md text-xs font-medium transition-colors"
                 >
                   + Add Item
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-100 p-4 rounded-md font-semibold text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2.5 rounded-md font-semibold text-xs text-gray-800 dark:text-gray-200">
                 <div>Total Quantity: <span className="font-bold">{totalQuantity}</span></div>
                 <div>Total Discount Amount: <span className="font-bold">₹{!totalDiscountAmount ? "0.00" : totalDiscountAmount}</span></div>
-                <div>Total Amount: <span className="font-bold text-lg">₹{totalAmount}</span></div>
+                <div>Total Amount: <span className="font-bold text-base text-primary">₹{totalAmount}</span></div>
               </div>
             </div>
 
 
 
 
-            {/* Bill Sundry Details - Perfected for mobile */}
-            <div className="bg-blue-50 dark:bg-gray-700 p-3 sm:p-4 rounded border text-gray-800 dark:text-gray-200 mt-4">
-              <div className="text-base font-bold mb-3 tracking-wide">
-                Bill Sundry Details <span className="text-xs italic font-normal">(Apply Tax - F4)</span>
+            {/* Bill Sundry Details - Compact & Sleek */}
+            <div className="bg-slate-50 dark:bg-gray-800/80 p-2 sm:p-2.5 rounded-lg border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 mt-2">
+              <div className="text-xs font-bold mb-1.5 tracking-wide uppercase text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                <span>Bill Sundry Details <span className="text-[11px] italic font-normal text-gray-400 lowercase">(apply tax - f4)</span></span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                 {/* Left: Hammali */}
-                <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                  <div className="font-semibold col-span-1 w-full sm:w-auto">1. (+)</div>
-                  <div className="font-semibold col-span-2 w-full sm:w-auto">{hammaliDiscount.name ?? "Hammali@20/CRT"}</div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block">
-                    <Input
+                <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                    <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">1. (+)</span>
+                    <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">
+                      {(typeof hammaliDiscount === 'object' && hammaliDiscount?.name) ? hammaliDiscount.name : "Hammali@20/CRT"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
-                      value={hammaliDiscount.discount}
-                      className="w-full text-right px-2 py-2"
+                      value={(typeof hammaliDiscount === 'object' && hammaliDiscount?.discount !== undefined) ? hammaliDiscount.discount : 0}
+                      className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
-                  </div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                    <Input
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
                       value={totalHammli}
-                      className="w-full text-right px-2 py-2"
+                      className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
                   </div>
                 </div>
 
                 {/* Right: Discount */}
-                <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                  <div className="font-semibold col-span-1 w-full sm:w-auto">2. (-)</div>
-                  <div className="font-semibold col-span-2 w-full sm:w-auto">Discount</div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block">
-                    <Input
+                <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                    <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">2. (-)</span>
+                    <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">Discount</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
                       value={vendorDiscount || '0.00'}
-                      className="w-full text-right px-2 py-2"
+                      className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
-                  </div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                    <Input
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
                       value={totalDiscountSundries || '0.00'}
-                      className="w-full text-right px-2 py-2"
+                      className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
                   </div>
@@ -1429,26 +1505,26 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                 {/* Conditional: IGST OR CGST + SGST */}
                 {isCentralSale ? (
                   <div className="sm:col-span-2">
-                    <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                      <div className="font-semibold col-span-1 w-full sm:w-auto">3. (+)</div>
-                      <div className="font-semibold col-span-2 w-full sm:w-auto">IGST</div>
-                      <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0">
-                        <Input
+                    <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">3. (+)</span>
+                        <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">IGST</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
                           disabled={isViewOnly}
                           type="number"
                           step="0.01"
                           value="5.000"
-                          className="w-full text-right px-2 py-2"
+                          className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                           readOnly
                         />
-                      </div>
-                      <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                        <Input
+                        <input
                           disabled={isViewOnly}
                           type="number"
                           step="0.01"
                           value={(Number(totalCgstSundries) + Number(totalSgstSundries)).toFixed(3)}
-                          className="w-full text-right px-2 py-2"
+                          className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                           readOnly
                         />
                       </div>
@@ -1457,58 +1533,54 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
                 ) : (
                   <>
                     {/* CGST */}
-                    <div className="sm:col-span-1">
-                      <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="font-semibold col-span-1 w-full sm:w-auto">3. (+)</div>
-                        <div className="font-semibold col-span-2 w-full sm:w-auto">CGST</div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value="2.5"
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value={totalCgstSundries.toFixed(2)}
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
+                    <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">3. (+)</span>
+                        <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">CGST</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value="2.5"
+                          className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value={totalCgstSundries.toFixed(2)}
+                          className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
                       </div>
                     </div>
 
                     {/* SGST */}
-                    <div className="sm:col-span-1">
-                      <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="font-semibold col-span-1 w-full sm:w-auto">4. (+)</div>
-                        <div className="font-semibold col-span-2 w-full sm:w-auto">SGST</div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value="2.5"
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value={totalSgstSundries.toFixed(2)}
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
+                    <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">4. (+)</span>
+                        <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">SGST</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value="2.5"
+                          className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value={totalSgstSundries.toFixed(2)}
+                          className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
                       </div>
                     </div>
                   </>
@@ -1518,43 +1590,43 @@ const SaleOrderDrawer = ({ id, isViewOnly = false }) => {
 
 
             {/* Tax Summary Section - Mobile Responsive */}
-            <div className="bg-blue-50 dark:bg-gray-700 p-3 sm:p-4 mt-6 border-t border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm rounded">
+            <div className="bg-slate-50 dark:bg-gray-800/80 p-2 sm:p-2.5 mt-2 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-xs rounded-lg">
               {/* Tax Summary Table - Responsive */}
               <div className="overflow-x-auto">
                 {/* Desktop Table */}
                 <table className="min-w-full border-collapse w-full hidden sm:table">
                   <thead>
-                    <tr className="bg-blue-100 dark:bg-gray-800">
-                      <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Tax Rate</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Taxable Amt.</th>
+                    <tr className="bg-slate-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Tax Rate</th>
+                      <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Taxable Amt.</th>
                       {isCentralSale ? (
-                        <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">IGST</th>
+                        <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">IGST</th>
                       ) : (
                         <>
-                          <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">CGST</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">SGST</th>
+                          <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">CGST</th>
+                          <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">SGST</th>
                         </>
                       )}
-                      <th className="px-2 py-2 border-b border-gray-200 dark:border-gray-600"></th>
-                      <th className="px-2 py-2 text-right font-semibold border-b border-gray-200 dark:border-gray-600">
+                      <th className="px-2 py-1 border-b border-gray-200 dark:border-gray-600"></th>
+                      <th className="px-2 py-1 text-right font-semibold border-b border-gray-200 dark:border-gray-600">
                         Total Amount
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">5%</td>
-                      <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalAmount.toFixed(2)}</td>
+                      <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">5%</td>
+                      <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalAmount.toFixed(2)}</td>
                       {isCentralSale ? (
-                        <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalIgstSundries.toFixed(2)}</td>
+                        <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalIgstSundries.toFixed(2)}</td>
                       ) : (
                         <>
-                          <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalCgstSundries.toFixed(2)}</td>
-                          <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalSgstSundries.toFixed(2)}</td>
+                          <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalCgstSundries.toFixed(2)}</td>
+                          <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalSgstSundries.toFixed(2)}</td>
                         </>
                       )}
-                      <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600"></td>
-                      <td className="px-2 py-2 text-right border-b border-gray-200 dark:border-gray-600"><strong>₹{totalNetAmount.toFixed(2)}</strong></td>
+                      <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600"></td>
+                      <td className="px-2 py-1 text-right border-b border-gray-200 dark:border-gray-600"><strong>₹{totalNetAmount.toFixed(2)}</strong></td>
                     </tr>
                   </tbody>
                 </table>

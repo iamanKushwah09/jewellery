@@ -1,8 +1,32 @@
 import requests from "./httpService";
 
 const LoyaltyServices = {
-  getAllLoyaltyPoints: async (page = 1, limit = 20) => {
-    return requests.get(`/loyalty/all?page=${page}&limit=${limit}`);
+  getAllLoyaltyPoints: async (params = {}, maybeLimit = 20) => {
+    let page = 1;
+    let limit = 20;
+    let search = "";
+    let groupType = "";
+    let hasPoints = "";
+    let tierId = "";
+
+    if (typeof params === "object" && params !== null) {
+      page = params.page || 1;
+      limit = params.limit || 20;
+      search = params.search || "";
+      groupType = params.groupType || "";
+      hasPoints = params.hasPoints || "";
+      tierId = params.tierId || "";
+    } else {
+      page = params || 1;
+      limit = maybeLimit || 20;
+    }
+
+    const query = new URLSearchParams({ page, limit });
+    if (search) query.append("search", search);
+    if (groupType && groupType !== "All") query.append("groupType", groupType);
+    if (hasPoints && hasPoints !== "all") query.append("hasPoints", hasPoints);
+    if (tierId && tierId !== "all") query.append("tierId", tierId);
+    return requests.get(`/loyalty/all?${query.toString()}`);
   },
   getCustomerLoyaltyPoints: async (customerId) => {
     return requests.get(`/loyalty/customer/${customerId}`);
@@ -116,6 +140,12 @@ const LoyaltyServices = {
   },
   getPointsBalance: async (customerId) => {
     return requests.get(`/loyalty-program/points-balance/${customerId}`);
+  },
+  getCustomerCoupons: async (customerId) => {
+    return requests.get(`/loyalty-program/customer-coupons/${customerId}`);
+  },
+  validateCoupon: async (body) => {
+    return requests.post(`/loyalty-program/validate-coupon`, body);
   },
   calculatePoints: async (body) => {
     return requests.post(`/loyalty-program/calculate-points`, body);

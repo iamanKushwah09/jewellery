@@ -92,7 +92,7 @@ function RegisterForm() {
           otp: otp
         })).unwrap();
         
-        toast.success('Registration successful! Welcome to Vellora Jewels!');
+        toast.success('Registration successful! Welcome to Bioinnovate Pharma!');
         router.push(redirect);
       }
     } catch (error: any) {
@@ -125,7 +125,7 @@ function RegisterForm() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h1>
           <p className="text-gray-600">
-            Join Vellora Jewels and discover timeless jewellery collections
+            Join Bioinnovate Pharma and start your health journey today
           </p>
         </div>
 

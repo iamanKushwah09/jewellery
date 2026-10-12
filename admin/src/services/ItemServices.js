@@ -23,9 +23,6 @@ const ItemServices = {
         console.log("Deleting all items... in ItemServices.js");
         return requests.delete("/items");
     },
-    importItems: async (body) => {
-        return requests.post("/items/import", body);
-    },
     getAllItem: async (params = {}) => {
         // Filter out undefined/empty filter parameters
         const filteredParams = { ...params };
@@ -58,10 +55,20 @@ const ItemServices = {
     deleteItem: async (id) => {
         return requests.delete(`/items/${id}`);
     },
+    deleteManyItems: async (body) => {
+        if (body?.ids && Array.isArray(body.ids)) {
+            return Promise.all(body.ids.map((id) => requests.delete(`/items/${id}`)))
+                .then(() => ({ message: "Selected items deleted successfully" }));
+        }
+        return requests.delete("/items");
+    },
     getItemById: async (id) => {
         return requests.get(`/items/${id}`);
     },
     updateItem: async (id, data) => {
+        return requests.put(`/items/${id}`, data);
+    },
+    updateStatus: async (id, data) => {
         return requests.put(`/items/${id}`, data);
     },
 

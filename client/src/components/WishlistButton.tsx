@@ -7,6 +7,8 @@ import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { Product } from '../types';
 import toast from 'react-hot-toast';
 import { RootState } from '../store/types';
+import { fbPixel } from '../lib/fbPixel';
+import { showingTranslateValue } from '../lib/utils';
 
 interface WishlistButtonProps {
   product: Product;
@@ -28,6 +30,16 @@ export default function WishlistButton({
   const handleToggleWishlist = () => {
     dispatch(toggleWishlist(product));
     toast.success(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist');
+
+    // Track Facebook Pixel AddToWishlist (only on add, not remove)
+    if (!isInWishlist) {
+      fbPixel.trackAddToWishlist({
+        contentName: showingTranslateValue(product.title),
+        contentIds: [product._id],
+        contentType: 'product',
+        value: product.prices?.price || 0,
+      });
+    }
   };
 
   const sizeClasses = {

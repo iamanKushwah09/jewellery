@@ -1,8 +1,15 @@
 import requests from "./httpService";
 
 const SaleOrderServices = {
-    getAllSaleOrder: async () => {
-        return requests.get("/sale-order");
+    getAllSaleOrder: async (params = {}) => {
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== '' && value !== null && value !== undefined) {
+                queryParams.append(key, value);
+            }
+        });
+        const qs = queryParams.toString();
+        return requests.get(`/sale-order${qs ? `?${qs}` : ''}`);
     },
     getSaleOrderById: async (id) => {
         return requests.get(`/sale-order/${id}`);
@@ -30,6 +37,9 @@ const SaleOrderServices = {
   },
   processSaleOrder: async (saleorderid) => {
     return requests.post(`/sale-order/process/${saleorderid}`);
+  },
+  convertToSale: async (saleorderid, data = {}) => {
+    return requests.post(`/sale-order/${saleorderid}/convert-to-sale`, data);
   },
   // Date range filtering function
   getSaleOrdersByFilter: async (filters = {}) => {

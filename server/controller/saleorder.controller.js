@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const SaleOrder = require('../models/saleorder.model');
 const SaleType = require('../models/SaleType.model');
 const Customer = require('../models/customer.model');
@@ -15,11 +16,34 @@ const logger = require('../utils/logger');
 const { buildDateRangeQuery } = require('../middleware/dateValidation.middleware');
 
 
+const generateUniqueSaleOrderVoucher = async () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    let voucherNo;
+    let exists = true;
+    let attempts = 0;
+    while (exists && attempts < 25) {
+        const random = Math.floor(1000 + Math.random() * 9000);
+        voucherNo = `SO-${yyyy}${mm}${dd}-${random}`;
+        const found = await SaleOrder.findOne({ voucherNo });
+        if (!found) {
+            exists = false;
+        }
+        attempts++;
+    }
+    return voucherNo;
+};
+
 // Create a new sale order
 exports.createSaleOrder = async (req, res) => {
     try {
 
         const saleOrderData = { ...req.body };
+        if (!saleOrderData.voucherNo || typeof saleOrderData.voucherNo !== 'string' || saleOrderData.voucherNo.trim() === '') {
+            saleOrderData.voucherNo = await generateUniqueSaleOrderVoucher();
+        }
         let busyPayloadJSON = {};
         if (saleOrderData?.saleType) {
             const saleType = await SaleType.findById(saleOrderData.saleType);
@@ -64,9 +88,16 @@ exports.createSaleOrder = async (req, res) => {
                 }
 
                 if (saleOrderData.items[i].unit) {
-                    const unit = await Unit.findById(saleOrderData.items[i].unit);
-                    if (unit && unit.name) {
-                        saleOrderData.items[i].unit = unit.name;
+                    const uVal = saleOrderData.items[i].unit;
+                    if (typeof uVal === 'object' && uVal !== null) {
+                        saleOrderData.items[i].unit = uVal.label || uVal.name || String(uVal.value || '');
+                    } else if (mongoose.Types.ObjectId.isValid(uVal)) {
+                        const unit = await Unit.findById(uVal);
+                        if (unit && unit.name) {
+                            saleOrderData.items[i].unit = unit.name;
+                        }
+                    } else {
+                        saleOrderData.items[i].unit = String(uVal);
                     }
                 }
                 const item = await Item.findById(saleOrderData.items[i].itemId);
@@ -88,102 +119,71 @@ exports.createSaleOrder = async (req, res) => {
         if (saleOrderData.netAmount !== undefined) saleOrderData.netAmount = Math.round(Number(saleOrderData.netAmount) * 100) / 100;
         if (saleOrderData.totalAmount !== undefined) saleOrderData.totalAmount = Math.round(Number(saleOrderData.totalAmount) * 100) / 100;
         if (saleOrderData.totalDiscountAmount !== undefined) saleOrderData.totalDiscountAmount = Math.round(Number(saleOrderData.totalDiscountAmount) * 100) / 100;
+
+        // Sanitize sundries to ensure Name is always a valid non-empty string
+        if (saleOrderData.sundries && Array.isArray(saleOrderData.sundries.SundriesDetail)) {
+            saleOrderData.sundries.SundriesDetail = saleOrderData.sundries.SundriesDetail
+                .map((s, index) => {
+                    let name = s?.Name || s?.name;
+                    if (!name || typeof name !== 'string' || name.trim() === '') {
+                        if (index === 0) name = "Hammali@20/CRT";
+                        else if (index === 1) name = "Discount";
+                        else name = `Sundry_${index + 1}`;
+                    }
+                    return {
+                        Name: String(name).trim(),
+                        DiscountAmount: Number(s?.DiscountAmount ?? s?.discountAmount) || 0,
+                        DiscountPercent: Number(s?.DiscountPercent ?? s?.discountPercent) || 0
+                    };
+                })
+                .filter(s => s.Name !== '');
+        }
         
         // const busyResponse = await sendToBusyAPI(saleOrderData, busyPayloadJSON);
         // saleOrderData.voucherNo = busyResponse.voucherNo ? busyResponse.voucherNo.trim() : null;
         const newSaleOrder = new SaleOrder(saleOrderData);
         await newSaleOrder.save();
 
-        // Process Loyalty Points (Redemption & Earning)
+        // Loyalty Point logic (Only awarded if active rules are configured in Loyalty Management)
         if (saleOrderData.customer) {
             try {
-                const customerId = saleOrderData.customer;
-                const pointsRedeemed = Number(saleOrderData.loyaltyPointsRedeemed) || 0;
-
-                // 1. Process Redemption: Deduct points from LoyaltyLedger (FIFO) & LoyaltyPoint
+                const LoyaltyPoint = require('../models/loyaltyPoint.model');
+                const PointsEngine = require('../services/pointsEngine.service');
+                
+                let pointsRedeemed = Number(req.body.redeemPoints) || 0;
                 if (pointsRedeemed > 0) {
-                    const LoyaltyLedger = require('../models/loyaltyLedger.model');
-                    const now = new Date();
-                    const ledgerEntries = await LoyaltyLedger.find({
-                        customerId,
-                        isExpired: false,
-                        $or: [{ expiryDate: null }, { expiryDate: { $gt: now } }]
-                    }).sort({ earnedDate: 1 });
-
-                    let remaining = pointsRedeemed;
-                    for (const entry of ledgerEntries) {
-                        if (remaining <= 0) break;
-                        const available = (entry.pointsEarned || 0) - (entry.pointsRedeemed || 0);
-                        if (available > 0) {
-                            const deduct = Math.min(available, remaining);
-                            entry.pointsRedeemed = (entry.pointsRedeemed || 0) + deduct;
-                            remaining -= deduct;
-                            await entry.save();
-                        }
-                    }
-
-                    try {
-                        const LoyaltyPoint = require('../models/loyaltyPoint.model');
-                        let loyaltyRecord = await LoyaltyPoint.findOne({ customer: customerId });
-                        if (loyaltyRecord) {
-                            loyaltyRecord.totalPoints = Math.max(0, (loyaltyRecord.totalPoints || 0) - pointsRedeemed);
-                            loyaltyRecord.transactions.push({
-                                orderId: newSaleOrder._id ? newSaleOrder._id.toString() : '',
-                                pointsEarned: 0,
-                                pointsRedeemed: pointsRedeemed,
-                                description: `Redeemed on Sale Order ${newSaleOrder.voucherNo || ''}`
-                            });
-                            await loyaltyRecord.save();
-                        }
-                    } catch (lpErr) {
-                        console.error("Error updating LoyaltyPoint model on sale order redemption:", lpErr);
+                    let loyaltyRecord = await LoyaltyPoint.findOne({ customer: saleOrderData.customer });
+                    if (loyaltyRecord && loyaltyRecord.totalPoints >= pointsRedeemed) {
+                        loyaltyRecord.totalPoints -= pointsRedeemed;
+                        loyaltyRecord.transactions.push({
+                            orderId: newSaleOrder._id.toString(),
+                            pointsRedeemed: pointsRedeemed,
+                            description: 'Redeemed on admin checkout'
+                        });
+                        await loyaltyRecord.save();
                     }
                 }
-
-                // 2. Process Earning: Evaluate points and coupons using PointsEngine
-                const PointsEngine = require('../services/pointsEngine.service');
-                const CouponGiftEngine = require('../services/couponGiftEngine.service');
-
-                const loyaltyItems = (newSaleOrder.items || []).map(item => ({
-                    item_id: item.itemId ? item.itemId.toString() : null,
-                    item_group_id: item.groupId || item.item_group_id || null,
+                
+                // Evaluate rule-based points through PointsEngine (returns 0 if no rules set)
+                const loyaltyItems = (saleOrderData.items || []).map(item => ({
+                    item_id: item.itemId ? (item.itemId._id || item.itemId).toString() : null,
                     price: item.price || item.listPrice || 0,
                     quantity: item.quantity || 1
                 }));
 
-                const orderTotal = newSaleOrder.netAmount || newSaleOrder.totalAmount || 0;
-
-                const pointsResult = await PointsEngine.evaluate({
-                    customerId,
+                await PointsEngine.evaluate({
+                    customerId: saleOrderData.customer,
                     items: loyaltyItems,
-                    totalAmount: orderTotal,
+                    totalAmount: Number(saleOrderData.netAmount || saleOrderData.totalAmount || 0),
                     invoiceId: newSaleOrder._id,
                     commit: true
                 });
-
-                if (pointsResult?.pointsAwarded && pointsResult.pointsAwarded > 0) {
-                    newSaleOrder.loyaltyPointsEarned = pointsResult.pointsAwarded;
-                    await newSaleOrder.save();
-                }
-
-                await CouponGiftEngine.evaluate({
-                    customerId,
-                    items: loyaltyItems,
-                    totalAmount: orderTotal,
-                    invoiceId: newSaleOrder._id,
-                    commit: true
-                });
-            } catch (loyaltyErr) {
-                console.error("Error processing loyalty points on sale order creation:", loyaltyErr);
+            } catch (err) {
+                console.error('Error handling loyalty points in saleorder.controller:', err);
             }
         }
 
-        res.status(201).json({ 
-            message: "Sale Order Created", 
-            data: newSaleOrder,
-            pointsEarned: newSaleOrder.loyaltyPointsEarned || 0,
-            pointsRedeemed: newSaleOrder.loyaltyPointsRedeemed || 0 
-        });
+        res.status(201).json({ message: "Sale Order Created" });
     } catch (err) {
         console.log("Error in creating sale Order:", err);
         res.status(500).json({ message: err.message });
@@ -199,8 +199,12 @@ exports.getSaleOrderById = async (req, res) => {
             .populate('directCustomer')
             .populate('salesman', 'name')
             .populate('items.itemId', 'name hsn_code unit_id sale_price discount conversion_factor image default_image item_attribute')
+            .populate('convertedSaleId', 'voucherNo')
             .exec();
         if (!saleOrder) return res.status(404).json({ message: 'Sale order not found' });
+        if (!saleOrder.saleVoucherNo && saleOrder.convertedSaleId?.voucherNo) {
+            saleOrder.saleVoucherNo = saleOrder.convertedSaleId.voucherNo;
+        }
         res.status(200).json(saleOrder);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -261,9 +265,16 @@ exports.updateSaleOrderById = async (req, res) => {
                 }
 
                 if (saleOrderData.items[i].unit) {
-                    const unit = await Unit.findById(saleOrderData.items[i].unit);
-                    if (unit && unit.name) {
-                        saleOrderData.items[i].unit = unit.name;
+                    const uVal = saleOrderData.items[i].unit;
+                    if (typeof uVal === 'object' && uVal !== null) {
+                        saleOrderData.items[i].unit = uVal.label || uVal.name || String(uVal.value || '');
+                    } else if (mongoose.Types.ObjectId.isValid(uVal)) {
+                        const unit = await Unit.findById(uVal);
+                        if (unit && unit.name) {
+                            saleOrderData.items[i].unit = unit.name;
+                        }
+                    } else {
+                        saleOrderData.items[i].unit = String(uVal);
                     }
                 }
                 const item = await Item.findById(saleOrderData.items[i].itemId);
@@ -284,7 +295,24 @@ exports.updateSaleOrderById = async (req, res) => {
         // Round numerical amounts to 2 decimal places to prevent floating point precision issues
         if (saleOrderData.netAmount !== undefined) saleOrderData.netAmount = Math.round(Number(saleOrderData.netAmount) * 100) / 100;
         if (saleOrderData.totalAmount !== undefined) saleOrderData.totalAmount = Math.round(Number(saleOrderData.totalAmount) * 100) / 100;
-        if (saleOrderData.totalDiscountAmount !== undefined) saleOrderData.totalDiscountAmount = Math.round(Number(saleOrderData.totalDiscountAmount) * 100) / 100;
+        // Sanitize sundries to ensure Name is always a valid non-empty string
+        if (saleOrderData.sundries && Array.isArray(saleOrderData.sundries.SundriesDetail)) {
+            saleOrderData.sundries.SundriesDetail = saleOrderData.sundries.SundriesDetail
+                .map((s, index) => {
+                    let name = s?.Name || s?.name;
+                    if (!name || typeof name !== 'string' || name.trim() === '') {
+                        if (index === 0) name = "Hammali@20/CRT";
+                        else if (index === 1) name = "Discount";
+                        else name = `Sundry_${index + 1}`;
+                    }
+                    return {
+                        Name: String(name).trim(),
+                        DiscountAmount: Number(s?.DiscountAmount ?? s?.discountAmount) || 0,
+                        DiscountPercent: Number(s?.DiscountPercent ?? s?.discountPercent) || 0
+                    };
+                })
+                .filter(s => s.Name !== '');
+        }
 
         const updatedSaleOrder = await SaleOrder.findByIdAndUpdate(
             req.params.saleorderid,
@@ -329,16 +357,122 @@ exports.getSaleOrder = async (req, res) => {
         if (req.user?.salesman_id) {
             query.salesman = req.user.salesman_id;
         }
-        const saleOrders = await SaleOrder.find(query)
+
+        // Support Search across voucherNo, customer, directCustomer, salesman, and saleType
+        const searchQuery = req.query.search || req.query.q;
+        if (searchQuery && searchQuery.trim() !== '') {
+            const searchTerm = searchQuery.trim();
+
+            const [matchingDirectCustomers, matchingCustomers, matchingSalesmen, matchingSaleTypes] = await Promise.all([
+                DirectCustomer.find({
+                    $or: [
+                        { name: { $regex: searchTerm, $options: 'i' } },
+                        { email: { $regex: searchTerm, $options: 'i' } },
+                        { mobile: { $regex: searchTerm, $options: 'i' } }
+                    ]
+                }).select('_id').lean(),
+                Customer.find({
+                    $or: [
+                        { name: { $regex: searchTerm, $options: 'i' } },
+                        { email: { $regex: searchTerm, $options: 'i' } },
+                        { mobile: { $regex: searchTerm, $options: 'i' } },
+                        { gst_no: { $regex: searchTerm, $options: 'i' } }
+                    ]
+                }).select('_id').lean(),
+                Salesman.find({
+                    name: { $regex: searchTerm, $options: 'i' }
+                }).select('_id').lean(),
+                SaleType.find({
+                    name: { $regex: searchTerm, $options: 'i' }
+                }).select('_id').lean()
+            ]);
+
+            const directCustomerIds = matchingDirectCustomers.map(dc => dc._id);
+            const customerIds = matchingCustomers.map(c => c._id);
+            const salesmanIds = matchingSalesmen.map(s => s._id);
+            const saleTypeIds = matchingSaleTypes.map(st => st._id);
+
+            query.$or = [
+                { voucherNo: { $regex: searchTerm, $options: 'i' } },
+                { customer: { $in: customerIds } },
+                { directCustomer: { $in: directCustomerIds } },
+                { salesman: { $in: salesmanIds } },
+                { saleType: { $in: saleTypeIds } }
+            ];
+        }
+
+        // Support Date Range filtering
+        if (req.query.startDate || req.query.endDate) {
+            const dateFilter = {};
+            if (req.query.startDate) {
+                const start = new Date(req.query.startDate);
+                start.setHours(0, 0, 0, 0);
+                dateFilter.$gte = start;
+            }
+            if (req.query.endDate) {
+                const end = new Date(req.query.endDate);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.$lte = end;
+            }
+
+            if (Object.keys(dateFilter).length > 0) {
+                query.$and = query.$and || [];
+                query.$and.push({
+                    $or: [
+                        { date: dateFilter },
+                        { createdAt: dateFilter }
+                    ]
+                });
+            }
+        }
+
+        // Check if pagination is requested
+        const hasPagination = req.query.page !== undefined || req.query.limit !== undefined || req.query.paginated === 'true';
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit)) : 20;
+        const skip = (page - 1) * limit;
+
+        let queryBuilder = SaleOrder.find(query)
+            .select('-items') // Exclude heavy items array on table list for blazing fast speed
             .populate('saleType', 'name')
             .populate('customer', 'name email mobile address gst_type group_type gst_no aadhaar_no pincode is_guest _id remarks')
             .populate('directCustomer')
             .populate('salesman', 'name')
+            .populate('convertedSaleId', 'voucherNo')
             .sort({ createdAt: -1 })
-            .exec();
+            .lean();
 
+        if (hasPagination) {
+            queryBuilder = queryBuilder.skip(skip).limit(limit);
+        }
+
+        const [totalOrders, saleOrders] = await Promise.all([
+            SaleOrder.countDocuments(query),
+            queryBuilder.exec()
+        ]);
+
+        for (const order of (saleOrders || [])) {
+            if (!order.saleVoucherNo && order.convertedSaleId?.voucherNo) {
+                order.saleVoucherNo = order.convertedSaleId.voucherNo;
+            }
+        }
+
+        // If pagination is requested, return structured object
+        if (hasPagination) {
+            return res.status(200).json({
+                success: true,
+                orders: saleOrders,
+                totalOrders,
+                totalPages: Math.ceil(totalOrders / limit),
+                currentPage: page,
+                limit
+            });
+        }
+
+        // Legacy format fallback (array directly)
         res.status(200).json(saleOrders);
     } catch (err) {
+        console.error("Error in getSaleOrder:", err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -394,10 +528,17 @@ exports.searchSaleOrders = async (req, res) => {
             .populate('directCustomer')
             .populate('salesman', 'name code')
             .populate('items.itemId', 'name hsn_code unit_id sale_price discount conversion_factor image default_image item_attribute')
+            .populate('convertedSaleId', 'voucherNo')
             .sort({ date: -1, createdAt: -1 })
             .limit(100) // Limit results for performance
             .lean()
             .exec();
+
+        for (const order of (saleOrders || [])) {
+            if (!order.saleVoucherNo && order.convertedSaleId?.voucherNo) {
+                order.saleVoucherNo = order.convertedSaleId.voucherNo;
+            }
+        }
 
         res.status(200).json({
             success: true,
@@ -521,6 +662,7 @@ exports.getSaleOrdersByDateRange = async (req, res) => {
                 .populate('directCustomer')
                 .populate('salesman', 'name code')
                 .populate('items.itemId', 'name hsn_code unit_id sale_price discount conversion_factor image default_image item_attribute')
+                .populate('convertedSaleId', 'voucherNo')
                 .sort({ date: -1, createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -528,6 +670,12 @@ exports.getSaleOrdersByDateRange = async (req, res) => {
                 .exec(),
             SaleOrder.countDocuments(query)
         ]);
+
+        for (const order of (saleOrders || [])) {
+            if (!order.saleVoucherNo && order.convertedSaleId?.voucherNo) {
+                order.saleVoucherNo = order.convertedSaleId.voucherNo;
+            }
+        }
 
         // Calculate summary statistics for the filtered results
         const summaryStats = await SaleOrder.aggregate([
@@ -834,116 +982,238 @@ exports.dispatchUpdate = async (req, res) => {
     }
 };
 
-// Get dashboard data for admin
+let dashboardCache = {
+    data: null,
+    salesmanId: null,
+    timestamp: 0
+};
+
+// Get dashboard data for admin (High-performance optimized aggregation)
 exports.getDashboardData = async (req, res) => {
     try {
+        const salesmanKey = req.user?.salesman_id ? String(req.user.salesman_id) : 'admin';
+        const nowMs = Date.now();
+        // Fast in-memory cache (15 seconds TTL) to avoid running 6 heavy aggregations repeatedly
+        if (dashboardCache.data && dashboardCache.salesmanId === salesmanKey && (nowMs - dashboardCache.timestamp < 15000)) {
+            return res.status(200).json(dashboardCache.data);
+        }
+
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-        let query = {};
-        if (req.user?.salesman_id) {
-            query.salesman = req.user.salesman_id;
-        }
-
-        // Get all orders
-        const allOrders = await SaleOrder.find(query).sort({ createdAt: -1 });
-
-        // Calculate total orders
-        const totalOrders = allOrders.length;
-
-        // Calculate orders by status
-        const ordersPending = allOrders.filter(order => order.status === 'Start').length;
-        const ordersProcessing = allOrders.filter(order => order.status === 'Processing').length;
-        const ordersDelivered = allOrders.filter(order => order.status === 'Delivered').length;
-
-        // Calculate sales by time periods
-        const todaySales = allOrders
-            .filter(order => order.createdAt >= today)
-            .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-        const yesterdaySales = allOrders
-            .filter(order => order.createdAt >= yesterday && order.createdAt < today)
-            .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-        const thisMonthSales = allOrders
-            .filter(order => order.createdAt >= thisMonth)
-            .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-        const lastMonthSales = allOrders
-            .filter(order => order.createdAt >= lastMonth && order.createdAt < thisMonth)
-            .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-        const allTimeSales = allOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-        // Calculate weekly sales (last 7 days)
         const weekAgo = new Date(now);
         weekAgo.setDate(now.getDate() - 7);
-        const weeklySales = allOrders
-            .filter(order => order.createdAt >= weekAgo)
-            .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const sevenDaysAgoStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-        // Get best selling products
-        const productSales = {};
-        allOrders.forEach(order => {
-            if (order.items && order.items.length > 0) {
-                order.items.forEach(item => {
-                    const itemId = item.itemId?.toString();
-                    if (itemId) {
-                        if (!productSales[itemId]) {
-                            productSales[itemId] = {
-                                itemId: item.itemId,
-                                name: item.name,
-                                totalQuantity: 0,
-                                totalAmount: 0
-                            };
+        let matchQuery = {};
+        if (req.user?.salesman_id) {
+            matchQuery.salesman = mongoose.Types.ObjectId.isValid(req.user.salesman_id)
+                ? new mongoose.Types.ObjectId(req.user.salesman_id)
+                : req.user.salesman_id;
+        }
+
+        // Run aggregations and queries in parallel on the database engine
+        const [salesSummary, statusCounts, topProducts, recentOrders, weeklyAgg, monthlyAgg] = await Promise.all([
+            // 1. Sales metrics calculated in a single aggregation pass
+            SaleOrder.aggregate([
+                { $match: matchQuery },
+                {
+                    $group: {
+                        _id: null,
+                        totalOrders: { $sum: 1 },
+                        allTime: { $sum: '$totalAmount' },
+                        today: {
+                            $sum: { $cond: [{ $gte: ['$createdAt', today] }, '$totalAmount', 0] }
+                        },
+                        yesterday: {
+                            $sum: {
+                                $cond: [
+                                    { $and: [{ $gte: ['$createdAt', yesterday] }, { $lt: ['$createdAt', today] }] },
+                                    '$totalAmount',
+                                    0
+                                ]
+                            }
+                        },
+                        thisMonth: {
+                            $sum: { $cond: [{ $gte: ['$createdAt', thisMonth] }, '$totalAmount', 0] }
+                        },
+                        lastMonth: {
+                            $sum: {
+                                $cond: [
+                                    { $and: [{ $gte: ['$createdAt', lastMonth] }, { $lt: ['$createdAt', thisMonth] }] },
+                                    '$totalAmount',
+                                    0
+                                ]
+                            }
+                        },
+                        weekly: {
+                            $sum: { $cond: [{ $gte: ['$createdAt', weekAgo] }, '$totalAmount', 0] }
                         }
-                        productSales[itemId].totalQuantity += item.quantity || 0;
-                        productSales[itemId].totalAmount += item.amount || 0;
                     }
-                });
-            }
+                }
+            ]),
+
+            // 2. Status counts
+            SaleOrder.aggregate([
+                { $match: matchQuery },
+                { $group: { _id: '$status', count: { $sum: 1 } } }
+            ]),
+
+            // 3. Best selling products (top 10)
+            SaleOrder.aggregate([
+                { $match: matchQuery },
+                { $project: { items: 1 } },
+                { $unwind: '$items' },
+                {
+                    $group: {
+                        _id: '$items.itemId',
+                        name: { $first: '$items.name' },
+                        totalQuantity: { $sum: '$items.quantity' },
+                        totalAmount: { $sum: '$items.amount' }
+                    }
+                },
+                { $sort: { totalQuantity: -1 } },
+                { $limit: 10 }
+            ]),
+
+            // 4. Recent orders (only 5 items, selective fields, lean)
+            SaleOrder.find(matchQuery)
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .select('_id voucherNo customer totalAmount status createdAt')
+                .lean(),
+
+            // 5. Weekly trend aggregation (last 7 days)
+            SaleOrder.aggregate([
+                { $match: { ...matchQuery, createdAt: { $gte: sevenDaysAgoStart } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                        sales: { $sum: '$totalAmount' },
+                        orders: { $sum: 1 }
+                    }
+                }
+            ]),
+
+            // 6. Monthly trend aggregation (last 6 months)
+            SaleOrder.aggregate([
+                { $match: { ...matchQuery, createdAt: { $gte: sixMonthsAgo } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+                        sales: { $sum: '$totalAmount' },
+                        orders: { $sum: 1 }
+                    }
+                }
+            ])
+        ]);
+
+        const sales = salesSummary[0] || {
+            totalOrders: 0,
+            allTime: 0,
+            today: 0,
+            yesterday: 0,
+            thisMonth: 0,
+            lastMonth: 0,
+            weekly: 0
+        };
+
+        // Status breakdown
+        const statusMap = {};
+        statusCounts.forEach(s => { statusMap[s._id] = s.count; });
+        const ordersPending = statusMap['Start'] || 0;
+        const ordersProcessing = statusMap['Processing'] || 0;
+        const ordersDelivered = statusMap['Delivered'] || 0;
+        const ordersCancelled = statusMap['Cancelled'] || 0;
+
+        const orderStatusBreakdown = [
+            { label: 'Delivered', count: ordersDelivered, color: '#26bf94' },
+            { label: 'Processing', count: ordersProcessing, color: '#845adf' },
+            { label: 'Pending', count: ordersPending, color: '#f5b849' },
+            { label: 'Cancelled', count: ordersCancelled, color: '#e6533c' }
+        ];
+
+        // 7-day sales & orders trend
+        const weeklyMap = {};
+        weeklyAgg.forEach(w => {
+            weeklyMap[w._id] = { sales: w.sales || 0, orders: w.orders || 0 };
         });
 
-        const bestSellingProducts = Object.values(productSales)
-            .sort((a, b) => b.totalQuantity - a.totalQuantity)
-            .slice(0, 10)
-            .map(product => ({
-                itemId: product.itemId,
-                name: product.name,
-                totalQuantity: product.totalQuantity,
-                totalAmount: product.totalAmount
-            }));
+        const weeklySalesTrend = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const key = `${yyyy}-${mm}-${dd}`;
+            const stats = weeklyMap[key] || { sales: 0, orders: 0 };
+            weeklySalesTrend.push({
+                day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                sales: Math.round(stats.sales),
+                orders: stats.orders
+            });
+        }
 
-        // Get recent orders (last 5)
-        const recentOrders = allOrders.slice(0, 5).map(order => ({
-            _id: order._id,
-            voucherNo: order.voucherNo,
-            customer: order.customer,
-            totalAmount: order.totalAmount,
-            status: order.status,
-            createdAt: order.createdAt
+        // 6-month sales & orders trend
+        const monthlyMap = {};
+        monthlyAgg.forEach(m => {
+            monthlyMap[m._id] = { sales: m.sales || 0, orders: m.orders || 0 };
+        });
+
+        const monthlySalesTrend = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const key = `${yyyy}-${mm}`;
+            const stats = monthlyMap[key] || { sales: 0, orders: 0 };
+            monthlySalesTrend.push({
+                month: d.toLocaleDateString('en-US', { month: 'short' }),
+                year: d.getFullYear(),
+                sales: Math.round(stats.sales),
+                orders: stats.orders
+            });
+        }
+
+        const bestSellingProducts = topProducts.map(product => ({
+            itemId: product._id,
+            name: product.name,
+            totalQuantity: product.totalQuantity,
+            totalAmount: product.totalAmount
         }));
 
         const dashboardData = {
-            totalOrders,
+            totalOrders: sales.totalOrders,
             ordersPending,
             ordersProcessing,
             ordersDelivered,
+            ordersCancelled,
+            orderStatusBreakdown,
             sales: {
-                today: todaySales,
-                yesterday: yesterdaySales,
-                thisMonth: thisMonthSales,
-                lastMonth: lastMonthSales,
-                allTime: allTimeSales,
-                weekly: weeklySales
+                today: sales.today,
+                yesterday: sales.yesterday,
+                thisMonth: sales.thisMonth,
+                lastMonth: sales.lastMonth,
+                allTime: sales.allTime,
+                weekly: sales.weekly
             },
+            weeklySalesTrend,
+            monthlySalesTrend,
             bestSellingProducts,
             recentOrders
+        };
+
+        // Cache response for next requests
+        dashboardCache = {
+            data: dashboardData,
+            salesmanId: salesmanKey,
+            timestamp: nowMs
         };
 
         res.status(200).json(dashboardData);
@@ -987,7 +1257,7 @@ exports.processSaleOrder = async (req, res) => {
 
         const saleOrder = await SaleOrder.findById(saleorderid)
             .populate('saleType', 'name code')
-            .populate('customer', 'name code email mobile address gst_type group_type gst_no aadhaar_no pincode is_guest _id')
+            .populate('customer', 'name code email mobile address gst_type group_type gst_no aadhaar_no pincode is_guest shippingAddress _id')
             .populate('directCustomer')
             .populate('salesman', 'name code')
             .populate('items.itemId', 'name hsn_code unit_id sale_price discount conversion_factor')
@@ -1086,6 +1356,17 @@ exports.processSaleOrder = async (req, res) => {
                 { ...(busyApiResult?.voucherNo && { voucherNo: busyApiResult.voucherNo }), "busyApiStatus": busyApiResult.voucherNo && busyApiResult.success ? 'SUCCESS' : 'FAILED' },
                 { new: true, runValidators: true }
             ).exec();
+
+            // Also keep any linked Sale invoices in sync with the Busy voucher number
+            try {
+                const Sale = require('../models/sale.model');
+                await Sale.updateMany(
+                    { $or: [{ saleOrder: saleorderid }, { saleOrders: saleorderid }] },
+                    { saleOrderVoucherNo: busyApiResult.voucherNo }
+                );
+            } catch (syncSaleErr) {
+                console.error("Error updating linked sale vouchers after busy post:", syncSaleErr);
+            }
         }
 
 

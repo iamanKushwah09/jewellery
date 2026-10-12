@@ -66,58 +66,42 @@ const Role = () => {
           <CardBody>
             <form
               onSubmit={handleSubmitUser}
-              className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex"
+              className="py-2 flex flex-col md:flex-row flex-wrap md:flex-nowrap items-stretch md:items-center justify-between gap-3 md:gap-4"
             >
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-[220px] max-w-lg lg:max-w-xl">
                 <Input
                   ref={userRef}
                   type="search"
                   name="search"
                   placeholder={t("Search Role")}
+                  className="page-search-input flex-1"
                 />
-                <button
+                <Button
                   type="submit"
-                  className="absolute right-0 top-0 mt-5 mr-1"
-                ></button>
+                  className="h-10 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-button text-xs sm:text-sm font-medium transition-all flex-shrink-0"
+                >
+                  Search
+                </Button>
               </div>
-              {/* <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                  <Select onChange={(e) => setRole(e.target.value)}>
-                    <option value="All" defaultValue hidden>
-                      {t("Role")}
-                    </option>
-                    <option value="Admin">{t("RoleRoleAdmin")}</option>
-                    <option value="Cashier">{t("SelectCashiers")}</option>
-                    <option value="Super Admin">{t("SelectSuperAdmin")}</option>
-                  </Select>
-                </div> */}
 
-              <div className="w-full md:w-56 lg:w-56 xl:w-56">
-                <div className="w-full mx-1">
-                  <Button type="submit" className="h-12 w-full bg-blue-700">
-                    Search
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-2 md:mt-0 flex items-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0 md:ml-auto">
                 <Button
                   onClick={toggleDrawer}
-                  className="w-full rounded-md h-12"
+                  className="h-10 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-medium shadow-button flex items-center transition-all"
                 >
-                  <span className="mr-3">
+                  <span className="mr-2">
                     <FiPlus />
                   </span>
                   {t("Add Role")}
                 </Button>
-                <div className="w-full">
-                  <Button
-                    layout="outline"
-                    onClick={handleResetField}
-                    type="reset"
-                    className="px-4 md:py-1 py-3 text-sm dark:bg-gray-700"
-                  >
-                    <span className="text-black dark:text-gray-200">Reset</span>
-                  </Button>
-                </div>
+
+                <Button
+                  onClick={handleResetField}
+                  type="reset"
+                  className="btn-action-reset"
+                >
+                  <span>Reset</span>
+                </Button>
               </div>
             </form>
           </CardBody>

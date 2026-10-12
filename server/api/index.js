@@ -17,8 +17,8 @@ const envFile = process.env.NODE_ENV === "production"
   ? ".env.production"
   : ".env.development";
 
-// Load environment variables
-dotenv.config({ path: path.resolve(__dirname, envFile) });
+// Load environment variables from server root
+dotenv.config({ path: path.resolve(__dirname, "../", envFile) });
 
 
 const { connectDB } = require("../config/db");
@@ -74,6 +74,26 @@ const billSundryRoutes = require('../routes/billSundryRoutes');
 const itemGroupRoute = require('../routes/itemGroupRoute');
 const loyaltyRoutes = require('../routes/loyalty.routes');
 const loyaltyProgramRoutes = require('../routes/loyaltyProgram.routes');
+const gmcRoutes = require('../routes/gmc.routes');
+const schemaRoutes = require('../routes/schema.routes');
+const flipkartRoutes = require('../routes/flipkart.routes');
+const amazonRoutes = require('../routes/amazon.routes');
+const shopifyRoutes = require('../routes/shopify.routes');
+const woocommerceRoutes = require('../routes/woocommerce.routes');
+const inventoryRoutes = require('../routes/inventory.routes');
+const { startFlipkartCron } = require('../cron/flipkartCron');
+const { startAmazonCron } = require('../cron/amazonCron');
+const { startShopifyCron } = require('../cron/shopifyCron');
+const { startWooCommerceCron } = require('../cron/woocommerceCron');
+const { initGmcQueue } = require('../services/gmc/gmcQueue');
+const { initGmcWorker } = require('../services/gmc/gmcWorker');
+const { startGmcReconciliationCron } = require('../cron/gmcReconciliation.cron');
+const http = require("http");
+const salesmanTrackingRoutes = require('../routes/salesmanTrackingRoutes');
+const salesmanVisitRoutes = require('../routes/salesmanVisitRoutes');
+const salesmanRouteRoutes = require('../routes/salesmanRouteRoutes');
+const salesmanCollectionRoutes = require('../routes/salesmanCollectionRoutes');
+const { initSocket } = require('../services/socketService');
 
 const { isAuth, isAdmin } = require("../config/auth");
 const WhatsappSettingModel = require("../models/WhatsappSetting.model");
@@ -82,7 +102,6 @@ const WhatsappSettingModel = require("../models/WhatsappSetting.model");
 //   getStoreCustomizationSetting,
 // } = require("../lib/notification/setting");
 
-const mongoose = require("mongoose");
 connectDB();
 const app = express();
 
@@ -92,18 +111,6 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(express.json({ limit: "40mb" }));
-
-// Ensure DB is connected for serverless invocations (Vercel)
-app.use(async (req, res, next) => {
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      await connectDB();
-    }
-  } catch (err) {
-    console.error("DB connection error in request middleware:", err.message);
-  }
-  next();
-});
 // swagger used
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDoc));
 // app.use(helmet({
@@ -114,21 +121,39 @@ app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDoc));
 
 // CORS configuration with specific origins for security
 const allowedOrigins = [
+  // Production — logicfirst.in domains
+  'https://logicfirst.in',
+  'https://www.logicfirst.in',
+  'https://admin.logicfirst.in',
+  'https://api.logicfirst.in',
+  'http://logicfirst.in',
+  'http://www.logicfirst.in',
+  'http://admin.logicfirst.in',
+  'http://api.logicfirst.in',
+  // Legacy — medikart24.in domains
   'https://medikart24.in',
   'https://www.medikart24.in',
   'https://admin.medikart24.in',
   'https://api.medikart24.in',
+  'http://medikart24.in',
+  'http://www.medikart24.in',
+  'http://admin.medikart24.in',
+  'http://api.medikart24.in',
+  // Development — localhost
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
   'http://localhost:3101',
   'http://localhost:4100',
+  'http://localhost:4200',
+  'http://localhost:4300',
   'http://localhost:5055',
-  'https://jewellery-eosin-three.vercel.app',
-  'https://jewellery-client-omega.vercel.app',
-  'https://jewellery-admin-woad.vercel.app',
+  'http://localhost:5056',
   'http://localhost:5058',
-  'http://localhost:5173'
+  'http://localhost:5060',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5200',
 ];
 
 app.use(cors({
@@ -149,7 +174,7 @@ app.use(cors({
 }));
 
 // app.use(cors({
-//   origin: 'https://admin.vellorajewels.com'
+//   origin: 'https://admin.selectionfootwear.com'
 // }));
 
 // Set EJS as the view engine
@@ -222,7 +247,39 @@ app.use("/api/loyalty", loyaltyRoutes);
 app.use("/api/loyalty-program", loyaltyProgramRoutes);
 app.use("/api/sale-type", saleTypeRoutes);
 app.use("/api/item-groups-route", itemGroupRoute);
-app.use("/api/sync", require("../routes/sync.routes"));
+app.use("/api/gmc", gmcRoutes);
+app.use("/api/schema", schemaRoutes);
+app.use("/api/flipkart", flipkartRoutes);
+app.use("/api/amazon", amazonRoutes);
+app.use("/api/shopify", shopifyRoutes);
+app.use("/api/woocommerce", woocommerceRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/salesman-tracking", salesmanTrackingRoutes);
+app.use("/api/salesman-visit", salesmanVisitRoutes);
+app.use("/api/salesman-route", salesmanRouteRoutes);
+app.use("/api/salesman-collection", salesmanCollectionRoutes);
+
+// Initialize Flipkart Background Sync Worker
+startFlipkartCron();
+
+// Initialize Amazon Background Sync Worker
+startAmazonCron();
+
+// Initialize Shopify Background Sync Worker
+startShopifyCron();
+
+// Initialize WooCommerce Background Sync Worker
+startWooCommerceCron();
+
+// Initialize GMC Queue, Worker, and Reconciliation System
+initGmcQueue();
+if (process.env.GMC_MERCHANT_ID) {
+  initGmcWorker();
+  startGmcReconciliationCron();
+  console.log('🛒 GMC background synchronization worker and reconciliation enabled');
+} else {
+  console.log('ℹ️ GMC background sync ready (GMC_MERCHANT_ID not configured)');
+}
 
 
 // Use express's default error handling middleware
@@ -231,15 +288,14 @@ app.use((err, req, res, next) => {
   res.status(400).json({ message: err.message });
 });
 
-app.use('/', express.static(path.join(__dirname, process.env.FILE_UPLOAD_FOLDER || '../uploadFile')));
-
 // Serve static files from the "dist" directory
 app.use("/static", express.static("public"));
+app.use('/', express.static(path.join(__dirname, process.env.FILE_UPLOAD_FOLDER)));
 
 // Vercel-specific static file serving
 app.get('/api/static/:folder/:filename', (req, res) => {
   const { folder, filename } = req.params;
-  const filePath = path.join(__dirname, process.env.FILE_UPLOAD_FOLDER || '../uploadFile', folder, filename);
+  const filePath = path.join(__dirname, process.env.FILE_UPLOAD_FOLDER, folder, filename);
 
   // console.log('Static file request:--', { folder, filename, filePath });
   // console.log('File exists:--', fs.existsSync(filePath));
@@ -258,11 +314,13 @@ app.get('/api/static/:folder/:filename', (req, res) => {
 //   res.sendFile(path.join(__dirname, "build", "index.html"));
 // });
 
-const PORT = process.env.PORT || 5056;
+const PORT = process.env.PORT || 5055;
 
 // const server = http.createServer(app);
 
-app.listen(PORT, () => console.log(`server running on port ${PORT}`));
+const server = http.createServer(app);
+initSocket(server);
+server.listen(PORT, () => console.log(`server running on port ${PORT} with Socket.IO enabled`));
 
 // app.listen(PORT, () => console.log(`server running on port ${PORT}`));
 
@@ -272,12 +330,12 @@ app.listen(PORT, () => console.log(`server running on port ${PORT}`));
 //     origin: [
 //       "http://localhost:3000",
 //       "http://localhost:4100",
-//       "https://admin-Vellora Jewels.vercel.app",
+//       "https://admin-kachabazar.vercel.app",
 //       "https://dashtar-admin.vercel.app",
-//       "https://Vellora Jewels-store.vercel.app",
-//       "https://Vellora Jewels-admin.netlify.app",
+//       "https://kachabazar-store.vercel.app",
+//       "https://kachabazar-admin.netlify.app",
 //       "https://dashtar-admin.netlify.app",
-//       "https://Vellora Jewels-store-nine.vercel.app",
+//       "https://kachabazar-store-nine.vercel.app",
 //     ], //add your origin here instead of this
 //     methods: ["PUT", "GET", "POST", "DELETE", "PATCH", "OPTIONS"],
 //     credentials: false,

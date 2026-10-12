@@ -205,16 +205,41 @@ const CouponGiftEngine = {
    * @returns {Object} { valid, coupon, reason }
    */
   validateCoupon: async ({ couponCode, customerId, totalAmount, items = [] }) => {
-    const coupon = await LoyaltyIssuedCoupon.findOne({ couponCode, customerId });
+    if (!couponCode || typeof couponCode !== 'string' || !couponCode.trim()) {
+      return { valid: false, reason: 'Please enter a coupon code' };
+    }
+    const cleanCode = couponCode.trim();
+    const query = {
+      couponCode: { $regex: new RegExp(`^${cleanCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+    };
+    if (customerId) {
+      query.$or = [{ customerId }, { customerId: null }];
+    }
 
-    if (!coupon) return { valid: false, reason: 'Coupon not found' };
-    if (coupon.isUsed) return { valid: false, reason: 'Coupon already used' };
-    if (new Date(coupon.expiryDate) < new Date()) return { valid: false, reason: 'Coupon expired' };
+    const coupon = await LoyaltyIssuedCoupon.findOne(query);
 
-    // Check item/brand restriction
+    if (!coupon) return { valid: false, reason: 'Coupon not found or not assigned to this customer' };
+    if (coupon.isUsed) return { valid: false, reason: 'Coupon has already been used' };
+    if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+      return { valid: false, reason: 'Coupon has expired' };
+    }
+
+    // Check item restriction
     if (coupon.targetType === 'item' && coupon.targetId) {
-      const itemMatch = items.some(i => String(i.item_id) === String(coupon.targetId));
-      if (!itemMatch) return { valid: false, reason: 'Coupon not applicable on items in cart' };
+      const itemMatch = (items || []).some(i => {
+        const iId = String(i.item_id || i.itemId?.value || i.itemId || '');
+        return iId === String(coupon.targetId);
+      });
+      if (!itemMatch) return { valid: false, reason: 'Coupon is not applicable on the items in cart' };
+    }
+
+    // Check brand restriction
+    if (coupon.targetType === 'brand' && coupon.targetId) {
+      const brandMatch = (items || []).some(i => {
+        const bId = String(i.brand_id || i.brandId || i.brand || '');
+        return bId === String(coupon.targetId);
+      });
+      if (!brandMatch) return { valid: false, reason: 'Coupon is not applicable on the brand in cart' };
     }
 
     return { valid: true, coupon };

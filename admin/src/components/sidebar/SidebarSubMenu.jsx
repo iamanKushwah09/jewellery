@@ -1,96 +1,89 @@
-import React, { useState } from "react";
-import { NavLink, Route } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  IoChevronDownOutline,
-  IoChevronForwardOutline,
-  IoRemoveSharp,
-} from "react-icons/io5";
+import { IoChevronDownOutline } from "react-icons/io5";
 
-const SidebarSubMenu = ({ route }) => {
+const SidebarSubMenu = ({ route, onClose }) => {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  // Check if any child route is currently active
+  const isChildActive = route.routes?.some(
+    (child) => child.path && location.pathname.startsWith(child.path)
+  );
+
+  const [open, setOpen] = useState(isChildActive);
+
+  useEffect(() => {
+    if (isChildActive) {
+      setOpen(true);
+    }
+  }, [location.pathname, isChildActive]);
 
   return (
-    <>
-      <li className="relative px-6 py-3" key={route.name}>
-        <button
-          className="inline-flex items-center justify-between focus:outline-none w-full text-sm font-semibold transition-colors duration-150 hover:text-blue-600 dark:hover:text-gray-200"
-          onClick={() => setOpen(!open)}
-          aria-haspopup="true"
-        >
-          <span className="inline-flex items-center">
-            <route.icon className="w-5 h-5" aria-hidden="true" />
-            <span className="ml-4 mt-1">{t(`${route.name}`)}</span>
-            <span className="pl-4 mt-1">
-              {open ? <IoChevronDownOutline /> : <IoChevronForwardOutline />}
-            </span>
+    <li className="relative px-1 py-0.5">
+      <button
+        type="button"
+        className={`group relative flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+          isChildActive
+            ? "bg-white/[0.08] text-white font-semibold"
+            : "text-[#a3aed1] hover:bg-white/[0.05] hover:text-white"
+        }`}
+        onClick={() => setOpen(!open)}
+        aria-haspopup="true"
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-3">
+          <route.icon
+            className="w-4 h-4 transition-colors"
+            style={{ color: isChildActive ? "var(--primary-color)" : undefined }}
+            aria-hidden="true"
+          />
+          <span className="font-medium tracking-wide text-xs sm:text-sm">
+            {t(`${route.name}`)}
           </span>
-          {/* <DropdownIcon className="w-4 h-4" aria-hidden="true" /> */}
-        </button>
-        {open && (
-          <ul
-            className="p-2  overflow-hidden text-sm font-medium text-gray-500 rounded-md dark:text-gray-400 dark:bg-gray-900"
-            aria-label="submenu"
-          >
-            {route.routes.map((child, i) => (
-              <li key={i + 1}>
-                {child?.outside ? (
-                  <a
-                    href={import.meta.env.VITE_APP_STORE_DOMAIN}
-                    target="_blank"
-                    className="flex items-center font-serif py-1 text-sm text-gray-600 hover:text-blue-600 cursor-pointer"
-                    // activeStyle={{
-                    //   color: "#0d9e6d",
-                    // }}
-                    rel="noreferrer"
-                  >
-                    <Route path={child.path} exact={child.exact}>
-                      <span
-                        className="absolute inset-y-0 left-0 w-1 bg-blue-500 rounded-tr-lg rounded-br-lg"
-                        aria-hidden="true"
-                      ></span>
-                    </Route>
-                    {/* <route.icon className="w-5 h-5" aria-hidden="true" /> */}
-                    <span className="text-xs text-gray-500 pr-1">
-                      <IoRemoveSharp />
-                    </span>
-                    <span className="text-gray-500 hover:text-blue-600 dark:hover:text-gray-200">
-                      {t(`${child.name}`)}
-                    </span>
-                    {/* <span className="ml-4">{route.name}</span> */}
-                  </a>
-                ) : (
-                  <NavLink
-                    to={child.path}
-                    // target={`${child.name === 'Sell' ? '_blank' : '_self'}`}
-                    className="flex items-center font-serif py-1 text-sm text-gray-600 hover:text-blue-600 cursor-pointer"
-                    // activeStyle={{
-                    //   color: "#0d9e6d",
-                    // }}
-                    rel="noreferrer"
-                  >
-                    <Route path={child.path} exact={route.exact}>
-                      <span
-                        className="absolute inset-y-0 left-0 w-1 bg-blue-600 rounded-tr-lg rounded-br-lg"
-                        aria-hidden="true"
-                      ></span>
-                    </Route>
-                    <span className="text-xs text-gray-500 pr-1">
-                      <IoRemoveSharp />
-                    </span>
-                    <span className="text-gray-500 hover:text-blue-600 dark:hover:text-gray-200">
-                      {t(`${child.name}`)}
-                    </span>
-                  </NavLink>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </li>
-    </>
+        </span>
+        <IoChevronDownOutline
+          className={`w-3.5 h-3.5 text-[#a3aed1] transition-transform duration-200 ${
+            open ? "rotate-180 text-white" : ""
+          }`}
+        />
+      </button>
+
+      {open && (
+        <ul className="mt-1 space-y-1 pl-6 pr-1 py-1 transition-all duration-300">
+          {route.routes.map((child, i) => (
+            <li key={i}>
+              {child?.outside ? (
+                <a
+                  href={import.meta.env.VITE_APP_STORE_DOMAIN}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={onClose}
+                  className="group flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium text-[#a3aed1]/80 transition-colors duration-150 hover:text-white"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#a3aed1]/50 transition-colors group-hover:bg-[var(--primary-color)]" />
+                  <span>{t(`${child.name}`)}</span>
+                </a>
+              ) : (
+                <NavLink
+                  to={child.path}
+                  exact
+                  onClick={onClose}
+                  className="group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs sm:text-sm font-medium text-[#a3aed1]/80 transition-all duration-150 hover:bg-white/[0.06] hover:text-white"
+                  activeClassName="active-subnav-link !text-white font-semibold shadow-md"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#a3aed1]/50 transition-colors group-hover:bg-white" />
+                  <span>{t(`${child.name}`)}</span>
+                </NavLink>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
   );
 };
 
 export default SidebarSubMenu;
+

@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
-import { Transition, Backdrop } from "@windmill/react-ui";
+import { IoCloseOutline } from "react-icons/io5";
 
-//internal import
+// internal import
 import SidebarContent from "@/components/sidebar/SidebarContent";
 import { SidebarContext } from "@/context/SidebarContext";
 
@@ -9,34 +9,34 @@ function MobileSidebar() {
   const { isSidebarOpen, closeSidebar } = useContext(SidebarContext);
 
   return (
-    <Transition show={isSidebarOpen}>
-      <>
-        <Transition
-          enter="transition ease-in-out duration-150"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="transition ease-in-out duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <Backdrop onClick={closeSidebar} />
-        </Transition>
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={closeSidebar}
+        className={`fixed inset-0 z-[60] bg-black/60 transition-opacity duration-300 lg:hidden ${
+          isSidebarOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden="true"
+      />
 
-        <Transition
-          enter="transition ease-in-out duration-150"
-          enterFrom="opacity-0 transform -translate-x-20"
-          enterTo="opacity-100"
-          leave="transition ease-in-out duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0 transform -translate-x-20"
-        >
-          <aside className="fixed inset-y-0 z-50 flex-shrink-0 w-64 mt-16 overflow-y-auto bg-white dark:bg-gray-800 lg:hidden">
-            <SidebarContent />
-          </aside>
-        </Transition>
-      </>
-    </Transition>
+      {/* Drawer */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-[70] flex w-72 flex-col bg-[#111c43] text-[#a3aed1] shadow-2xl transition-transform duration-300 ease-in-out lg:hidden isolate transform-gpu overflow-hidden ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        style={{
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+          WebkitFontSmoothing: "antialiased",
+        }}
+      >
+        <SidebarContent onClose={closeSidebar} />
+      </aside>
+    </>
   );
 }
 
 export default MobileSidebar;
+

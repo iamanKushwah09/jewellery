@@ -189,8 +189,8 @@ const SalesMan = () => {
     1,
     Math.ceil((totalResults || 0) / (resultsPerPage || 1))
   );
-  const startPage = Math.max(1, Number(currentPage) - 2);
-  const endPage = Math.min(totalPages, Number(currentPage) + 2);
+  const startPage = Math.max(1, Number(currentPage) - 1);
+  const endPage = Math.min(totalPages, Number(currentPage) + 1);
 
   return (
     <>
@@ -203,82 +203,53 @@ const SalesMan = () => {
           <CardBody>
             <form
               onSubmit={handleSubmitUser}
-              className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex"
+              className="py-3 flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-stretch md:items-center gap-3 md:gap-4"
             >
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="flex-1 min-w-[200px] max-w-sm sm:max-w-md w-full">
                 <Input
                   ref={userRef}
                   type="search"
                   name="search"
                   placeholder={t("Search Salesman")}
                   onChange={onSearchChange}
+                  className="page-search-input"
                 />
-                <button
-                  type="submit"
-                  className="absolute right-0 top-0 mt-5 mr-1"
-                ></button>
               </div>
-              {/* <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                <Select onChange={(e) => setRole(e.target.value)}>
-                  <option value="All" defaultValue hidden>
-                    {t("Role")}
-                  </option>
-                  <option value="Admin">{t("RoleRoleAdmin")}</option>
-                  <option value="Cashier">{t("SelectCashiers")}</option>
-                  <option value="Super Admin">{t("SelectSuperAdmin")}</option>
-                </Select>
-              </div> */}
 
-              <div className="w-full md:w-56 lg:w-56 xl:w-56">
-                <div className="w-full mx-1">
-                  <Button type="submit" className="h-12 w-full bg-blue-700">
-                    Search
-                  </Button>
-                </div>
-               
-              </div>
-              <div className="mt-2 md:mt-0 flex banners-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                 <Button
-                  onClick={toggleDrawer}
-                  className="w-full rounded-md h-12"
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+                <Button
+                  type="submit"
+                  className="h-10 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-button text-xs sm:text-sm font-medium transition-all"
                 >
-                  <span className="mr-3">
+                  Search
+                </Button>
+
+                <Button
+                  onClick={toggleDrawer}
+                  className="h-10 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-medium shadow-button flex items-center transition-all"
+                >
+                  <span className="mr-2">
                     <FiPlus />
                   </span>
                   {t("Add Salesman")}
                 </Button>
-              </div>
-              <div className="mt-2 md:mt-0 flex items-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                <div className="w-full mx-1">
-                  <Button type="submit" className="h-12 w-full bg-blue-700">
-                    Filter
-                  </Button>
-                </div>
 
-                <div className="w-full">
-                  <Button
-                    layout="outline"
-                    onClick={handleResetField}
-                    type="reset"
-                    className="px-4 md:py-1 py-3 text-sm dark:bg-gray-700"
-                  >
-                    <span className="text-black dark:text-gray-200">Reset</span>
-                  </Button>
-                </div>
+                <Button
+                  disabled={syncLoading}
+                  onClick={refreshSales}
+                  type="button"
+                  className="btn-action-sync"
+                >
+                  <span>{syncLoading ? "Syncing..." : "Sync"}</span>
+                </Button>
 
-                <div className="w-full">
-                  <Button
-                    layout="outline"
-                    onClick={refreshSales}
-                    disabled={syncLoading}
-                    type="button"
-                    className="px-4 md:py-1 py-3 text-sm border border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 dark:border-blue-400"
-                  >
-                    <span className="text-blue-900 dark:text-blue-300 font-medium">
-                      {syncLoading ? "Syncing..." : "Sync"}
-                    </span>
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleResetField}
+                  type="reset"
+                  className="btn-action-reset"
+                >
+                  <span>Reset</span>
+                </Button>
               </div>
             </form>
           </CardBody>
@@ -304,8 +275,8 @@ const SalesMan = () => {
             <SaleManTable dataTable={salesmans} lang={lang} />
           </Table>
           <TableFooter>
-            <div className="w-full flex items-center justify-between px-4 py-2">
-              <div className="text-sm">
+            <div className="w-full flex items-center justify-center sm:justify-between px-4 py-2">
+              <div className="text-sm hidden sm:block">
                 {totalResults > 0 ? (
                   <span>
                     Showing {Math.min((currentPage - 1) * resultsPerPage + 1, totalResults)}-
@@ -315,31 +286,43 @@ const SalesMan = () => {
                   <span>Showing 0 of 0</span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <Button layout="outline" onClick={handlePrevPage} disabled={currentPage <= 1}>
+              <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-2">
+                <Button
+                  layout="outline"
+                  size="small"
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  className="!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
+                >
                   Prev
                 </Button>
                 {startPage > 1 && (
                   <>
                     <Button
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(1)}
-                      className={currentPage === 1 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === 1 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       1
                     </Button>
-                    {startPage > 2 && <span className="px-1">...</span>}
+                    {startPage > 2 && <span className="px-0.5">...</span>}
                   </>
                 )}
                 {Array.from({ length: Math.max(0, endPage - startPage + 1) }, (_, idx) => {
                   const p = startPage + idx;
-                  if (p === 1 || p === totalPages) return null;
+                  if ((p === 1 && startPage > 1) || (p === totalPages && endPage < totalPages)) return null;
                   return (
                     <Button
                       key={`p-${p}`}
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(p)}
-                      className={currentPage === p ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === p ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       {p}
                     </Button>
@@ -347,17 +330,26 @@ const SalesMan = () => {
                 })}
                 {endPage < totalPages && (
                   <>
-                    {endPage < totalPages - 1 && <span className="px-1">...</span>}
+                    {endPage < totalPages - 1 && <span className="px-0.5">...</span>}
                     <Button
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(totalPages)}
-                      className={currentPage === totalPages ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === totalPages ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       {totalPages}
                     </Button>
                   </>
                 )}
-                <Button layout="outline" onClick={handleNextPage} disabled={currentPage >= totalPages}>
+                <Button
+                  layout="outline"
+                  size="small"
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages}
+                  className="!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
+                >
                   Next
                 </Button>
               </div>
@@ -365,7 +357,7 @@ const SalesMan = () => {
           </TableFooter>
         </TableContainer>
       ) : (
-        <NotFound title="Sorry, There are no role right now." />
+        <NotFound title="Salesman" />
       )}
     </>
   );

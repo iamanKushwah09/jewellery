@@ -1,53 +1,20 @@
-// module.exports = {
-//   apps: [
-//     {
-//       name: "next-app",
-//       cwd: "C:/inetpub/wwwroot/www.vellorajewels.com",
-//       script: "node_modules/next/dist/bin/next",
-//       args: "start",
-//     }
-//   ]
-// };
-// pm2 delete next-app     # optional: if previously failed
-// pm2 start ecosystem.config.js
-// pm2 save
-
-
-// module.exports = {
-//   apps: [
-//     {
-//       name: "next-app",
-//       cwd: "C:/inetpub/wwwroot/www.vellorajewels.com",
-//       script: "node_modules/next/dist/bin/next",
-//       args: "start",
-//       instances: 1,
-//       exec_mode: "fork",
-//       env: {
-//         NODE_ENV: "production",
-//         PORT: 3000
-//       }
-//     }
-//   ]
-// };
-
-
 module.exports = {
   apps: [
+    // Node.js API Server (api.logicfirst.in)
     {
-      name: "next-app",
-      cwd: "C:/inetpub/wwwroot/www.vellorajewels.com",
-      script: "node_modules/next/dist/bin/next",
-      args: "start",
+      name: "logicfirst-api",
+      cwd: "C:/inetpub/wwwroot/logicfirstwithadmin/server",
+      script: "api/index.js",
       instances: 1,
       exec_mode: "fork",
-      watch: false, // prevents unnecessary restarts due to file changes
-      autorestart: true, // automatically restarts on crash
-      restart_delay: 5000, // wait 5 seconds before restarting
-      max_restarts: 10, // prevent infinite crash-restart loops
+      watch: false,
+      autorestart: true,
+      restart_delay: 5000,
+      max_restarts: 10,
       env: {
         NODE_ENV: "production",
-        PORT: 3000
+        PORT: 5060
       }
-    }
+    },
   ]
 };

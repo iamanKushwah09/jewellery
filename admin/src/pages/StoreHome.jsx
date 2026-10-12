@@ -269,23 +269,21 @@ const StoreHome = () => {
       </div>
 
       <>
-        <ul className="sm:flex grid grid-cols-3 text-sm font-medium text-center text-gray-500 sm:divide-x divide-gray-200 rounded-lg dark:divide-gray-700 dark:text-gray-400 mb-5">
+        <ul className="flex flex-wrap gap-2 text-sm font-medium text-center mb-6">
           <li>
             <Link
               to={"/store/customization?storeTab=home-settings"}
-              className={`inline-block w-full px-4 py-3 shadow-md ${
+              className={`inline-block px-4 py-2.5 rounded-xl transition-all duration-200 ${
                 tabName === "home-settings" || location.search === ""
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500 sm:rounded-l-md rounded-tl-md`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("HomeSettings")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
-                {tabName === "home-settings" || location.search === ""
-                  ? "Home"
-                  : "Home"}
+              <span className="text-sm font-medium font-sans xl:hidden">
+                Home
               </span>
             </Link>
           </li>
@@ -293,17 +291,17 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=single-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "single-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("SingleSetting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
-                {"Setting"}
+              <span className="text-sm font-medium font-sans xl:hidden">
+                Setting
               </span>
             </Link>
           </li>
@@ -311,17 +309,17 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=about-us-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "about-us-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500 focus:outline-none dark:hover:text-white dark:hover:bg-blue-500 sm:rounded-tr-none rounded-tr-md`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("AboutUsSetting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
-                {"About"}
+              <span className="text-sm font-medium font-sans xl:hidden">
+                About
               </span>
             </Link>
           </li>
@@ -329,17 +327,17 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=privacy-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "privacy-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("PrivacyTCSetting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
-                {"Privacy"}
+              <span className="text-sm font-medium font-sans xl:hidden">
+                Privacy
               </span>
             </Link>
           </li>
@@ -347,16 +345,16 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=FAQ-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "FAQ-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("FAQSetting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
+              <span className="text-sm font-medium font-sans xl:hidden">
                 {t("FAQSetting")}
               </span>
             </Link>
@@ -365,16 +363,16 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=offers-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "offers-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("OffersStting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
+              <span className="text-sm font-medium font-sans xl:hidden">
                 {t("OffersStting")}
               </span>
             </Link>
@@ -383,16 +381,16 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=contact-us-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "contact-us-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500 sm:rounded-bl-none rounded-bl-md`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("ContactUsStting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
+              <span className="text-sm font-medium font-sans xl:hidden">
                 Contact
               </span>
             </Link>
@@ -400,16 +398,16 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=checkout-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "checkout-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500 sm:rounded-bl-none rounded-bl-md`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("Checkout")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
+              <span className="text-sm font-medium font-sans xl:hidden">
                 {t("Checkout")}
               </span>
             </Link>
@@ -417,16 +415,16 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=dashboard-setting"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "dashboard-setting"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500 sm:rounded-bl-none rounded-bl-md`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("DashboardSetting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
+              <span className="text-sm font-medium font-sans xl:hidden">
                 {t("Dashboard")}
               </span>
             </Link>
@@ -434,17 +432,17 @@ const StoreHome = () => {
           <li>
             <Link
               to={"/store/customization?storeTab=seo-settings"}
-              className={`inline-block w-full py-3 px-4 shadow-md ${
+              className={`inline-block py-2.5 px-4 rounded-xl transition-all duration-200 ${
                 tabName === "seo-settings"
-                  ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                  : "bg-gray-200 text-gray-800 font-medium dark:bg-gray-600 dark:text-gray-300"
-              } hover:text-white hover:bg-blue-500  focus:outline-none dark:hover:text-white dark:hover:bg-blue-500`}
+                  ? "bg-primary text-white shadow-button font-medium"
+                  : "bg-white text-body border border-stroke hover:border-primary hover:text-primary"
+              }`}
             >
-              <span className="text-sm font-medium font-serif xl:inline-block hidden">
+              <span className="text-sm font-medium font-sans xl:inline-block hidden">
                 {t("SeoSetting")}
               </span>
-              <span className="text-sm font-medium font-serif xl:hidden">
-                {"Seo"}
+              <span className="text-sm font-medium font-sans xl:hidden">
+                Seo
               </span>
             </Link>
           </li>

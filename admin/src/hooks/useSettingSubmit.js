@@ -6,7 +6,7 @@ import { SidebarContext } from "@/context/SidebarContext";
 import SettingServices from "@/services/SettingServices";
 import { notifyError, notifySuccess } from "@/utils/toast";
 import { useDispatch } from "react-redux";
-import { removeSetting } from "@/reduxStore/slice/settingSlice";
+import { addSetting, removeSetting } from "@/reduxStore/slice/settingSlice";
 
 const useSettingSubmit = (id) => {
   const dispatch = useDispatch();
@@ -19,6 +19,7 @@ const useSettingSubmit = (id) => {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm();
 
@@ -44,9 +45,11 @@ const useSettingSubmit = (id) => {
           email: data.email,
           website: data.website,
           receipt_size: data.receipt_size,
-          default_currency: data.default_currency,
+          default_currency: data.default_currency || "₹",
           default_time_zone: data.default_time_zone,
           default_date_format: data.default_date_format,
+          logo: data.logo || "",
+          company_policy: data.company_policy || "",
         },
       };
 
@@ -55,30 +58,22 @@ const useSettingSubmit = (id) => {
 
       if (!isSave) {
         const res = await SettingServices.updateGlobalSetting(settingData);
-        // await socket.emit("notification", {
-        //   message: `Global setting updated`,
-        //   option: "globalSetting",
-        // });
         setIsUpdate(true);
         setIsSubmitting(false);
-        dispatch(removeSetting("globalSetting"));
+        dispatch(addSetting({ ...settingData.setting, name: "globalSetting" }));
 
         window.location.reload();
         notifySuccess(res.message);
       } else {
         const res = await SettingServices.addGlobalSetting(settingData);
-        // await socket.emit("notification", {
-        //   message: `Global setting added`,
-        //   option: "globalSetting",
-        // });
         setIsUpdate(true);
         setIsSubmitting(false);
+        dispatch(addSetting({ ...settingData.setting, name: "globalSetting" }));
 
         window.location.reload();
         notifySuccess(res.message);
       }
     } catch (err) {
-      // console.log("err", err);
       notifyError(err?.response?.data?.message || err?.message);
       setIsSubmitting(false);
     }
@@ -104,15 +99,17 @@ const useSettingSubmit = (id) => {
           setValue("email", res.email);
           setValue("website", res.website);
           setValue("receipt_size", res.receipt_size);
-          setValue("default_currency", res.default_currency);
+          setValue("default_currency", "₹");
           setValue("default_time_zone", res?.default_time_zone);
           setValue("default_date_format", res?.default_date_format);
+          setValue("logo", res?.logo || "");
+          setValue("company_policy", res?.company_policy || "");
         }
       } catch (err) {
         notifyError(err?.response?.data?.message || err?.message);
       }
     })();
-  }, []);
+  }, [setValue]);
 
   return {
     errors,
@@ -121,6 +118,8 @@ const useSettingSubmit = (id) => {
     isSubmitting,
     onSubmit,
     handleSubmit,
+    setValue,
+    watch,
   };
 };
 

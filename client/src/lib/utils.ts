@@ -8,7 +8,7 @@ export const showingTranslateValue = (data: LocalizedString | string | undefined
 };
 
 export const getImageUrl = (image: any): string => {
-  const uri = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5056/api";
+  const uri = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5055/api";
   const baseUrl = uri.replace('/api', '');
   
   let rawImage = Array.isArray(image) ? image[0] : image;

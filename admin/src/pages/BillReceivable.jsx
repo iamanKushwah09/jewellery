@@ -130,7 +130,7 @@ const BillReceivable = () => {
                                         type="button"
                                         onClick={handleSubmit}
                                         disabled={loading}
-                                        className="h-12 bg-blue-700 w-full"
+                                        className="h-12 bg-primary hover:bg-primary-hover text-white rounded-xl shadow-button font-medium w-full"
                                     >
                                         {loading ? "Loading..." : t("Filter")}
                                     </Button>

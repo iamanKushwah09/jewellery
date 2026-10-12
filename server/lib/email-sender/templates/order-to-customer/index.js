@@ -6,7 +6,7 @@ const customerInvoiceEmailBody = (option) => {
 >
 
   <head>
-    <title>Vellora Jewels</title>
+    <title>Kachabazar</title>
     <!--[if !mso]><!-->
     <meta http-equiv='X-UA-Compatible' content='IE=edge' />
     <!--<![endif]-->
@@ -104,7 +104,7 @@ const customerInvoiceEmailBody = (option) => {
                                           <img
                                             alt
                                             height='auto'
-                                            src='https://res.cloudinary.com/ahossain/image/upload/v1676296566/Vellora Jewels%20files/cc_v8jite.png'
+                                            src='https://res.cloudinary.com/ahossain/image/upload/v1676296566/Kachabazar%20files/cc_v8jite.png'
                                             style='border:0;display:block;outline:none;text-decoration:none;height:auto;width:80px;font-size:13px;padding-bottom:30px;'
                                             width='80'
                                             height='80'
@@ -551,7 +551,7 @@ const customerInvoiceEmailBody = (option) => {
                                                         You are receiving this
                                                         email because you
                                                         registered with
-                                                        Vellora Jewels and agreed
+                                                        Kachabazar and agreed
                                                         to receive emails from
                                                         us regarding new
                                                         features, events and
@@ -559,7 +559,7 @@ const customerInvoiceEmailBody = (option) => {
                                                         <p
                                                           style="font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:11px;font-weight:400;line-height:16px;text-align:center;color:#303030;"
                                                         >
-                                                          &copy; Vellora Jewels,
+                                                          &copy; Kachabazar,
                                                           All Rights Reserved.</p></div>
                                                     </td>
                                                   </tr>

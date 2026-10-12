@@ -12,6 +12,10 @@ const ItemGroupSchema = new Schema({
   is_active: { type: Boolean, required: true },
   is_parent_group: { type: Boolean, required: true },
   parent_id: { type: Schema.Types.ObjectId, ref: 'ItemGroup', required: false }, // Self-referencing field
+  showOnWebsite: {
+    type: Boolean,
+    default: true
+},
   created_by: { type: String },
   created_date: { type: Date, default: Date.now },
   modified_by: { type: String },

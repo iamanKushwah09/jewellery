@@ -154,32 +154,31 @@ const Coupons = () => {
           <CardBody>
             <form
               onSubmit={handleSubmitCoupon}
-              className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex"
+              className="py-3 flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-stretch md:items-center gap-3 md:gap-4"
             >
-              <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+              <div className="flex-1 min-w-[200px] max-w-sm sm:max-w-md w-full">
                 <Input
                   ref={couponRef}
                   type="search"
                   placeholder={t("SearchCoupon")}
+                  className="page-search-input"
                 />
               </div>
-              <div className="flex items-center gap-2 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                <div className="w-full mx-1">
-                  <Button type="submit" className="h-12 w-full bg-blue-700">
-                    Filter
-                  </Button>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+                <Button
+                  type="submit"
+                  className="h-10 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-button text-xs sm:text-sm font-medium transition-all"
+                >
+                  Filter
+                </Button>
 
-                <div className="w-full mx-1">
-                  <Button
-                    layout="outline"
-                    onClick={handleResetField}
-                    type="reset"
-                    className="px-4 md:py-1 py-2 h-12 text-sm dark:bg-gray-700"
-                  >
-                    <span className="text-black dark:text-gray-200">Reset</span>
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleResetField}
+                  type="reset"
+                  className="btn-action-reset"
+                >
+                  <span>Reset</span>
+                </Button>
               </div>
             </form>
           </CardBody>

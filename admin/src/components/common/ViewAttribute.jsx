@@ -40,7 +40,7 @@ const ViewAttribute = ({ attribute }) => {
         <div className="flex justify-end">
           <Link
             to={`/attributes/${attribute._id}`}
-            className="absolute bottom-0 right-0 focus:outline-none active:outline-none text-sm py-1 px-2 rounded-sm bg-blue-500 text-gray-100 hover:bg-blue-600"
+            className="absolute bottom-0 right-0 focus:outline-none active:outline-none text-xs font-medium py-1 px-3 rounded-lg bg-primary text-white hover:bg-primary-hover shadow-button transition-all"
           >
             View
           </Link>

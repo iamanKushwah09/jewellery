@@ -1,9 +1,9 @@
 import React from "react";
 import { Label } from "@windmill/react-ui";
 
-const LabelArea = ({ label, status = false }) => {
+const LabelArea = ({ label, status = false, className }) => {
   return (
-    <Label className="col-span-4 sm:col-span-2 font-medium text-sm">
+    <Label className={className || "col-span-4 sm:col-span-2 font-medium text-sm"}>
       {label}{status && <span style={{ color: 'red' }}>*</span>}
     </Label>
   );

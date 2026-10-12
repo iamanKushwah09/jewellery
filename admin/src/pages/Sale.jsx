@@ -10,13 +10,14 @@ import {
   TableFooter,
   TableHeader,
 } from "@windmill/react-ui";
-import { useContext, useState } from "react";
+import { useContext, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { FiPlus, FiFilter, FiX } from "react-icons/fi";
+import { FiPlus, FiFilter, FiX, FiFileText } from "react-icons/fi";
 import useAsync from "@/hooks/useAsync";
 import useFilter from "@/hooks/useFilter";
 import MainDrawer from "@/components/drawer/MainDrawer";
 import SaleDrawer from "@/components/drawer/SaleDrawer";
+import ConvertSaleOrderModal from "@/components/modal/ConvertSaleOrderModal";
 import TableLoading from "@/components/preloader/TableLoading";
 import NotFound from "@/components/table/NotFound";
 import PageTitle from "@/components/Typography/PageTitle";
@@ -29,7 +30,8 @@ import SaleTable from "@/components/sale/SaleTable";
 const Sale = () => {
   const { state } = useContext(AdminContext);
   const { adminInfo } = state;
-  const { toggleDrawer } = useContext(SidebarContext);
+  const { toggleDrawer, setIsUpdate } = useContext(SidebarContext);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
 
   // Date range filter state
   const [dateFilters, setDateFilters] = useState({
@@ -45,8 +47,9 @@ const Sale = () => {
     error,
   } = useAsync(() => SaleServices.getAllSale());
 
+  const saleRef = useRef(null);
+
   const {
-    saleOrderRef: saleRef,
     setSaleOrderData: setSaleData,
     totalResults,
     resultsPerPage,
@@ -104,69 +107,60 @@ const Sale = () => {
       </MainDrawer>
       <AnimatedContent>
         <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5">
-          <CardBody>
+          <CardBody className="p-3 sm:p-4">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSubmitSale(e);
               }}
-              className="space-y-4"
+              className="space-y-3 sm:space-y-4"
             >
               {/* Search Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-1">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+                <div className="flex-1 w-full min-w-0">
                   <Input
                     ref={saleRef}
                     type="search"
                     name="search"
                     placeholder="Search by Voucher, Customer, Mobile, Salesman..."
-                    className="w-full"
+                    className="page-search-input w-full"
                   />
                 </div>
-                <div className="md:col-span-1">
+                <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-3 w-full sm:w-auto flex-shrink-0">
                   <Button
                     type="submit"
-                    className="h-12 w-full bg-blue-700 hover:bg-blue-800"
+                    className="h-9 sm:h-10 px-2 sm:px-4 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-button text-xs sm:text-sm font-medium transition-all flex items-center justify-center"
                   >
                     Search
                   </Button>
-                </div>
-                <div className="md:col-span-1">
                   <Button
                     onClick={toggleDrawer}
-                    className="w-full rounded-md h-12 bg-emerald-600 hover:bg-emerald-700"
+                    className="h-9 sm:h-10 px-2 sm:px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-medium shadow-button flex items-center justify-center transition-all whitespace-nowrap"
                   >
-                    <span className="mr-3">
+                    <span className="mr-1 sm:mr-2">
                       <FiPlus />
                     </span>
-                    Add Sale
+                    <span className="truncate">Add Sale</span>
                   </Button>
-                </div>
-                <div className="md:col-span-1">
                   <Button
-                    layout="outline"
                     onClick={handleResetField}
                     type="reset"
-                    className="px-4 md:py-1 py-3 text-sm dark:bg-gray-700 w-full h-12"
+                    className="btn-action-reset h-9 sm:h-10 px-2 sm:px-4 flex items-center justify-center text-xs sm:text-sm"
                   >
-                    <span className="text-black dark:text-gray-200">Reset</span>
+                    <span>Reset</span>
                   </Button>
                 </div>
               </div>
 
-              {/* Date Filter Row */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <div className="flex items-center mb-3">
-                  <FiFilter className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Date Range Filter
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-1">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Start Date
-                    </label>
+              {/* Compact Date Filter Row */}
+              <div className="pt-2.5 sm:pt-3 border-t border-gray-100 dark:border-gray-700/60 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 flex-shrink-0">
+                    <FiFilter className="w-3.5 h-3.5 text-primary" />
+                    <span>Date Range:</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 items-center flex-1 sm:flex sm:items-center min-w-0">
                     <Input
                       type="date"
                       value={dateFilters.startDate}
@@ -174,13 +168,10 @@ const Sale = () => {
                         ...prev,
                         startDate: e.target.value
                       }))}
-                      className="w-full"
+                      className="w-full flex-1 h-9 sm:h-10 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm min-w-0"
+                      title="Start Date"
                     />
-                  </div>
-                  <div className="md:col-span-1">
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      End Date
-                    </label>
+                    <span className="hidden sm:inline text-xs text-gray-400 font-medium flex-shrink-0">to</span>
                     <Input
                       type="date"
                       value={dateFilters.endDate}
@@ -188,29 +179,31 @@ const Sale = () => {
                         ...prev,
                         endDate: e.target.value
                       }))}
-                      className="w-full"
+                      className="w-full flex-1 h-9 sm:h-10 text-xs px-2 sm:px-2.5 py-1.5 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm min-w-0"
+                      title="End Date"
                     />
                   </div>
-                  <div className="md:col-span-1 flex items-end">
-                    <Button
-                      onClick={handleDateFilter}
-                      className="w-full h-10"
-                      disabled={isFiltering}
-                    >
-                      {isFiltering ? 'Filtering...' : 'Apply Date Filter'}
-                    </Button>
-                  </div>
-                  <div className="md:col-span-1 flex items-end">
-                    <Button
-                      layout="outline"
-                      onClick={clearDateFilters}
-                      className="w-full h-10"
-                      disabled={isFiltering}
-                    >
-                      <FiX className="w-4 h-4 mr-2" />
-                      Clear Dates
-                    </Button>
-                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full md:w-auto flex-shrink-0">
+                  <Button
+                    onClick={handleDateFilter}
+                    disabled={isFiltering || (!dateFilters.startDate && !dateFilters.endDate)}
+                    className="h-9 sm:h-10 px-3 sm:px-4 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-sm text-xs sm:text-sm font-medium transition-all flex items-center justify-center w-full sm:w-auto"
+                  >
+                    <FiFilter className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                    <span className="truncate">{isFiltering ? 'Filtering...' : 'Apply Date Filter'}</span>
+                  </Button>
+
+                  <Button
+                    onClick={clearDateFilters}
+                    layout="outline"
+                    className="h-9 sm:h-10 px-3 sm:px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-danger hover:text-danger text-xs sm:text-sm font-medium transition-all flex items-center justify-center w-full sm:w-auto"
+                    disabled={isFiltering}
+                  >
+                    <FiX className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+                    <span className="truncate">Clear Dates</span>
+                  </Button>
                 </div>
               </div>
             </form>

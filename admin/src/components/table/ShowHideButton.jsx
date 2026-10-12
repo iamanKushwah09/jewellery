@@ -25,7 +25,7 @@ import PromoCodeServices from "@/services/PromoCodeServices";
 import ShippingServices from "@/services/ShippingServices";
 import CatalogValueServices from "@/services/CatalogValueServices";
 
-const ShowHideButton = ({ id, status, category, currencyStatusName, disabled }) => {
+const ShowHideButton = ({ id, status, category, currencyStatusName, disabled, field }) => {
   const location = useLocation();
   const { setIsUpdate } = useContext(SidebarContext);
 
@@ -128,16 +128,14 @@ const ShowHideButton = ({ id, status, category, currencyStatusName, disabled }) 
         notifySuccess(res.message);
       }
       if (location.pathname === "/item-group") {
-        const res = await ItemGroupServices.updateItemGroup(id, {
-          is_active: !status,
-        });
+        const payload = field === "showOnWebsite" ? { showOnWebsite: !status } : { is_active: !status };
+        const res = await ItemGroupServices.updateItemGroup(id, payload);
         setIsUpdate(true);
         notifySuccess(res.message);
       }
       if (location.pathname === "/item") {
-        const res = await ItemServices.updateItem(id, {
-          is_active: !status,
-        });
+        const payload = field === "showOnWebsite" ? { showOnWebsite: !status } : { is_active: !status };
+        const res = await ItemServices.updateItem(id, payload);
         setIsUpdate(true);
         notifySuccess(res.message);
       }
@@ -232,11 +230,11 @@ const ShowHideButton = ({ id, status, category, currencyStatusName, disabled }) 
           }}
         ></div>
       }
-      width={30}
-      height={15}
-      handleDiameter={13}
-      offColor="#E53E3E"
-      onColor={"#2F855A"}
+      width={36}
+      height={18}
+      handleDiameter={14}
+      offColor="#CBD5E1"
+      onColor="#845adf"
       checkedIcon={
         <div
           style={{

@@ -129,7 +129,6 @@ const ItemDrawer = ({ id }) => {
       <div className="w-full relative p-6 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
         <Title
           register={register}
-          handleSelectLanguage={handleSelectLanguage}
           title={id ? t("Update Item") : t("Add Item")}
         />
       </div>
@@ -160,7 +159,7 @@ const ItemDrawer = ({ id }) => {
               <div className="px-6 flex-grow scrollbar-hide w-full max-h-full pb-40">
 
                 {/* Row 1 */}
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <div className="grid grid-cols-12 gap-3 md:gap-4 lg:gap-4 mb-3">
                   {/* Name */}
                   <div className="col-span-12 md:col-span-3">
                     <LabelArea label="Name" status />
@@ -206,7 +205,7 @@ const ItemDrawer = ({ id }) => {
                   </div>
                 </div>
                 {/* Row 2 */}
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <div className="grid grid-cols-12 gap-3 md:gap-4 lg:gap-4 mb-3">
                   {/* Brand */}
                   <div className="col-span-12 md:col-span-3">
                     <LabelArea label="Brand" status />
@@ -246,7 +245,7 @@ const ItemDrawer = ({ id }) => {
                   </div>
                 </div>
                 {/* Row 3 */}
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <div className="grid grid-cols-12 gap-3 md:gap-4 lg:gap-4 mb-3">
                   {/* Tax GST */}
                   <div className="col-span-12 md:col-span-3">
                     <LabelArea label="Tax GST" />
@@ -302,7 +301,7 @@ const ItemDrawer = ({ id }) => {
                   </div>
                 </div>
                 {/* Row 5 */}
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <div className="grid grid-cols-12 gap-3 md:gap-4 lg:gap-4 mb-3">
 
                   {/* Discount */}
                   <div className="col-span-12 md:col-span-3">
@@ -362,7 +361,7 @@ const ItemDrawer = ({ id }) => {
                   </div>
                 </div>
                 {/* Row 6 */}
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <div className="grid grid-cols-12 gap-3 md:gap-4 lg:gap-4 mb-3">
 
                   <div className="col-span-12 md:col-span-3">
                     <LabelArea label="Long description" />
@@ -393,7 +392,7 @@ const ItemDrawer = ({ id }) => {
             {tapValue === "Item Attribute" ? <form onSubmit={handleSubmit(attributeSubmit)}>
               <div className="px-6 flex-grow scrollbar-hide w-full max-h-full pb-40">
 
-                <div className="grid grid-cols-12 gap-3 md:gap-5 xl:gap-6 lg:gap-6 mb-6">
+                <div className="grid grid-cols-12 gap-3 md:gap-4 lg:gap-4 mb-3">
                   <div className="col-span-12 md:col-span-12">
                     <LabelArea label="Including GST ?" />
                     <div className="flex items-center space-x-4">

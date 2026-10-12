@@ -12,6 +12,7 @@ const Customer = require('../models/customer.model');
 const SaleOrder = require('../models/saleorder.model');
 const SaleType = require('../models/SaleType.model');
 const Salesman = require('../models/Sales.model');
+const LoyaltyPoint = require('../models/loyaltyPoint.model');
 
 // Function to add a new order
 const addOrder = async (req, res) => {
@@ -369,6 +370,7 @@ const addOrder = async (req, res) => {
         const PointsEngine = require('../services/pointsEngine.service');
         const CouponGiftEngine = require('../services/couponGiftEngine.service');
         const LoyaltyLedger = require('../models/loyaltyLedger.model');
+        const LoyaltyPoint = require('../models/loyaltyPoint.model');
 
         // --- NEW LEDGER DEDUCTION LOGIC ---
         let pointsRedeemed = req.body.redeemPoints || 0;
@@ -391,23 +393,6 @@ const addOrder = async (req, res) => {
                  await entry.save();
               }
             }
-
-            try {
-              const LoyaltyPoint = require('../models/loyaltyPoint.model');
-              let loyaltyRecord = await LoyaltyPoint.findOne({ customer: customerId });
-              if (loyaltyRecord) {
-                loyaltyRecord.totalPoints = Math.max(0, (loyaltyRecord.totalPoints || 0) - pointsRedeemed);
-                loyaltyRecord.transactions.push({
-                  orderId: savedOrder._id ? savedOrder._id.toString() : '',
-                  pointsEarned: 0,
-                  pointsRedeemed: pointsRedeemed,
-                  description: `Redeemed on order ${savedOrder.order_no || ''}`
-                });
-                await loyaltyRecord.save();
-              }
-            } catch (lpErr) {
-              console.error("Error updating LoyaltyPoint model on redemption:", lpErr);
-            }
         }
 
         // --- CALCULATION & COMMITTING TO LEDGER/COUPONS ---
@@ -419,7 +404,7 @@ const addOrder = async (req, res) => {
         }));
 
         // Evaluate and commit points using PointsEngine
-        await PointsEngine.evaluate({
+        const pointsResult = await PointsEngine.evaluate({
           customerId,
           items: loyaltyItems,
           totalAmount: total,
@@ -435,8 +420,62 @@ const addOrder = async (req, res) => {
           invoiceId: savedOrder._id,
           commit: true
         });
-      } catch (loyaltyErr) {
-        console.error("Error processing loyalty points/coupons:", loyaltyErr);
+
+        // --- ISSUED COUPON REDEMPTION LOGIC ---
+        let appliedCouponCode = req.body.couponCode;
+        if (appliedCouponCode) {
+          const { LoyaltyIssuedCoupon } = require('../models/loyaltyCoupon.model');
+          const issuedCoupon = await LoyaltyIssuedCoupon.findOne({
+            couponCode: appliedCouponCode,
+            customerId,
+            isUsed: false
+          });
+          if (issuedCoupon) {
+            issuedCoupon.isUsed = true;
+            issuedCoupon.usedOnInvoiceId = savedOrder._id;
+            await issuedCoupon.save();
+            console.log(`Issued coupon ${appliedCouponCode} marked as used on order ${savedOrder._id}`);
+          }
+        }
+
+        // --- LEGACY LOYALTY POINT LOGIC (FOR ADMIN & CUSTOMER UI) ---
+        let loyaltyRecord = await LoyaltyPoint.findOne({ customer: customerId });
+        if (!loyaltyRecord) {
+          loyaltyRecord = new LoyaltyPoint({ customer: customerId, totalPoints: 0, transactions: [] });
+        }
+        
+        if (pointsRedeemed > 0 && loyaltyRecord.totalPoints >= pointsRedeemed) {
+           loyaltyRecord.totalPoints -= pointsRedeemed;
+           loyaltyRecord.transactions.push({
+             orderId: savedOrder._id.toString(),
+             pointsRedeemed: pointsRedeemed,
+             description: 'Redeemed on checkout'
+           });
+        } else if (pointsRedeemed > 0) {
+           // Prevent negative balances if mismatch occurs
+           const deducted = loyaltyRecord.totalPoints;
+           loyaltyRecord.totalPoints = 0;
+           loyaltyRecord.transactions.push({
+             orderId: savedOrder._id.toString(),
+             pointsRedeemed: deducted,
+             description: 'Redeemed on checkout (balance adjusted)'
+           });
+        }
+        
+        const pointsEarned = pointsResult.pointsAwarded || 0;
+        if (pointsEarned > 0) {
+           loyaltyRecord.totalPoints += pointsEarned;
+           loyaltyRecord.transactions.push({
+             orderId: savedOrder._id.toString(),
+             pointsEarned: pointsEarned,
+             description: 'Earned from purchase'
+           });
+        }
+        
+        await loyaltyRecord.save();
+        console.log(`Loyalty points synced for order ${savedOrder._id}`);
+      } catch (err) {
+        console.error('Error handling loyalty points in customerOrderController:', err);
       }
     }
 
@@ -540,9 +579,25 @@ const createOrderByRazorPay = async (req, res) => {
     if (!amount || amount < 1) { // 1 INR = 100 paise
       return res.status(400).send({ message: "Amount must be at least 1 INR" });
     }
+
+    let key_id = process.env.RAZORPAY_KEY_ID;
+    let key_secret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!key_id || !key_secret) {
+      const storeSetting = await Setting.findOne({ name: "storeSetting" });
+      key_id = key_id || storeSetting?.setting?.razorpay_id;
+      key_secret = key_secret || storeSetting?.setting?.razorpay_secret;
+    }
+
+    if (!key_id || !key_secret) {
+      return res.status(500).send({
+        message: "Razorpay keys are not configured in settings or environment variables.",
+      });
+    }
+
     const instance = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+      key_id,
+      key_secret,
     });
 
     const options = {
@@ -556,8 +611,9 @@ const createOrderByRazorPay = async (req, res) => {
       return res.status(500).send({
         message: "Error occurred when creating order!",
       });
-    res.send({ order_id: order.id, amount: order.amount, currency: order.currency });
+    res.send({ order_id: order.id, amount: order.amount, currency: order.currency, key: key_id });
   } catch (err) {
+    console.error("Razorpay order creation error:", err);
     res.status(500).send({
       message: err.message,
     });
@@ -572,9 +628,19 @@ const verifyPaymentSignature = async (req, res) => {
       return res.status(400).send({ message: "Missing required fields" });
     }
 
+    let key_secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!key_secret) {
+      const storeSetting = await Setting.findOne({ name: "storeSetting" });
+      key_secret = storeSetting?.setting?.razorpay_secret;
+    }
+
+    if (!key_secret) {
+      return res.status(500).send({ message: "Razorpay secret key not configured" });
+    }
+
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", key_secret)
       .update(sign.toString())
       .digest("hex");
 
@@ -584,6 +650,7 @@ const verifyPaymentSignature = async (req, res) => {
       return res.status(400).send({ message: "Invalid signature sent!", success: false });
     }
   } catch (error) {
+    console.error("Verify payment signature error:", error);
     res.status(500).send({ message: "Internal Server Error!" });
   }
 };

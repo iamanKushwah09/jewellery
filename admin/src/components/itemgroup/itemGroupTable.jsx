@@ -65,7 +65,10 @@ const itemGroupTable = ({ dataTable, lang }) => {
                             <span className="text-sm">{e.parent_name}</span>
                         </TableCell>
                         <TableCell className="text-center">
-                            <ShowHideButton id={e._id} status={e.is_active} />
+                            <ShowHideButton id={e._id} status={e.showOnWebsite ?? true} field="showOnWebsite" />
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <ShowHideButton id={e._id} status={e.is_active} field="is_active" />
                         </TableCell>
 
                         <TableCell>

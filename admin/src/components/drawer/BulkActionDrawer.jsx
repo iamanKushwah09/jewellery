@@ -29,8 +29,13 @@ const BulkActionDrawer = ({
   attributes,
   isCheck,
 }) => {
-  const { toggleBulkDrawer, isBulkDrawerOpen, closeBulkDrawer } =
-    useContext(SidebarContext);
+  const {
+    toggleBulkDrawer,
+    isBulkDrawerOpen,
+    closeBulkDrawer,
+    windowDimension,
+    navBar,
+  } = useContext(SidebarContext);
 
   const { showingTranslateValue } = useUtilsFunction();
 
@@ -117,6 +122,13 @@ const BulkActionDrawer = ({
   }
 `;
 
+  if (!isBulkDrawerOpen) {
+    return null;
+  }
+
+  const isSidebarClosed = !navBar || windowDimension < 1024;
+  const drawerWidth = isSidebarClosed ? "100%" : "calc(100% - 288px)";
+
   return (
     <>
       <Drawer
@@ -125,6 +137,7 @@ const BulkActionDrawer = ({
         parent={null}
         level={null}
         placement={"right"}
+        width={drawerWidth}
       >
         <button
           onClick={toggleBulkDrawer}

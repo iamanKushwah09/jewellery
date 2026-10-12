@@ -1,32 +1,28 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RouteLoader from "../components/RouteLoader";
+import MetaPixel from "../components/MetaPixel";
 import { Suspense } from "react";
+import WhatsAppButton from "../components/WhatsAppButton";
 import "./globals.css";
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "Vellora Jewels — Crafting Moments, Forever",
-  description: "Discover exquisite gold, diamond, and gemstone jewellery crafted with the finest artistry. Rings, necklaces, bridal sets, earrings and more — hallmarked and certified.",
-  keywords: "Vellora Jewels, gold jewellery, diamond rings, bridal jewellery, necklace, earrings, bangles, BIS hallmark, indian jewellery",
-  icons: {
-    icon: '/favicon.svg',
-  },
+  title: "Bioinnovate Pharma - Premium Healthcare",
+  description: "Discover the latest healthcare and wellness products from Bioinnovate Pharma of Companies. Quality, care, and health in every product.",
+  keywords: "bioinnovate pharma, healthcare, pharmacy, wellness, ecommerce",
 };
 
 export default function RootLayout({
@@ -37,11 +33,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="overflow-x-hidden">
       <body
-        className={`${cormorant.variable} ${inter.variable} antialiased min-h-screen flex flex-col overflow-x-hidden w-full`}
-        style={{ background: 'var(--background)', color: 'var(--foreground)' }}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col overflow-x-hidden w-full`}
       >
         <Providers>
           <Suspense fallback={null}>
+            <MetaPixel />
             <RouteLoader />
           </Suspense>
           <Header />
@@ -49,7 +45,18 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <WhatsAppButton />
         </Providers>
+        {/* Meta Pixel noscript fallback for non-JS environments */}
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: 'none' }}
+            src={`https://www.facebook.com/tr?id=${process.env.NEXT_PUBLIC_META_PIXEL_ID || ''}&ev=PageView&noscript=1`}
+            alt=""
+          />
+        </noscript>
       </body>
     </html>
   );

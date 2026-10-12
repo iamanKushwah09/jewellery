@@ -9,7 +9,7 @@ const ItemGroupService = {
   },
   
   getAllItemGroups: async (): Promise<ItemGroup[]> => {
-    const response = await api.get('/item-groups');
+    const response = await api.get('/item-groups/active');
     return response.data;
   }
 };

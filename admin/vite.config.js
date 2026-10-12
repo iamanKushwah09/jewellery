@@ -95,9 +95,10 @@ export default defineConfig({
   ],
 
   server: {
+    port: 4300,
     proxy: {
       "/api/": {
-        target: "http://192.168.1.35:5055",
+        target: "http://localhost:5055",
         changeOrigin: true,
       },
     },
@@ -111,6 +112,8 @@ export default defineConfig({
     alias: {
       // eslint-disable-next-line no-undef
       "@": path.resolve(__dirname, "./src/"),
+      // eslint-disable-next-line no-undef
+      "@windmill/react-ui": path.resolve(__dirname, "./src/components/ui"),
     },
   },
   test: {

@@ -19,8 +19,9 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { showingTranslateValue } from '../lib/utils';
+import { fbPixel } from '../lib/fbPixel';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5056/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5055/api';
 
 interface MembershipInfo {
   tier: { _id: string; name: string; discountPercentage: number } | null;
@@ -205,6 +206,23 @@ export default function CheckoutForm() {
     return sum;
   }, 0);
 
+  // Track Facebook Pixel InitiateCheckout when checkout page loads with items
+  useEffect(() => {
+    if (items.length > 0) {
+      fbPixel.trackInitiateCheckout({
+        contentIds: items.map(item => item.product._id),
+        contents: items.map(item => ({
+          id: item.product._id,
+          name: showingTranslateValue(item.product.title),
+          price: item.product.prices.price,
+          quantity: item.quantity,
+        })),
+        value: finalTotal,
+        numItems: items.reduce((sum, item) => sum + item.quantity, 0),
+      });
+    }
+  }, []); // Fire only once on checkout page load
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
@@ -355,6 +373,21 @@ export default function CheckoutForm() {
                   await dispatch(createOrder(orderData)).unwrap();
                   dispatch(clearCart());
                   toast.success('Payment successful & Order placed!');
+
+                  // Track Facebook Pixel Purchase (Razorpay)
+                  fbPixel.trackPurchase({
+                    contentIds: items.map(item => item.product._id),
+                    contents: items.map(item => ({
+                      id: item.product._id,
+                      name: showingTranslateValue(item.product.title),
+                      price: item.product.prices.price,
+                      quantity: item.quantity,
+                    })),
+                    value: finalTotal,
+                    numItems: items.reduce((sum, item) => sum + item.quantity, 0),
+                    orderId: response.razorpay_order_id,
+                  });
+
                 router.push('/order-confirmation');
               } else {
                 toast.error('Payment verification failed.');
@@ -385,6 +418,20 @@ export default function CheckoutForm() {
         await dispatch(createOrder(orderData)).unwrap();
         dispatch(clearCart());
         toast.success('Order placed successfully!');
+
+        // Track Facebook Pixel Purchase (Cash on Delivery)
+        fbPixel.trackPurchase({
+          contentIds: items.map(item => item.product._id),
+          contents: items.map(item => ({
+            id: item.product._id,
+            name: showingTranslateValue(item.product.title),
+            price: item.product.prices.price,
+            quantity: item.quantity,
+          })),
+          value: finalTotal,
+          numItems: items.reduce((sum, item) => sum + item.quantity, 0),
+        });
+
         router.push('/order-confirmation');
       }
     } catch (error: any) {

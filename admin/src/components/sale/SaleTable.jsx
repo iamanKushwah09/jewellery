@@ -7,6 +7,7 @@ import DeleteModal from "@/components/modal/DeleteModal";
 import EditDeleteButton from "@/components/table/EditDeleteButton";
 import ShowHideButton from "@/components/table/ShowHideButton";
 import SaleDrawer from "../drawer/SaleDrawer";
+import SaleOrderViewDrawer from "../drawer/SaleOrderViewDrawer";
 import SaleServices from "@/services/SaleServices";
 import { notifySuccess, notifyError } from "@/utils/toast";
 import CustomerDetailsModal from "@/components/modal/CustomerDetailsModal";
@@ -69,7 +70,11 @@ const SaleTable = ({ dataTable }) => {
         <>
             <DeleteModal id={serviceId} title={title} />
             <MainDrawer product={true}>
-                <SaleDrawer id={serviceId} isViewOnly={isViewOnly} />
+                {isViewOnly ? (
+                    <SaleOrderViewDrawer id={serviceId} onEdit={() => handleEdit(serviceId)} orderType="sale" />
+                ) : (
+                    <SaleDrawer id={serviceId} />
+                )}
             </MainDrawer>
             <CustomerDetailsModal
                 isOpen={customerModalOpen}
@@ -83,6 +88,7 @@ const SaleTable = ({ dataTable }) => {
                 isOpen={printModalOpen}
                 onClose={handleClosePrintModal}
                 orderId={selectedOrderId}
+                orderType="sale"
             />
             <TableBody>
                 {dataTable?.map((e) => (
@@ -91,7 +97,12 @@ const SaleTable = ({ dataTable }) => {
                             onClick={() => handleView(e._id)}
                             className="cursor-pointer text-sm font-bold bg-slate-100 dark:bg-gray-700 text-center hover:text-emerald-600"
                         >
-                            {e?.voucherNo}
+                            <span>{e?.voucherNo?.trim()}</span>
+                            {(e?.saleOrderVoucherNo || e?.saleOrder?.voucherNo) ? (
+                                <span className="block mt-1 text-xs text-indigo-700 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/60 rounded px-1.5 py-0.5 max-w-fit mx-auto shadow-xs">
+                                    SO: {(e.saleOrderVoucherNo || e.saleOrder?.voucherNo)?.trim()}
+                                </span>
+                            ) : null}
                         </TableCell>
                         <TableCell
                             onClick={() => handleView(e._id)}
@@ -104,11 +115,28 @@ const SaleTable = ({ dataTable }) => {
                             className="cursor-pointer font-bold text-center"
                         >
                             <span>₹{Number(e?.netAmount || e?.totalAmount || 0).toFixed(2)}</span>
-                            {e?.loyaltyDiscountAmount > 0 && (
-                                <span className="block text-[11px] text-emerald-600 dark:text-emerald-400 font-normal">
-                                    Loyalty: -₹{Number(e.loyaltyDiscountAmount).toFixed(2)}
+                            {((Number(e?.loyaltyDiscountAmount) || 0) + (Number(e?.loyaltyTierDiscountAmount) || 0) + (Number(e?.loyaltyCouponDiscountAmount) || 0)) > 0 && (
+                                <span className="block text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                    Loyalty: -₹{((Number(e?.loyaltyDiscountAmount) || 0) + (Number(e?.loyaltyTierDiscountAmount) || 0) + (Number(e?.loyaltyCouponDiscountAmount) || 0)).toFixed(2)}
                                 </span>
                             )}
+                            <div className="flex items-center justify-center gap-1 mt-0.5 flex-wrap">
+                                {e?.loyaltyTierName && (
+                                    <span className="inline-block text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded px-1 font-semibold">
+                                        ★ {e.loyaltyTierName}
+                                    </span>
+                                )}
+                                {Number(e?.loyaltyPointsRedeemed) > 0 && (
+                                    <span className="inline-block text-[10px] bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 rounded px-1 font-mono font-bold" title="Loyalty Points Redeemed">
+                                        −{e.loyaltyPointsRedeemed} pts
+                                    </span>
+                                )}
+                                {Number(e?.loyaltyPointsEarned) > 0 && (
+                                    <span className="inline-block text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 rounded px-1 font-mono font-bold" title="Loyalty Points Earned">
+                                        +{e.loyaltyPointsEarned} pts
+                                    </span>
+                                )}
+                            </div>
                         </TableCell>
                         <TableCell>
                             <span className="text-xs">

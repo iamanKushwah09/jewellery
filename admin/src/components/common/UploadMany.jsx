@@ -171,32 +171,38 @@ const UploadMany = ({
             title === "Extra" ||
             title === "Coupon" ||
             title === "Customers" ||
-            title === "Categories") && (
-            <button
-              onClick={() => {
-                setDropDown(!dropDown);
-              }}
-              className="border flex justify-center items-center border-gray-300 hover:border-blue-400 hover:text-blue-400  dark:text-gray-300 cursor-pointer h-10 w-20 rounded-md focus:outline-none"
-            >
-              {/* <BsPlus className="text-4xl" /> */}
-              <FiUpload className="mr-2" />
-              <span className="text-xs">{t("Export")}</span>
-            </button>
-          )}
+            title === "Categories") &&
+            (loadingExport.status ? (
+              <Button className="h-10 px-4 rounded-lg">
+                <img
+                  src={spinnerLoadingImage}
+                  alt="Loading"
+                  width={16}
+                  height={16}
+                  className="animate-spin mr-2"
+                />
+                <span className="text-xs font-medium">Exporting</span>
+              </Button>
+            ) : (
+              <button
+                onClick={() => setDropDown(!dropDown)}
+                className="border border-stroke flex justify-center items-center h-10 px-4 text-xs font-medium text-black bg-white hover:border-primary hover:text-primary rounded-lg transition-all shadow-sm focus:outline-none"
+              >
+                <FiUpload className="mr-2 text-primary" />
+                <span>{t("Export")}</span>
+              </button>
+            ))}
           {dropDown && (
-            <ul
-              className="origin-top-left absolute  w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 focus:outline-none z-40"
-              style={{}}
-            >
-              <li className="justify-between font-serif font-medium py-2 pl-4 transition-colors duration-150 hover:bg-gray-100 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
+            <ul className="origin-top-left absolute w-52 mt-1 rounded-xl shadow-dropdown border border-stroke bg-white z-50 overflow-hidden py-1 divide-y divide-stroke">
+              <li className="font-medium transition-colors hover:bg-gray-50 text-black hover:text-primary">
                 <button
                   type="button"
                   onClick={handleExportCSV}
-                  className="focus:outline-none"
+                  className="w-full text-left px-4 py-2.5 focus:outline-none"
                 >
-                  <span className="flex items-center text-sm">
+                  <span className="flex items-center text-xs font-medium">
                     <BsFileEarmarkMedical
-                      className="w-4 h-4 mr-3"
+                      className="w-4 h-4 mr-2.5 text-primary"
                       aria-hidden="true"
                     />
 
@@ -210,15 +216,15 @@ const UploadMany = ({
                 </button>
               </li>
 
-              <li className="justify-between font-serif font-medium py-2 pl-4 transition-colors duration-150 hover:bg-gray-100 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
+              <li className="font-medium transition-colors hover:bg-gray-50 text-black hover:text-primary">
                 <button
                   type="button"
-                  className="focus:outline-none"
+                  className="w-full text-left px-4 py-2.5 focus:outline-none"
                   onClick={handleExportJSON}
                 >
-                  <span className="flex items-center text-sm">
+                  <span className="flex items-center text-xs font-medium">
                     <BsFileEarmarkCode
-                      className="w-4 h-4 mr-3"
+                      className="w-4 h-4 mr-2.5 text-primary"
                       aria-hidden="true"
                     />
                     <span>
@@ -234,22 +240,22 @@ const UploadMany = ({
           )}
         </div>
 
-        <div className="lg:flex-1 md:flex-1 mr-3  sm:flex-none">
+        <div className="lg:flex-1 md:flex-1 mr-3 sm:flex-none">
           <button
             onClick={() => setIsImportBoxShown(!isImportBoxShown)}
-            className="border flex justify-center items-center h-10 w-20 hover:text-yellow-400  border-gray-300 dark:text-gray-300 cursor-pointer  py-2 hover:border-yellow-400 rounded-md focus:outline-none"
+            className="border border-stroke flex justify-center items-center h-10 px-4 text-xs font-medium text-black bg-white hover:border-primary hover:text-primary rounded-lg transition-all shadow-sm focus:outline-none"
           >
-            <FiDownload className="mr-2" />
-            <span className="text-xs">Import</span>
+            <FiDownload className="mr-2 text-primary" />
+            <span>Import</span>
           </button>
         </div>
       </div>
 
       {isImportBoxShown && (
         <>
-          <div className="w-full my-2 lg:my-0 md:my-0 flex">
-            <div className="h-10 border border-dashed border-blue-500 rounded-md">
-              <label className="w-full rounded-lg h-10 flex justify-center items-center text-xs dark:text-gray-400 leading-none">
+          <div className="w-full my-2 lg:my-0 md:my-0 flex items-center">
+            <div className="h-10 border border-dashed border-primary/40 bg-primary/[0.02] hover:bg-primary/[0.05] transition-colors rounded-lg px-3 flex items-center">
+              <label className="w-full h-full flex justify-center items-center text-xs text-body leading-none cursor-pointer">
                 <Input
                   disabled={isDisabled}
                   type="file"
@@ -257,18 +263,18 @@ const UploadMany = ({
                   onChange={handleSelectFile}
                 />
                 {filename ? (
-                  filename
+                  <span className="font-semibold text-black max-w-[160px] truncate">{filename}</span>
                 ) : (
                   <>
-                    <FiUploadCloud className="mx-2 text-blue-500 text-lg dark:text-gray-400" />{" "}
-                    {t("SelectYourJSON")} {title} {t("File")}
+                    <FiUploadCloud className="mx-2 text-primary text-base" />{" "}
+                    <span>{t("SelectYourJSON")} {title} {t("File")}</span>
                   </>
                 )}
                 {filename && (
                   <span
                     onClick={handleRemoveSelectFile}
                     type="button"
-                    className="text-red-500 focus:outline-none mx-4 text-lg"
+                    className="text-danger hover:text-red-700 focus:outline-none ml-2 text-base"
                   >
                     <FiXCircle />
                   </span>
@@ -278,24 +284,23 @@ const UploadMany = ({
 
             <div className="flex">
               {loading ? (
-                <Button className="ml-2 h-10">
+                <Button className="ml-2 h-10 px-4 rounded-lg">
                   <img
                     src={spinnerLoadingImage}
                     alt="Loading"
-                    width={20}
-                    height={10}
-                  />{" "}
-                  <span className="font-serif ml-2 font-light">Processing</span>
+                    width={16}
+                    height={16}
+                    className="animate-spin mr-2"
+                  />
+                  <span className="text-xs font-medium">Processing</span>
                 </Button>
               ) : (
                 <Button
                   onClick={handleUploadMultiple}
-                  className="h-10 ml-2 px-2"
+                  className="h-10 ml-2 px-4 rounded-lg text-xs font-medium shadow-button"
                 >
-                  <span className="">
-                    <FiPlus />
-                  </span>
-                  <span className="text-sx w-20">{t("ImportNow")}</span>
+                  <FiPlus className="mr-1.5" />
+                  <span>{t("ImportNow")}</span>
                 </Button>
               )}
             </div>

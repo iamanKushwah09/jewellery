@@ -211,7 +211,7 @@ const customerRegisterBody = (option) => {
                              ${option.otp ? 
                                `<div style="font-size:24px; letter-spacing:4px; color:#22c55e; font-weight:bold; margin:20px 0;">${option.otp}</div>
                                 <p style="font-size:14px; color:#666;">This code will expire in 5 minutes.</p>` :
-                               `<a href=https://vellorajewels.com/auth/email-verification/${option.token} style="background:#22c55e;color:white;border:1px solid #22c55e; padding: 10px 15px; border-radius: 4px; text-decoration:none;">Verify Account</a>`
+                               `<a href=https://selectionfootwear.com/auth/email-verification/${option.token} style="background:#22c55e;color:white;border:1px solid #22c55e; padding: 10px 15px; border-radius: 4px; text-decoration:none;">Verify Account</a>`
                              } <p style="margin-top: 35px;">If you did not initiate
                               this request, please contact us immediately at
                               support@BMart.com</p>

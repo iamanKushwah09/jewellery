@@ -7,127 +7,79 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 const heroSlides = [
   {
     id: 1,
-    tag: "TIMELESS ELEGANCE",
-    title: "Finest Gold Collections",
-    subtitle: "Crafted with 22K hallmarked gold — each piece a testament to unmatched artistry and enduring beauty",
-    cta: "Explore Gold Jewellery",
+    title: "Premium Medical Supplies",
+    subtitle: "Top-quality pharmaceutical products and health essentials for your family",
+    cta: "Shop Pharmacy",
     link: "/",
     image: "/images/hero/hero1.png",
-    bg: "bg-gradient-to-r from-black/70 via-black/40 to-transparent",
-    accentColor: "#C9920A",
+    bg: "bg-blue-900/40",
   },
   {
     id: 2,
-    tag: "BRIDAL COLLECTIONS",
-    title: "Your Dream Bridal Set",
-    subtitle: "Adorn your most precious moments with our handcrafted bridal jewellery — timeless, radiant and unforgettable",
-    cta: "Shop Bridal Jewellery",
+    title: "Expert Health & Wellness",
+    subtitle: "Supporting your journey to a healthier life with expert care and premium supplements",
+    cta: "Explore Wellness",
     link: "/",
     image: "/images/hero/hero2.png",
-    bg: "bg-gradient-to-r from-[#4A1010]/80 via-[#6B1A1A]/40 to-transparent",
-    accentColor: "#E8B84B",
+    bg: "bg-emerald-900/40",
   },
   {
     id: 3,
-    tag: "DIAMOND SOLITAIRES",
-    title: "Pure Diamond Brilliance",
-    subtitle: "Certified diamonds of unparalleled brilliance — for moments that deserve nothing but the very best",
-    cta: "Discover Diamonds",
+    title: "Home Care Essentials",
+    subtitle: "Reliable equipment for comfortable recovery and daily health monitoring at home",
+    cta: "Shop Home Care",
     link: "/",
     image: "/images/hero/hero3.png",
-    bg: "bg-gradient-to-r from-black/75 via-gray-900/40 to-transparent",
-    accentColor: "#F5E6C8",
+    bg: "bg-indigo-900/40",
   },
 ];
 
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 6000);
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
 
-  const goToSlide = (index: number) => {
-    if (isTransitioning) return;
-    setIsTransitioning(true);
-    setCurrentSlide(index);
-    setTimeout(() => setIsTransitioning(false), 800);
-  };
-
-  const nextSlide = () => goToSlide((currentSlide + 1) % heroSlides.length);
-  const prevSlide = () => goToSlide((currentSlide - 1 + heroSlides.length) % heroSlides.length);
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
 
   return (
-    <section className="relative w-full overflow-hidden" style={{ height: 'clamp(480px, 65vw, 750px)' }}>
+    <section className="relative w-full overflow-hidden" style={{ height: 'clamp(400px, 60vw, 700px)' }}>
       {heroSlides.map((slide, index) => (
         <div
           key={slide.id}
-          className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-            index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+          className={`absolute inset-0 transition-opacity duration-1000 ${
+            index === currentSlide ? 'opacity-100 z-0' : 'opacity-0 -z-10'
           }`}
         >
           {/* Background Image */}
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[10s] scale-110"
+            style={{ 
               backgroundImage: `url(${slide.image})`,
-              transform: index === currentSlide ? 'scale(1)' : 'scale(1.05)',
-              transition: 'transform 8s ease-out',
+              transform: index === currentSlide ? 'scale(1)' : 'scale(1.1)'
             }}
           />
-          {/* Gradient Overlay */}
-          <div className={`absolute inset-0 ${slide.bg}`} />
-
-          {/* Gold border line at bottom */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-1"
-            style={{ background: `linear-gradient(90deg, transparent, ${slide.accentColor}, transparent)` }}
-          />
-
-          {/* Content */}
+          {/* Overlay */}
+          <div className={`absolute inset-0 ${slide.bg} backdrop-blur-[2px]`} />
+          
           <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-12 lg:px-20 max-w-7xl mx-auto">
             <div className="max-w-3xl">
-              {/* Tag */}
-              <div className="inline-flex items-center mb-4 sm:mb-6">
-                <div className="h-px w-8 sm:w-12 mr-3" style={{ background: slide.accentColor }} />
-                <span
-                  className="text-[10px] sm:text-xs font-bold tracking-[0.25em] sm:tracking-[0.4em] uppercase"
-                  style={{ color: slide.accentColor }}
-                >
-                  {slide.tag}
-                </span>
-                <div className="h-px w-8 sm:w-12 ml-3" style={{ background: slide.accentColor }} />
-              </div>
-
-              {/* Title */}
-              <h1
-                className="text-4xl sm:text-6xl md:text-7xl font-bold text-white tracking-tight leading-none mb-4 sm:mb-6 drop-shadow-2xl"
-                style={{ fontFamily: 'var(--font-cormorant), "Cormorant Garamond", Georgia, serif', fontStyle: 'italic' }}
-              >
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-white uppercase tracking-tighter leading-none mb-4 sm:mb-6 drop-shadow-2xl">
                 {slide.title}
               </h1>
-
-              {/* Subtitle */}
-              <p className="text-sm sm:text-lg md:text-xl text-white/85 font-light tracking-wide mb-8 sm:mb-10 drop-shadow-lg max-w-2xl leading-relaxed">
+              <p className="text-base sm:text-xl md:text-2xl text-white/90 font-medium tracking-wide mb-8 sm:mb-12 drop-shadow-lg max-w-2xl">
                 {slide.subtitle}
               </p>
-
-              {/* CTA Button */}
               <Link
                 href={slide.link}
-                className="inline-flex items-center gap-3 px-8 sm:px-12 py-4 sm:py-5 font-semibold text-sm sm:text-base uppercase tracking-[0.2em] transition-all active:scale-95 shadow-2xl group"
-                style={{
-                  background: `linear-gradient(135deg, ${slide.accentColor}, #8B6508)`,
-                  color: 'white',
-                  borderRadius: '0',
-                }}
+                className="inline-block bg-white text-blue-900 px-8 sm:px-12 py-4 sm:py-5 rounded-2xl font-black text-sm sm:text-base uppercase tracking-[0.2em] hover:bg-blue-50 transition-all active:scale-95 shadow-2xl hover:shadow-blue-500/20"
               >
                 {slide.cta}
-                <span className="transform group-hover:translate-x-1 transition-transform">→</span>
               </Link>
             </div>
           </div>
@@ -137,41 +89,30 @@ export default function Hero() {
       {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 backdrop-blur-md text-white p-3 sm:p-4 transition-all z-20 border border-white/20 hover:border-white/40"
-        style={{ borderRadius: '0' }}
+        className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 backdrop-blur-md text-white p-3 sm:p-4 rounded-full transition-all z-20 border border-white/20"
       >
-        <ChevronLeftIcon className="h-5 w-5 sm:h-7 sm:w-7" />
+        <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8" />
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 backdrop-blur-md text-white p-3 sm:p-4 transition-all z-20 border border-white/20 hover:border-white/40"
-        style={{ borderRadius: '0' }}
+        className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 backdrop-blur-md text-white p-3 sm:p-4 rounded-full transition-all z-20 border border-white/20"
       >
-        <ChevronRightIcon className="h-5 w-5 sm:h-7 sm:w-7" />
+        <ChevronRightIcon className="h-6 w-6 sm:h-8 sm:w-8" />
       </button>
 
-      {/* Slide Counter & Dots */}
-      <div className="absolute bottom-6 sm:bottom-10 left-6 sm:left-12 lg:left-20 flex items-center space-x-4 z-20">
-        <span className="text-white/60 text-xs font-bold tracking-widest">
-          {String(currentSlide + 1).padStart(2, '0')} / {String(heroSlides.length).padStart(2, '0')}
-        </span>
-        <div className="flex space-x-2">
-          {heroSlides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className="transition-all duration-500"
-              style={{
-                height: '2px',
-                width: index === currentSlide ? '32px' : '12px',
-                background: index === currentSlide
-                  ? heroSlides[currentSlide].accentColor
-                  : 'rgba(255,255,255,0.4)',
-                border: 'none',
-              }}
-            />
-          ))}
-        </div>
+      {/* Dots */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-3 z-20">
+        {heroSlides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentSlide(index)}
+            className={`rounded-full transition-all duration-500 ${
+              index === currentSlide 
+                ? 'w-12 h-3 bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)]' 
+                : 'w-3 h-3 bg-white/30 hover:bg-white/50'
+            }`}
+          />
+        ))}
       </div>
     </section>
   );

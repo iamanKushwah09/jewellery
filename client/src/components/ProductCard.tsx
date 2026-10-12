@@ -11,6 +11,7 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import WishlistButton from './WishlistButton';
 import { showingTranslateValue, getImageUrl, getQuantityStep } from '../lib/utils';
+import { fbPixel } from '../lib/fbPixel';
 
 interface ProductCardProps {
   product: Product;
@@ -53,6 +54,15 @@ export default function ProductCard({ product }: ProductCardProps) {
       quantity: moq,
     }));
     toast.success(`${showingTranslateValue(product.title)} added to cart!`);
+
+    // Track Facebook Pixel AddToCart
+    fbPixel.trackAddToCart({
+      contentName: showingTranslateValue(product.title),
+      contentIds: [product._id],
+      contentType: 'product',
+      value: ((product as any).sale_price || product.prices?.price || 0) * moq,
+      numItems: moq,
+    });
   };
 
   const discount = calculateDiscount();
@@ -98,11 +108,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Title & Brand */}
         <Link href={`/product/${product.slug}`} className="block flex-1 min-h-[40px] sm:min-h-[48px]">
-          <h3 className="text-[13px] sm:text-base font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2 hover:text-amber-700 transition-colors">
+          <h3 className="text-[13px] sm:text-base font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2 hover:text-blue-600 transition-colors">
             {productTitle}
           </h3>
           <p className="text-[11px] sm:text-[12px] text-gray-500 mb-2 truncate">
-            {product.unit || 'Standard'} · Min. Order: {getQuantityStep(product)}
+            {product.unit || 'Standard'} · MOQ: {getQuantityStep(product)}
           </p>
         </Link>
 
@@ -115,7 +125,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 <div className="flex items-center space-x-1 mt-0.5">
                   <span className="text-[10px] sm:text-[11px] text-gray-400 line-through font-medium">{formatPrice(mrp)}</span>
                   {discount && (
-                    <span className="text-[10px] font-black" style={{ color: '#C9920A' }}>{discount}% off</span>
+                    <span className="text-[10px] font-black text-green-600">{discount}%</span>
                   )}
                 </div>
               )}
@@ -124,14 +134,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             <button
               onClick={handleAddToCart}
               disabled={product.stock < 1}
-              className="group/btn relative text-white font-black text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
-              style={{
-                background: product.stock < 1 ? '#ccc' : 'linear-gradient(135deg, #8B6508, #C9920A)',
-                borderRadius: '0',
-              }}
+              className="group/btn relative bg-white border border-[#24963f]/30 hover:bg-[#24963f]/5 text-[#24963f] font-black text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
             >
               <span>ADD</span>
               <PlusIcon className="h-3 w-3" />
+              <div className="absolute inset-0 border border-[#24963f] rounded-lg opacity-0 group-hover/btn:opacity-100 transition-opacity" />
             </button>
           </div>
         </div>

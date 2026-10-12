@@ -195,21 +195,21 @@ const SearchableDropdown = ({
           onChange={handleInputChange}
           onClick={() => !disabled && setIsOpen(true)}
           placeholder={placeholder}
-          className="pr-16"
+          className="h-8 text-xs sm:text-sm pr-16"
         />
-        <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 bg-white px-1">
+        <div className="absolute right-1.5 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 bg-transparent px-0.5">
           {loading && (
-            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-3.5 h-3.5 border-2 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin"></div>
           )}
           {inputValue && (
-            <button type="button" onClick={handleClear} className="text-gray-400 hover:text-gray-600">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button type="button" onClick={handleClear} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           )}
-          <button type="button" onClick={() => setIsOpen(!isOpen)} className="text-gray-400 hover:text-gray-600">
-            <svg className={`w-4 h-4 transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" onClick={() => setIsOpen(!isOpen)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <svg className={`w-3.5 h-3.5 transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -219,25 +219,29 @@ const SearchableDropdown = ({
         <ul
           ref={listRef}
           onScroll={handleScroll}
-          className="absolute w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-y-auto"
+          className="absolute w-full mt-1 bg-white dark:bg-[#1a2352] border border-gray-200 dark:border-[#263168] rounded-md shadow-lg overflow-y-auto"
           style={{ maxHeight: "400px", zIndex: 9999 }}
         >
           {filtered.length > 0 ? (
             <>
               {filtered.map((opt, index) => (
-                <li key={`${opt.value}-${index}`} onClick={() => handleSelect(opt)} className="px-4 py-3 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0">
+                <li
+                  key={`${opt.value}-${index}`}
+                  onClick={() => handleSelect(opt)}
+                  className="px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-[#263168] text-gray-800 dark:text-gray-100 border-b border-gray-100 dark:border-[#263168]/50 last:border-b-0 transition-colors"
+                >
                   {opt.label || ""}
                 </li>
               ))}
               {loadingMore && (
-                <li className="px-4 py-3 text-sm text-gray-500 flex justify-center items-center">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                <li className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 flex justify-center items-center">
+                  <div className="w-4 h-4 border-2 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mr-2"></div>
                   Loading more...
                 </li>
               )}
             </>
           ) : (
-            <li className="px-4 py-3 text-sm text-gray-400 italic">{loading ? "Searching..." : "No results found"}</li>
+            <li className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 italic">{loading ? "Searching..." : "No results found"}</li>
           )}
         </ul>
       )}

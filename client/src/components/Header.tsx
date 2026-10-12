@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import {
@@ -54,6 +55,7 @@ export default function Header() {
   const [activeDropdown, setActiveDropdown] = useState<'category' | 'itemGroup' | null>(null);
   const [mobileTab, setMobileTab] = useState<'category' | 'branding'>('category');
 
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector((state: RootState) => state.auth);
   const { itemCount: cartCount } = useAppSelector((state: RootState) => state.cart);
@@ -108,10 +110,10 @@ export default function Header() {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setActiveDropdown(null);
       }
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const searchTrigger = document.querySelector('.desktop-search-trigger');
+      const clickedTrigger = searchTrigger && (searchTrigger.contains(event.target as Node));
+      if (searchRef.current && !searchRef.current.contains(event.target as Node) && !clickedTrigger) {
         setShowSuggestions(false);
-        // We can't access latest searchTerm easily here because of empty dependency array, 
-        // so we check the input element directly.
         const searchInput = searchRef.current.querySelector('input[type="text"]') as HTMLInputElement;
         if (searchInput && !searchInput.value.trim()) {
           setIsDesktopSearchExpanded(false);
@@ -138,25 +140,31 @@ export default function Header() {
     e.preventDefault();
     if (searchTerm.trim()) {
       dispatch(setSearchQuery(searchTerm));
+      router.push(`/?search=${encodeURIComponent(searchTerm.trim())}`);
       setIsMenuOpen(false);
       setIsSearchOpen(false);
       setShowSuggestions(false);
       setActiveDropdown(null);
+      setIsDesktopSearchExpanded(false);
     }
   };
 
   const handleSuggestionClick = (type: 'product' | 'category' | 'itemGroup', id: string, name: string) => {
     if (type === 'category') {
       dispatch(toggleCategory(id));
+      router.push(`/?category=${encodeURIComponent(id)}`);
     } else if (type === 'itemGroup') {
       dispatch(toggleItemGroup(id));
+      router.push(`/?itemGroup=${encodeURIComponent(id)}`);
     } else {
       dispatch(setSearchQuery(name));
       setSearchTerm(name);
+      router.push(`/?search=${encodeURIComponent(name)}`);
     }
     setShowSuggestions(false);
     setIsSearchOpen(false);
     setIsMenuOpen(false);
+    setIsDesktopSearchExpanded(false);
   };
 
   const mainCategories = (categories.length > 0 && categories[0] && (showingTranslateValue(categories[0].name) === 'Home' || (typeof categories[0]?.name === 'object' && (categories[0].name as any).en === 'Home')))
@@ -187,40 +195,44 @@ export default function Header() {
   return (
     <>
       <header className="bg-white/95 backdrop-blur-md fixed top-0 left-0 right-0 z-[100] border-b border-gray-100 shadow-sm w-full transition-all duration-300" ref={navRef}>
+      <div className="bg-gray-900 text-white py-1 sm:py-1.5 px-2 sm:px-4 text-center" style={{ overflowX: 'hidden' }}>
+        <p className="text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-tight md:tracking-[0.2em] truncate">
+          Premium Healthcare • Worldwide Shipping • Exclusive Member Access
+        </p>
+      </div>
+
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16 md:h-20 lg:h-24">
 
           {/* Logo */}
           <Link href="/" onClick={() => { dispatch(clearFilters()); dispatch(setSearchQuery('')); }} className="flex items-center flex-shrink-0 group min-w-0 mr-2 sm:mr-4 md:mr-6 lg:mr-8">
             <div className="flex items-center space-x-1.5 sm:space-x-3">
-              <div
-                className="relative h-8 w-8 sm:h-12 sm:w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 overflow-hidden flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
-                style={{ background: 'linear-gradient(135deg, #8B6508, #C9920A)', borderRadius: '2px' }}
-              >
-                <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l2.4 6h6.6l-5.3 3.9 2 6.1L12 14l-5.7 4 2-6.1L3 8h6.6z"/>
-                </svg>
+              <div className="relative h-8 sm:h-10 md:h-12 lg:h-14 w-auto flex-shrink-0 flex items-center justify-center transition-all duration-500 group-hover:scale-105 z-[110]">
+                <img src="/logo-v2.png" alt="Bioinnovate Pharma" className="h-full w-auto object-contain transition-all duration-500" />
               </div>
               <div className="flex flex-col justify-center">
-                <span
-                  className="text-[10px] sm:text-sm md:text-lg lg:text-xl font-bold text-gray-900 tracking-tight leading-none uppercase"
-                  style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', letterSpacing: '0.12em' }}
-                >
-                  Vellora
+                <span className="text-[11px] sm:text-base md:text-xl lg:text-2xl font-black tracking-tight leading-none uppercase bg-gradient-to-r from-gray-900 via-blue-900 to-blue-600 bg-clip-text text-transparent group-hover:brightness-110 transition-all duration-300">
+                  Bioinnovate 
                 </span>
-                <span className="text-[6px] sm:text-[9px] md:text-xs font-black tracking-[0.25em] uppercase mt-0.5 sm:mt-1" style={{ color: '#C9920A' }}>
-                  Jewels
-                </span>
+                <div className="flex items-center space-x-1.5 mt-0.5 sm:mt-1">
+                  <span className="text-[7px] sm:text-[9px] md:text-xs font-black text-blue-600 tracking-[0.25em] uppercase group-hover:text-blue-500 transition-all duration-300">
+                    Pharma
+                  </span>
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  </span>
+                </div>
               </div>
             </div>
           </Link>
 
-          {/* Navigation - With increased spacing from search */}
-          <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 xl:space-x-8 flex-shrink-0 px-2 lg:px-4">
+          {/* Navigation */}
+          <nav className={`hidden md:flex items-center space-x-2 lg:space-x-4 xl:space-x-6 flex-shrink-0 px-2 lg:px-4 mr-4 lg:mr-8 transition-all duration-500`}>
             <div className="relative h-full">
               <button
-                onClick={() => setActiveDropdown(activeDropdown === 'category' ? null : 'category')}
-                className={`flex items-center space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.15em] lg:tracking-[0.2em] transition-all border-b-2 whitespace-nowrap ${activeDropdown === 'category' ? 'text-blue-600 border-blue-600' : 'text-gray-900 border-transparent hover:text-blue-600'
+               onClick={() => setActiveDropdown(activeDropdown === 'category' ? null : 'category')}
+                className={`flex items-center space-x-1 lg:space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.1em] lg:tracking-[0.15em] transition-all border-b-2 whitespace-nowrap ${activeDropdown === 'category' ? 'text-blue-600 border-blue-600' : 'text-gray-900 border-transparent hover:text-blue-600'
                   }`}
               >
                 <span>item Group</span>
@@ -287,7 +299,7 @@ export default function Header() {
             <div className="relative h-full">
               <button
                 onClick={() => setActiveDropdown(activeDropdown === 'itemGroup' ? null : 'itemGroup')}
-                className={`flex items-center space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.15em] lg:tracking-[0.2em] transition-all border-b-2 whitespace-nowrap ${activeDropdown === 'itemGroup' ? 'text-blue-600 border-blue-600' : 'text-gray-900 border-transparent hover:text-blue-600'
+                className={`flex items-center space-x-1 lg:space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.1em] lg:tracking-[0.15em] transition-all border-b-2 whitespace-nowrap ${activeDropdown === 'itemGroup' ? 'text-blue-600 border-blue-600' : 'text-gray-900 border-transparent hover:text-blue-600'
                   }`}
               >
                 <span>Brands</span>
@@ -353,134 +365,50 @@ export default function Header() {
 
             <Link
               href="/about"
-              className="flex items-center space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.15em] lg:tracking-[0.2em] transition-all border-b-2 whitespace-nowrap text-gray-900 border-transparent hover:text-blue-600"
+              className="flex items-center space-x-1 lg:space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.1em] lg:tracking-[0.15em] transition-all border-b-2 whitespace-nowrap text-gray-900 border-transparent hover:text-blue-600"
             >
               <span>About Us</span>
             </Link>
 
             <Link
               href="/contact"
-              className="flex items-center space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.15em] lg:tracking-[0.2em] transition-all border-b-2 whitespace-nowrap text-gray-900 border-transparent hover:text-blue-600"
+              className="flex items-center space-x-1 lg:space-x-2 py-6 lg:py-8 text-[11px] lg:text-[12px] font-black uppercase tracking-[0.1em] lg:tracking-[0.15em] transition-all border-b-2 whitespace-nowrap text-gray-900 border-transparent hover:text-blue-600"
             >
               <span>Contact</span>
             </Link>
           </nav>
 
           {/* Right Actions */}
-          <div className="flex items-center ml-auto pl-2 md:pl-4 lg:pl-8 space-x-1 sm:space-x-2 md:space-x-4 lg:space-x-6 xl:space-x-8 flex-1 justify-end min-w-0">
+          <div className="flex items-center ml-auto pl-4 md:pl-8 lg:pl-10 space-x-2 sm:space-x-3 md:space-x-4 flex-1 justify-end min-w-0">
 
-            {/* SEARCH */}
-            <div className="flex flex-initial items-center relative" ref={searchRef}>
+            {/* Desktop Search Trigger */}
+            <div className="hidden lg:block flex-shrink-0 ml-3 lg:ml-6">
+              <button 
+                onClick={() => {
+                  setIsDesktopSearchExpanded(!isDesktopSearchExpanded);
+                  if (!isDesktopSearchExpanded) {
+                    setTimeout(() => {
+                      const input = navRef.current?.querySelector('.desktop-search-input') as HTMLInputElement;
+                      if (input) input.focus();
+                    }, 100);
+                  }
+                }} 
+                className={`desktop-search-trigger p-1.5 xl:p-2 hover:bg-gray-50 rounded-xl transition-all duration-300 ${isDesktopSearchExpanded ? 'text-white bg-blue-600 shadow-md shadow-blue-200 hover:bg-blue-700' : 'text-gray-900'}`}
+                title="Search"
+              >
+                {isDesktopSearchExpanded ? (
+                  <XMarkIcon className="w-5 h-5 xl:w-6 xl:h-6" />
+                ) : (
+                  <MagnifyingGlassIcon className="w-5 h-5 xl:w-6 xl:h-6" />
+                )}
+              </button>
+            </div>
 
-              {/* Desktop Search */}
-              <div className={`hidden lg:block transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isDesktopSearchExpanded ? 'w-[240px] xl:w-[320px]' : 'w-10 xl:w-12'}`}>
-                <form 
-                  onSubmit={handleSearch} 
-                  className={`flex items-center bg-gray-50 border border-gray-100 rounded-full h-10 xl:h-12 w-full focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 focus-within:border-blue-200 shadow-sm overflow-hidden transition-all duration-500 ${isDesktopSearchExpanded ? 'px-2' : 'px-0'}`}
-                >
-                  <button 
-                    type={isDesktopSearchExpanded ? "submit" : "button"}
-                    onClick={() => {
-                      if (!isDesktopSearchExpanded) {
-                        setIsDesktopSearchExpanded(true);
-                        setTimeout(() => {
-                          const input = searchRef.current?.querySelector('input');
-                          if (input) input.focus();
-                        }, 100);
-                      }
-                    }}
-                    className="flex-shrink-0 flex items-center justify-center w-10 h-10 xl:w-12 xl:h-12 hover:bg-gray-100 rounded-full transition-colors text-gray-900"
-                  >
-                    <MagnifyingGlassIcon className="w-5 xl:w-6 h-5 xl:h-6" />
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="SEARCH..."
-                    className={`bg-transparent border-none outline-none ring-0 focus:ring-0 focus:outline-none text-[10px] xl:text-[12px] font-black text-gray-900 h-full uppercase tracking-[0.15em] placeholder:text-gray-400 transition-all duration-500 ${isDesktopSearchExpanded ? 'w-full opacity-100 ml-2' : 'w-0 opacity-0 ml-0 p-0'}`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
-                  />
-                </form>
-              </div>
-
-              {/* Mobile Search Icon */}
-              <div className="lg:hidden">
-                <button onClick={() => setIsSearchOpen(true)} className="p-1.5 sm:p-2 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-all">
-                  <MagnifyingGlassIcon className="w-5 sm:w-6 h-5 sm:h-6 text-gray-900" />
-                </button>
-              </div>
-
-              {/* Suggestions Dropdown */}
-              {showSuggestions && (suggestions.suggestions.length > 0 || suggestions.categories.length > 0 || suggestions.itemGroups.length > 0) && (
-                <div className="absolute top-full right-0 mt-3 lg:mt-5 w-[280px] sm:w-[320px] lg:w-[600px] bg-white rounded-[2.5rem] shadow-[0_35px_80px_rgba(0,0,0,0.3)] border border-gray-100 overflow-hidden z-[120] animate-in fade-in slide-in-from-top-6 duration-500">
-                  <div className="max-h-[400px] lg:max-h-[580px] overflow-y-auto py-6 lg:py-8 scrollbar-thin">
-
-                    {/* Item Group Suggestions - HORIZONTAL ONE LINE */}
-                    {suggestions.itemGroups.length > 0 && (
-                      <div className="px-8 mb-10">
-                        <span className="text-[11px] font-black text-purple-600 uppercase tracking-[0.3em] mb-5 block">Brands</span>
-                        <div className="flex flex-wrap gap-3">
-                          {suggestions.itemGroups.map((group: any) => (
-                            <button
-                              key={group.id}
-                              onClick={() => handleSuggestionClick('itemGroup', group.id, group.name)}
-                              className="px-6 py-3 bg-purple-50 text-purple-600 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-md border border-purple-100 active:scale-95"
-                            >
-                              {group.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Category Suggestions */}
-                    {suggestions.categories.length > 0 && (
-                      <div className="px-8 mb-10">
-                        <span className="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em] mb-5 block">item Group</span>
-                        <div className="grid grid-cols-2 gap-4">
-                          {suggestions.categories.map((cat: any) => (
-                            <button
-                              key={cat.id}
-                              onClick={() => handleSuggestionClick('category', cat.id, cat.name)}
-                              className="flex items-center space-x-4 p-4 bg-blue-50/50 hover:bg-blue-600 hover:text-white rounded-[1.5rem] transition-all group/suggestion text-left border border-blue-50"
-                            >
-                              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover/suggestion:bg-blue-500 transition-colors">
-                                <Squares2X2Icon className="w-5 h-5" />
-                              </div>
-                              <span className="text-[12px] font-bold uppercase tracking-tight">{cat.name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Product Suggestions */}
-                    {suggestions.suggestions.length > 0 && (
-                      <div className="px-8">
-                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-5 block">Top Products</span>
-                        <div className="space-y-3">
-                          {suggestions.suggestions.map((product: any) => (
-                            <button
-                              key={product.id}
-                              onClick={() => handleSuggestionClick('product', product.id, product.name)}
-                              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-[1.5rem] transition-all group/suggestion text-left border border-transparent hover:border-gray-100"
-                            >
-                              <div className="flex items-center space-x-5">
-                                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
-                                  <ShoppingBagIcon className="w-6 h-6 text-gray-300" />
-                                </div>
-                                <span className="text-[13px] font-black text-gray-900 uppercase tracking-tight line-clamp-1">{product.name}</span>
-                              </div>
-                              <ChevronDownIcon className="w-5 h-5 text-gray-300 -rotate-90" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+            {/* Mobile Search Icon */}
+            <div className="lg:hidden">
+              <button onClick={() => setIsSearchOpen(true)} className="p-1.5 sm:p-2 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-all">
+                <MagnifyingGlassIcon className="w-5 sm:w-6 h-5 sm:h-6 text-gray-900" />
+              </button>
             </div>
 
             <div className="flex items-center space-x-1 md:space-x-2 lg:space-x-3 xl:space-x-4 flex-shrink-0">
@@ -538,6 +466,108 @@ export default function Header() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Desktop Search Drawer Overlay */}
+      <div 
+        ref={searchRef}
+        className={`hidden lg:block absolute left-0 right-0 top-full bg-white/95 backdrop-blur-xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border-t border-gray-100 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden z-[105] origin-top ${
+          isDesktopSearchExpanded ? 'opacity-100 scale-y-100 pb-6' : 'opacity-0 scale-y-0 pb-0 h-0 pointer-events-none'
+        }`}
+      >
+        <div className="max-w-4xl mx-auto pt-6 px-6">
+          <form onSubmit={handleSearch} className="relative w-full group">
+            <MagnifyingGlassIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+            <input
+              type="text"
+              placeholder="SEARCH MEDICINES, BRANDS, OR PRODUCTS..."
+              className="desktop-search-input w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black text-gray-900 uppercase tracking-widest focus:bg-white focus:border-blue-400 focus:shadow-[0_0_30px_-10px_rgba(59,130,246,0.2)] outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => searchTerm.trim().length > 1 && setShowSuggestions(true)}
+            />
+            {searchTerm && (
+              <button 
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 transition-colors bg-gray-100 hover:bg-gray-200 rounded-full p-1"
+              >
+                <XMarkIcon className="w-4 h-4" />
+              </button>
+            )}
+          </form>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && (suggestions.suggestions.length > 0 || suggestions.categories.length > 0 || suggestions.itemGroups.length > 0) && (
+            <div className="mt-6 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="max-h-[400px] overflow-y-auto p-6 flex gap-8">
+                
+                {/* Left Column: Categories and Brands */}
+                <div className="w-1/3 flex flex-col gap-6 border-r border-gray-100 pr-6">
+                  {suggestions.itemGroups.length > 0 && (
+                    <div>
+                      <span className="text-[10px] font-black text-purple-600 uppercase tracking-[0.25em] mb-3 block">Brands</span>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestions.itemGroups.map((group: any) => (
+                          <button
+                            key={group.id}
+                            onClick={() => handleSuggestionClick('itemGroup', group.id, group.name)}
+                            className="px-4 py-1.5 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm active:scale-95 text-left"
+                          >
+                            {group.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {suggestions.categories.length > 0 && (
+                    <div>
+                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.25em] mb-3 block">Categories</span>
+                      <div className="flex flex-col gap-2">
+                        {suggestions.categories.map((cat: any) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => handleSuggestionClick('category', cat.id, cat.name)}
+                            className="flex items-center space-x-3 p-2 hover:bg-blue-50 rounded-xl transition-all group/suggestion text-left"
+                          >
+                            <div className="w-8 h-8 bg-blue-50/50 rounded-lg flex items-center justify-center group-hover/suggestion:bg-blue-100 transition-colors flex-shrink-0">
+                              <Squares2X2Icon className="w-4 h-4 text-blue-500" />
+                            </div>
+                            <span className="text-xs font-bold text-gray-700 uppercase tracking-tight truncate">{cat.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Top Products */}
+                {suggestions.suggestions.length > 0 && (
+                  <div className="w-2/3">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] mb-3 block">Top Products</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      {suggestions.suggestions.map((product: any) => (
+                        <button
+                          key={product.id}
+                          onClick={() => handleSuggestionClick('product', product.id, product.name)}
+                          className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100 text-left"
+                        >
+                          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <ShoppingBagIcon className="w-5 h-5 text-gray-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[12px] font-black text-gray-900 uppercase tracking-tight line-clamp-2 leading-tight">{product.name}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -780,7 +810,7 @@ export default function Header() {
           {/* Header */}
           <div className="flex justify-between items-center pb-4 sm:pb-6 border-b border-gray-100 flex-shrink-0">
             <Link href="/" onClick={() => setIsSearchOpen(false)} className="flex items-center">
-              <img src="/logo-v2.png" alt="Vellora Jewels" className="h-8 sm:h-10 w-auto object-contain" />
+              <img src="/logo-v2.png" alt="Bioinnovate Pharma" className="h-8 sm:h-10 w-auto object-contain" />
             </Link>
             <button onClick={() => setIsSearchOpen(false)} className="p-2 sm:p-3 bg-gray-100 text-gray-900 rounded-full active:scale-90 transition-all hover:bg-gray-200">
               <XMarkIcon className="w-5 sm:w-6 h-5 sm:h-6" />

@@ -46,11 +46,11 @@ export const shippingApiSlice = createApi({
       query: (data) => ({ url: '/admin/shipping/settings', method: 'PUT', data }),
       invalidatesTags: ['Settings'],
     }),
-    getStoreSettings: builder.query({
+    getPharmacySettings: builder.query({
       query: () => ({ url: '/admin/shipping/pharmacy/settings', method: 'GET' }),
       providesTags: ['Pharmacy'],
     }),
-    updateStoreSettings: builder.mutation({
+    updatePharmacySettings: builder.mutation({
       query: (data) => ({ url: '/admin/shipping/pharmacy/settings', method: 'PUT', data }),
       invalidatesTags: ['Pharmacy'],
     }),
@@ -80,8 +80,8 @@ export const shippingApiSlice = createApi({
 export const {
   useGetShippingSettingsQuery,
   useUpdateShippingSettingsMutation,
-  useGetStoreSettingsQuery,
-  useUpdateStoreSettingsMutation,
+  useGetPharmacySettingsQuery,
+  useUpdatePharmacySettingsMutation,
   useGetShippingRulesQuery,
   useGetShippingRuleByIdQuery,
   useCreateShippingRuleMutation,

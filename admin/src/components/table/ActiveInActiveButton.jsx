@@ -49,11 +49,11 @@ const ActiveInActiveButton = ({ id, status, option, staff }) => {
             }}
           ></div>
         }
-        width={30}
-        height={15}
-        handleDiameter={13}
-        offColor="#E53E3E"
-        onColor={"#2F855A"}
+        width={36}
+        height={18}
+        handleDiameter={14}
+        offColor="#CBD5E1"
+        onColor="#845adf"
         checkedIcon={
           <div
             style={{

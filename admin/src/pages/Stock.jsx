@@ -13,11 +13,9 @@ import {
 } from "@windmill/react-ui";
 import { useContext , useState , useRef , useEffect  } from "react";
 import { useTranslation } from "react-i18next";
-import { FiPlus } from "react-icons/fi";
+import { FiSearch, FiRotateCw, FiRefreshCw } from "react-icons/fi";
 import useAsync from "@/hooks/useAsync";
 import useFilter from "@/hooks/useFilter";
-import MainDrawer from "@/components/drawer/MainDrawer";
-import StockDrawer from "@/components/drawer/StockDrawer";
 import TableLoading from "@/components/preloader/TableLoading";
 // import StockTable from "@/components/stockTable/StockTable";
 import NotFound from "@/components/table/NotFound";
@@ -234,65 +232,58 @@ const Stock = () => {
   
 
   const totalPages = Math.max(1, Math.ceil((totalResults || 0) / (resultsPerPage || 1)));
-  const startPage = Math.max(1, Number(currentPage) - 2);
-  const endPage = Math.min(totalPages, Number(currentPage) + 2);
+  const startPage = Math.max(1, Number(currentPage) - 1);
+  const endPage = Math.min(totalPages, Number(currentPage) + 1);
 
 
 
   return (
     <>
       <PageTitle>{t("Stock")} </PageTitle>
-      <MainDrawer >
-        <StockDrawer />
-      </MainDrawer>
       <AnimatedContent>
-          <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5">
-            <CardBody>
+          <Card className="min-w-0 shadow-xs overflow-hidden bg-white dark:bg-gray-800 mb-5 border border-gray-200 dark:border-gray-700">
+            <CardBody className="p-4">
               <form
                 onSubmit={handleSubmitUser}
-                className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex"
+                className="flex flex-col sm:flex-row items-center gap-3"
               >
-                <div className="flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
+                <div className="flex-1 w-full min-w-[200px]">
                   <Input
                     ref={userRef}
                     type="search"
                     name="search"
-                    placeholder={t("Search Item")}
+                    placeholder={t("Search by Item Name, Code, or Alias...")}
+                    className="page-search-input h-10 text-sm"
                   />
-                  <button
-                    type="submit"
-                    className="absolute right-0 top-0 mt-5 mr-1"
-                  ></button>
                 </div>
-                {/* <div className="w-full md:w-56 lg:w-56 xl:w-56">
-                 <div className="w-full mx-1">
-                    <Button type="submit" className="h-12 w-full bg-blue-700">
-                      Search
-                    </Button>
-                  </div>
-                </div> */}
-                <div className="mt-2 md:mt-0 flex banners-center xl:gap-x-4 gap-x-1 flex-grow-0 md:flex-grow lg:flex-grow xl:flex-grow">
-                  
-                   <Button
-                    onClick={toggleDrawer}
-                    className="w-full rounded-md h-12"
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                  <Button
+                    type="submit"
+                    className="h-10 px-5 bg-primary hover:bg-primary-hover text-white rounded-lg shadow-button text-sm font-medium transition-all flex items-center"
                   >
-                    <span className="mr-3">
-                      <FiPlus />
-                    </span>
-                    {t("Add Banner")}
+                    <FiSearch className="mr-1.5" />
+                    {t("Search")}
                   </Button>
-  
-                  <div className="w-full">
-                    <Button
-                      layout="outline"
-                      onClick={handleResetField}
-                      type="reset"
-                      className="px-4 md:py-1 py-3 text-sm dark:bg-gray-700"
-                    >
-                      <span className="text-black dark:text-gray-200">Reset</span>
-                    </Button>
-                  </div>
+
+                  <Button
+                    onClick={syncStock}
+                    disabled={syncStockLoading}
+                    type="button"
+                    className="h-10 px-4 rounded-lg bg-[#845adf] hover:bg-[#7248cf] text-white text-sm font-medium shadow-button flex items-center transition-all"
+                  >
+                    <FiRefreshCw className={`mr-1.5 ${syncStockLoading ? "animate-spin" : ""}`} />
+                    {syncStockLoading ? t("Syncing...") : t("Sync Stock")}
+                  </Button>
+
+                  <Button
+                    onClick={handleResetField}
+                    type="reset"
+                    className="btn-action-reset h-10 px-4 text-sm flex items-center"
+                  >
+                    <FiRotateCw className="mr-1.5" />
+                    <span>{t("Reset")}</span>
+                  </Button>
                 </div>
               </form>
             </CardBody>
@@ -304,7 +295,7 @@ const Stock = () => {
       ) : error ? (
         <span className="text-center mx-auto text-red-500">{error}</span>
       ) : items?.length !== 0 ? (
-        <TableContainer className="mb-8 rounded-b-lg">
+        <TableContainer className="mb-8 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-x-auto">
           <Table>
             <TableHeader>
               <tr>
@@ -332,7 +323,12 @@ const Stock = () => {
                 </TableCell> */}
               </tr>
             </TableHeader>
-            <StockTable dataTable={items} lang={lang} isShow={false} />
+            <StockTable
+              dataTable={items}
+              lang={lang}
+              isShow={false}
+              onStockUpdated={() => fetchItems(currentPage, resultsPerPage, searchQuery)}
+            />
           </Table>
           {/* <TableFooter>
             <Pagination
@@ -343,8 +339,8 @@ const Stock = () => {
             />
           </TableFooter> */}
           <TableFooter>
-            <div className="w-full flex items-center justify-between px-4 py-2">
-              <div className="text-sm">
+            <div className="w-full flex items-center justify-center sm:justify-between px-4 py-2">
+              <div className="text-sm hidden sm:block">
                 {totalResults > 0 ? (
                   <span>
                     Showing {Math.min((currentPage - 1) * resultsPerPage + 1, totalResults)}-
@@ -354,31 +350,43 @@ const Stock = () => {
                   <span>Showing 0 of 0</span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <Button layout="outline" onClick={handlePrevPage} disabled={currentPage <= 1}>
+              <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-2">
+                <Button
+                  layout="outline"
+                  size="small"
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  className="!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
+                >
                   Prev
                 </Button>
                 {startPage > 1 && (
                   <>
                     <Button
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(1)}
-                      className={currentPage === 1 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === 1 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       1
                     </Button>
-                    {startPage > 2 && <span className="px-1">...</span>}
+                    {startPage > 2 && <span className="px-0.5">...</span>}
                   </>
                 )}
                 {Array.from({ length: Math.max(0, endPage - startPage + 1) }, (_, idx) => {
                   const p = startPage + idx;
-                  if (p === 1 || p === totalPages) return null;
+                  if ((p === 1 && startPage > 1) || (p === totalPages && endPage < totalPages)) return null;
                   return (
                     <Button
                       key={`p-${p}`}
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(p)}
-                      className={currentPage === p ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === p ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       {p}
                     </Button>
@@ -386,17 +394,26 @@ const Stock = () => {
                 })}
                 {endPage < totalPages && (
                   <>
-                    {endPage < totalPages - 1 && <span className="px-1">...</span>}
+                    {endPage < totalPages - 1 && <span className="px-0.5">...</span>}
                     <Button
                       layout="outline"
+                      size="small"
                       onClick={() => handleChangePage(totalPages)}
-                      className={currentPage === totalPages ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""}
+                      className={`!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm ${
+                        currentPage === totalPages ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300 font-medium" : ""
+                      }`}
                     >
                       {totalPages}
                     </Button>
                   </>
                 )}
-                <Button layout="outline" onClick={handleNextPage} disabled={currentPage >= totalPages}>
+                <Button
+                  layout="outline"
+                  size="small"
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages}
+                  className="!px-1.5 !py-1 text-xs sm:!px-3 sm:!py-1.5 sm:text-sm"
+                >
                   Next
                 </Button>
               </div>
@@ -404,7 +421,7 @@ const Stock = () => {
           </TableFooter>
         </TableContainer>
       ) : (
-        <NotFound title="Sorry, There are no role right now." />
+        <NotFound title="Stock" />
       )}
     </>
   );

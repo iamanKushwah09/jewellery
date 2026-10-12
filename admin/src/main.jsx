@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import { Provider } from "react-redux";
-import { Windmill } from "@windmill/react-ui";
+import { Windmill } from "@/components/ui";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistStore } from "redux-persist";
 
@@ -17,6 +17,7 @@ import store from "@/reduxStore/store";
 import myTheme from "@/assets/theme/myTheme";
 import { AdminProvider } from "@/context/AdminContext";
 import { SidebarProvider } from "@/context/SidebarContext";
+import { ThemeCustomizerProvider } from "@/context/ThemeCustomizerContext";
 import ThemeSuspense from "@/components/theme/ThemeSuspense";
 
 const updateSW = registerSW({
@@ -34,11 +35,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <SidebarProvider>
-          <Suspense fallback={<ThemeSuspense />}>
-            <Windmill usePreferences theme={myTheme}>
-              <App />
-            </Windmill>
-          </Suspense>
+          <ThemeCustomizerProvider>
+            <Suspense fallback={<ThemeSuspense />}>
+              <Windmill usePreferences theme={myTheme}>
+                <App />
+              </Windmill>
+            </Suspense>
+          </ThemeCustomizerProvider>
         </SidebarProvider>
       </PersistGate>
     </Provider>

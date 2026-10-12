@@ -166,12 +166,12 @@ const Notifications = () => {
             <Button
               disabled={isCheck?.length < 1}
               onClick={handleMarkIsRead}
-              className="w-full rounded-md h-10 flex items-center justify-center bg-blue-500 text-white px-1 hover:bg-blue-700"
+              className="w-full rounded-xl h-10 flex items-center justify-center bg-primary text-white px-4 hover:bg-primary-hover shadow-button font-medium disabled:opacity-50"
             >
               <span className="mr-2">
                 <FiMail />
               </span>
-              Mark is read
+              Mark as read
             </Button>
           </div>
 
@@ -179,9 +179,9 @@ const Notifications = () => {
             <Button
               disabled={isCheck?.length < 1}
               onClick={handleDeleteMany}
-              className="w-full rounded-md h-10 bg-red-500 btn-red"
+              className="w-full rounded-xl h-10 bg-danger text-white px-4 hover:bg-opacity-90 shadow-button font-medium disabled:opacity-50"
             >
-              <span className="mr-3">
+              <span className="mr-2">
                 <FiTrash2 />
               </span>
               Delete

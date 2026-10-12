@@ -12,15 +12,42 @@ const DirectCustomer = require('../models/directCustomer.model');
 exports.createCustomer = async (req, res) => {
     try {
         const customerData = { ...req.body };
-        if (customerData.password) {
+        if (customerData.password && customerData.password.trim() !== '') {
+            customerData.view_password = customerData.password;
             customerData.password = bcrypt.hashSync(customerData.password, 10);
+        } else {
+            customerData.password = null;
+            customerData.view_password = null;
         }
+
+        if (!customerData.vendor_group_id) {
+            customerData.vendor_group_id = null;
+        }
+        if (!customerData.salesman_id) {
+            customerData.salesman_id = null;
+        }
+        if (customerData.mobile !== undefined && customerData.mobile !== null) {
+            customerData.mobile = String(customerData.mobile);
+        }
+        if (customerData.pincode !== undefined && customerData.pincode !== null) {
+            customerData.pincode = String(customerData.pincode);
+        }
+        if (customerData.aadhaar_no !== undefined && customerData.aadhaar_no !== null) {
+            customerData.aadhaar_no = String(customerData.aadhaar_no);
+        }
+        if (customerData.tel_no !== undefined && customerData.tel_no !== null) {
+            customerData.tel_no = String(customerData.tel_no);
+        }
+        if (customerData.contact_person !== undefined && customerData.contact_person !== null) {
+            customerData.contact_person = String(customerData.contact_person);
+        }
+
         const customer = new Customer(customerData);
         await customer.save();
         res.status(201).json({ message: `Customer ${CREATE_MESSAGE}` });
     } catch (error) {
         console.error("🔐 Error creating customer/vendor:", error);
-        res.status(400).json({ error: error.message });
+        res.status(400).json({ error: error.message, message: error.message });
     }
 };
 // Get all Customers
@@ -117,6 +144,28 @@ exports.updateCustomerById = async (req, res) => {
             // Remove password field if empty string is provided
             delete updateData.password;
         }
+        if (!updateData.vendor_group_id) {
+            updateData.vendor_group_id = null;
+        }
+        if (!updateData.salesman_id) {
+            updateData.salesman_id = null;
+        }
+        if (updateData.mobile !== undefined && updateData.mobile !== null) {
+            updateData.mobile = String(updateData.mobile);
+        }
+        if (updateData.pincode !== undefined && updateData.pincode !== null) {
+            updateData.pincode = String(updateData.pincode);
+        }
+        if (updateData.aadhaar_no !== undefined && updateData.aadhaar_no !== null) {
+            updateData.aadhaar_no = String(updateData.aadhaar_no);
+        }
+        if (updateData.tel_no !== undefined && updateData.tel_no !== null) {
+            updateData.tel_no = String(updateData.tel_no);
+        }
+        if (updateData.contact_person !== undefined && updateData.contact_person !== null) {
+            updateData.contact_person = String(updateData.contact_person);
+        }
+
         const customer = await Customer.findByIdAndUpdate(id, updateData, { new: true });
         if (!customer) {
             return res.status(404).json({ message: "Customer not found" });
@@ -124,7 +173,7 @@ exports.updateCustomerById = async (req, res) => {
         res.status(200).json({ message: `Customer ${UPDATE_MESSAGE}` });
     } catch (error) {
         console.error("🔐 Error updating customer/vendor:", error);
-        res.status(400).json({ error: error.message });
+        res.status(400).json({ error: error.message, message: error.message });
     }
 };
 
@@ -322,26 +371,12 @@ exports.getCustomerNameAndId = async (req, res) => {
                         },
                         { $unwind: { path: "$vendor_group_data", preserveNullAndEmptyArrays: true } },
                         {
-                            $lookup: {
-                                from: "salesmans",
-                                localField: "salesman_id",
-                                foreignField: "_id",
-                                as: "salesman_data"
-                            }
-                        },
-                        { $unwind: { path: "$salesman_data", preserveNullAndEmptyArrays: true } },
-                        {
                             $project: {
                                 _id: 1,
                                 name: 1,
                                 code: 1,
                                 print_name: 1,
-                                group_type: 1,
-                                vendor_group_id: "$vendor_group_data",
-                                salesman_id: {
-                                    _id: "$salesman_data._id",
-                                    name: "$salesman_data.name"
-                                }
+                                vendor_group_id: "$vendor_group_data"
                             }
                         }
                     ]
@@ -639,7 +674,7 @@ exports.getPartyLedgerPDF = async (req, res) => {
 
         // Header
         doc.fontSize(18).text('Party Ledger', { align: 'center' });
-        doc.fontSize(10).text('Vellora Jewels', { align: 'center' });
+        doc.fontSize(10).text('Selection Footwear', { align: 'center' });
         doc.moveDown();
 
         doc.fontSize(10).text(`Party Name: ${vendorName || code}`);

@@ -4,6 +4,9 @@ import {
   FiSettings,
   FiSlack,
   FiFileText,
+  FiShare2,
+  FiArchive,
+  FiRadio,
 } from "react-icons/fi";
 import { FaUserShield , FaLuggageCart, FaShippingFast } from "react-icons/fa";
 import { BsCart4 } from "react-icons/bs";
@@ -11,6 +14,8 @@ import { FaBuildingUser } from "react-icons/fa6";
 import { RiCustomerService2Fill } from "react-icons/ri";
 import { FaUserTie } from "react-icons/fa";
 import { MdShowChart } from "react-icons/md";
+import { SiFlipkart, SiShopify, SiWoocommerce } from "react-icons/si";
+import { FaAmazon } from "react-icons/fa";
 
 const sidebar = [
   {
@@ -20,11 +25,38 @@ const sidebar = [
     permission: "view_dashboard",
   },
   {
-    path: "/catalogs",
-    icon: FiSlack,
-    name: "Catalog",
-    permission: "view_catalog",
+    icon: FiShare2,
+    name: "Marketplace Sync",
+    permission: "view_dashboard",
+    routes: [
+      {
+        path: "/flipkart-sync",
+        name: "Flipkart",
+        permission: "view_dashboard",
+      },
+      {
+        path: "/amazon-sync",
+        name: "Amazon",
+        permission: "view_dashboard",
+      },
+      {
+        path: "/shopify-sync",
+        name: "Shopify",
+        permission: "view_dashboard",
+      },
+      {
+        path: "/woocommerce-sync",
+        name: "WooCommerce",
+        permission: "view_dashboard",
+      },
+    ],
   },
+  // {
+  //   path: "/catalogs",
+  //   icon: FiSlack,
+  //   name: "Catalog",
+  //   permission: "view_catalog",
+  // },
   // {
   //   icon: FiSlack,
   //   name: "Catalog",
@@ -55,16 +87,49 @@ const sidebar = [
     permission: "view_sales_man",
   },
   {
+    icon: FiRadio,
+    name: "SalesmanVisit",
+    permission: "view_sales_man",
+    routes: [
+      {
+        path: "/salesman-visits",
+        name: "Visit List",
+        permission: "view_sales_man",
+      },
+      {
+        path: "/salesman-routes",
+        name: "Route List",
+        permission: "view_sales_man",
+      },
+      {
+        path: "/salesman-tracking",
+        name: "Real-Time Tracking",
+        permission: "view_sales_man",
+      },
+      {
+        path: "/salesman-collections",
+        name: "Collection Report",
+        permission: "view_sales_man",
+      },
+    ],
+  },
+  {
     path: "/stock",
     icon: MdShowChart,
     name: "Stock",
     permission: "view_stock",
   },
   {
+    path: "/inventory",
+    icon: FiArchive,
+    name: "Inventory",
+    permission: "view_stock",
+  },
+  {
     path: "/loyalty-points",
-    icon: FiCompass,
+    icon: FiCompass, // Using FiCompass for now, could use a better icon
     name: "Loyalty Mgmt",
-    permission: "view_dashboard",
+    permission: "view_dashboard", // Using a general permission so admins can see it
   },
   {
     icon: BsCart4,
@@ -93,12 +158,10 @@ const sidebar = [
     ],
   },
   {
-    // path: "/orders",
     icon: FiCompass,
     name: "Orders",
     permission: "view_orders",
     routes: [
-      // { path: "/orders", name: "Customer Orders", permission: "view_orders" },
       {
         path: "/sale",
         name: "Sale",
@@ -107,7 +170,7 @@ const sidebar = [
       {
         path: "/sale-order",
         name: "Sale Order",
-        permission: "view_sale_order",
+        permission: "view_orders",
       },
     ],
   },
@@ -145,7 +208,7 @@ const sidebar = [
   //   permission: "view_shippings",
   //   routes: [
   //     { path: "/shipping-settings", name: "Strategy Settings", permission: "view_shippings" },
-  //     { path: "/store-settings", name: "Store Location", permission: "view_shippings" },
+  //     { path: "/pharmacy-settings", name: "Pharmacy Location", permission: "view_shippings" },
   //     { path: "/shipping-rules-list", name: "Shipping Rules", permission: "view_shippings" },
   //   ],
   // },
@@ -179,6 +242,11 @@ const sidebar = [
     routes: [
       { path: "/settings", name: "Settings", permission: "view_settings" },
       {
+        path: "/theme-settings",
+        name: "Theme & Colors",
+        permission: "view_settings",
+      },
+      {
         path: "/delete-settings",
         name: "Delete Setting",
         permission: "view_settings",
@@ -195,6 +263,10 @@ const sidebar = [
 // Permissions for the user (example)
 const userPermissions = [
   { path: "/dashboard", permission: "view_dashboard" },
+  { path: "/flipkart-sync", permission: "view_dashboard" },
+  { path: "/amazon-sync", permission: "view_dashboard" },
+  { path: "/shopify-sync", permission: "view_dashboard" },
+  { path: "/woocommerce-sync", permission: "view_dashboard" },
   { path: "/products", permission: "view_products" },
   { path: "/categories", permission: "view_categories" },
   { path: "/attributes", permission: "view_attributes" },
@@ -208,6 +280,7 @@ const userPermissions = [
   },
   { path: "/whatsapp-setting", permission: "manage_whatsapp_setting" },
   { path: "/delete-settings", permission: "manage_delete_settings" },
+  { path: "/theme-settings", permission: "view_settings" },
   { path: "#", permission: "view_international" },
   { path: "/languages", permission: "view_languages" },
   { path: "/currencies", permission: "view_currencies" },
@@ -219,42 +292,72 @@ const userPermissions = [
   { path: "/sale-order", permission: "view_sale_order" },
   { path: "/party-ledger", permission: "view_party_ledger" },
   { path: "/bill-receivable", permission: "view_party_ledger" },
+  { path: "/stock", permission: "view_stock" },
+  { path: "/inventory", permission: "view_stock" },
   { path: "#", permission: "view_report" },
   { path: "#", permission: "view_shippings" },
 ];
 
-const hasUserPermission = (userPermissions, requiredPermission) => {
-  if (!requiredPermission) return true;
+const filterSidebar = (sidebarItems, userPermissions, adminInfo) => {
+  const isSalesman = Boolean(
+    adminInfo?.salesman_id ||
+    (typeof adminInfo?.role === 'string' && adminInfo.role.toLowerCase().includes('salesman')) ||
+    (typeof adminInfo?.roleName === 'string' && adminInfo.roleName.toLowerCase().includes('salesman')) ||
+    (Array.isArray(userPermissions) && userPermissions.some(p => {
+      const pVal = typeof p === 'object' ? (p.permission || Object.values(p)[0]) : p;
+      return typeof pVal === 'string' && (pVal === 'view_sales_man' || pVal.toLowerCase().includes('salesman'));
+    }))
+  );
+
   if (!userPermissions || !Array.isArray(userPermissions) || userPermissions.length === 0) {
-    return true;
+    if (isSalesman) {
+      return sidebarItems
+        .filter((item) => item.path !== "/sales-man")
+        .map((item) => ({ ...item }));
+    }
+    return sidebarItems;
   }
-  return userPermissions.some((perm) => {
-    const permVal = typeof perm === "string" ? perm : (perm?.permission || perm?.path);
-    if (permVal === requiredPermission) return true;
-    if (requiredPermission === "view_sale_order" && (permVal === "view_orders" || permVal === "/orders")) return true;
-    return false;
-  });
-};
 
-const filterSidebar = (sidebarList, userPermissions) => {
-  if (!userPermissions) return sidebarList;
-
-  return sidebarList
+  return sidebarItems
     .map((item) => {
-      const newItem = { ...item };
-      const hasPermission = hasUserPermission(userPermissions, newItem.permission);
-
-      if (newItem.routes) {
-        newItem.routes = filterSidebar(newItem.routes, userPermissions);
-        const shouldShowGroup = newItem.routes.length > 0 || hasPermission;
-        return shouldShowGroup ? newItem : null;
+      const copy = { ...item };
+      if (copy.routes && Array.isArray(copy.routes)) {
+        copy.routes = filterSidebar(copy.routes, userPermissions, adminInfo);
+      }
+      return copy;
+    })
+    .filter((item) => {
+      // If user is a salesman, hide admin-only staff management
+      if (isSalesman && item.path === "/sales-man") {
+        return false;
       }
 
-      return hasPermission ? newItem : null;
-    })
-    .filter(Boolean);
+      // If user is a salesman, permit salesman visit menu and all tracking/route/collection routes
+      if (isSalesman && item.permission === "view_sales_man") {
+        return true;
+      }
+
+      const hasPermission = item.permission
+        ? userPermissions.some((perm) => {
+            if (!perm) return false;
+            const permStr = typeof perm === 'object' ? perm.permission : perm;
+            if (permStr === item.permission) return true;
+            if (item.permission === "view_orders" && (permStr === "view_sale_order" || permStr === "Orders")) return true;
+            if (item.permission === "view_sale_order" && (permStr === "view_orders" || permStr === "Orders")) return true;
+            if (item.permission === "view_stock" && (permStr === "view_stock" || permStr === "view_items" || permStr === "view_item_groups" || permStr === "view_dashboard" || permStr === "Stock")) return true;
+            if (item.permission === "view_sales_man" && (permStr === "view_sales_man" || permStr === "salesman")) return true;
+            return false;
+          })
+        : true;
+
+      if (item.routes) {
+        return hasPermission || item.routes.length > 0;
+      }
+      return hasPermission;
+    });
 };
 
-const getFilteredSidebar = (userPermissions) =>
-  filterSidebar(sidebar, userPermissions);
+// Final filtered sidebar based on user permissions & admin info
+const getFilteredSidebar = (userPermissions, adminInfo) =>
+  filterSidebar(sidebar, userPermissions, adminInfo);
 export default getFilteredSidebar;

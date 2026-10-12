@@ -40,7 +40,7 @@ const InputValueFive = ({
           disabled={disabled}
           defaultValue={defaultValue}
           placeholder={placeholder}
-          className="mr-2 p-2"
+          className="h-8 text-xs sm:text-sm"
         />
       </div>
     </>

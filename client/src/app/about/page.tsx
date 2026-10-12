@@ -53,189 +53,164 @@ const AnimatedCounter = ({ target, suffix = '', prefix = '' }: { target: number,
           setCount(Math.floor(start));
         }
       }, 16);
-
       return () => clearInterval(timer);
     }
-  }, [target, isVisible]);
+  }, [isVisible, target]);
 
-  return (
-    <span ref={ref} className="text-4xl md:text-5xl font-bold text-gray-900" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>
-      {prefix}{count}{suffix}
-    </span>
-  );
+  return <div ref={ref}>{prefix}{count}{suffix}</div>;
 };
 
-const SlideIn = ({ children, direction = 'up', delay = 0 }: { children: React.ReactNode, direction?: 'up' | 'down' | 'left' | 'right', delay?: number }) => {
-  const [ref, isVisible] = useInView();
+const SlideIn = ({ children, direction = 'left', delay = 0 }: { children: React.ReactNode, direction?: 'left' | 'right', delay?: number }) => {
+  const [ref, isVisible] = useInView({ threshold: 0.2 });
   
-  const getTransform = () => {
-    switch (direction) {
-      case 'up': return 'translateY(50px)';
-      case 'down': return 'translateY(-50px)';
-      case 'left': return 'translateX(-50px)';
-      case 'right': return 'translateX(50px)';
-      default: return 'translateY(50px)';
-    }
-  };
+  const initialClass = direction === 'left' ? '-translate-x-[100vw] opacity-0' : 'translate-x-[100vw] opacity-0';
+  const finalClass = 'translate-x-0 opacity-100';
 
   return (
-    <div
-      ref={ref}
-      className={`transition-all duration-1000 ease-out ${
-        isVisible ? 'opacity-100 transform-none' : 'opacity-0'
-      }`}
-      style={{
-        transform: isVisible ? 'none' : getTransform(),
-        transitionDelay: `${delay}ms`
-      }}
-    >
-      {children}
+    <div ref={ref} className="overflow-hidden">
+      <div 
+        className={`transition-all duration-1000 ease-out ${isVisible ? finalClass : initialClass}`}
+        style={{ transitionDelay: `${delay}ms` }}
+      >
+        {children}
+      </div>
     </div>
   );
 };
 
 export default function AboutPage() {
-  const coreValues = [
-    {
-      icon: SparklesIcon,
-      title: 'Artistry',
-      description: 'Our master artisans blend age-old techniques with contemporary visions to craft wearable art.'
-    },
+  const values = [
     {
       icon: HeartIcon,
-      title: 'Passion',
-      description: 'We pour our hearts into every sketch, every cut, and every setting to ensure perfection.'
+      title: 'Customer First',
+      description: 'We put our customers at the heart of everything we do, ensuring exceptional service and satisfaction.'
+    },
+    {
+      icon: SparklesIcon,
+      title: 'Innovation',
+      description: 'We continuously innovate to bring you the latest healthcare technologies and medical essentials.'
     },
     {
       icon: GlobeAltIcon,
-      title: 'Ethical Sourcing',
-      description: 'All our diamonds and precious metals are strictly conflict-free and responsibly sourced.'
+      title: 'Sustainability',
+      description: 'We are committed to reducing our environmental impact through sustainable medical practices and materials.'
     },
     {
       icon: UsersIcon,
-      title: 'Legacy',
-      description: 'We create heirloom pieces that transcend generations, preserving your most precious memories.'
+      title: 'Community',
+      description: 'We build strong relationships with our customers, healthcare providers, and partners worldwide.'
     },
     {
       icon: TrophyIcon,
-      title: 'Excellence',
-      description: 'Rigorous quality control and BIS hallmarking guarantee the utmost purity and brilliance.'
+      title: 'Quality',
+      description: 'We never compromise on quality, ensuring every medical product meets our high standards.'
     },
     {
       icon: ShieldCheckIcon,
       title: 'Trust',
-      description: 'Our transparent pricing and lifetime exchange policies mean you can shop with absolute confidence.'
+      description: 'We earn and maintain your trust through transparency, honesty, and reliability in healthcare.'
     }
   ];
 
   const stats = [
-    { target: 120, suffix: 'K+', label: 'Delighted Clients' },
-    { target: 30, suffix: '+', label: 'Years of Heritage' },
-    { target: 8500, suffix: '+', label: 'Bespoke Designs' },
-    { target: 15, suffix: '', label: 'Global Boutiques' }
+    { target: 1, suffix: 'M+', label: 'Happy Customers' },
+    { target: 50, suffix: '+', label: 'Countries Served' },
+    { target: 10, suffix: '+', label: 'Years of Excellence' },
+    { target: 24, suffix: '/7', label: 'Health Support' }
   ];
 
   const teamMembers = [
     {
-      name: 'Alexander Pierce',
-      role: 'Founder & Master Jeweler',
-      quote: 'Vellora Jewels was born from a singular vision: to democratize luxury without compromising the timeless art of fine jewellery making.',
-      bio: 'Alexander brings over 35 years of expertise in haute joaillerie. Trained in the historic diamond districts of Antwerp and Paris, his visionary leadership has established Vellora Jewels as an international standard-bearer for flawless craftsmanship and breathtaking design.',
+      name: 'Mr Rajendra Barua',
+      role: 'Founder & Whole Time Director',
+      quote: 'Welcome to Bioinnovate Pharma. At the helm of our journey, I am driven by a vision of excellence, integrity, and innovation. With our collective expertise, we aim to redefine the standards of healthcare solutions and pharmaceutical distribution.',
+      bio: 'Rajendra has over 25 years of pioneering experience in pharmaceutical distribution and healthcare management. His strategic leadership has successfully scaled our operations, building trusted networks across 50+ countries. He holds an MBA in Healthcare Management and has dedicated his career to improving global drug accessibility.',
       image: '/founder.jpeg',
-      accentColor: 'text-amber-700',
-      borderColor: 'border-amber-200',
-      notchColor: 'border-amber-600',
+      accentColor: 'text-blue-600',
+      borderColor: 'border-[#A8D3CE]',
+      notchColor: 'border-blue-600',
       imageLeft: false
     },
     {
-      name: 'Sophia Laurent',
-      role: 'Creative Director',
-      quote: 'A piece of jewellery should be a poem you can wear. We design not just for the eyes, but for the soul of the wearer.',
-      bio: 'Sophia\'s background in fine arts and architectural design brings a unique, structural elegance to Vellora\'s collections. She leads our global design studio, constantly pushing the boundaries of traditional motifs to create modern heirlooms.',
+      name: 'Mr Hariom Barua',
+      role: 'Co-founder & whole-Time managing Director',
+      quote: 'Science and integrity are the cornerstones of global wellness. We believe in bridging the gap between cutting-edge clinical research and affordable everyday healthcare to create a healthier tomorrow.',
+      bio: 'Hariom brings with him 25 years of rich experience in pharmaceutical distribution and healthcare management. He leads our research divisions, oversees quality control protocols, and ensures that every pharmaceutical formulation meets international safety standards. He holds a Ph.D. in Pharmaceutical Sciences.',
       image: '/co-founder.jpeg',
-      accentColor: 'text-amber-600',
-      borderColor: 'border-yellow-200',
-      notchColor: 'border-amber-500',
+      accentColor: 'text-emerald-600',
+      borderColor: 'border-emerald-200',
+      notchColor: 'border-emerald-600',
       imageLeft: true
     },
     {
-      name: 'Julian Rossi',
-      role: 'Head of Gemology',
-      quote: 'The journey of a diamond from the earth to your finger is a miracle. We ensure only the top 1% of gems ever make it to a Vellora setting.',
-      bio: 'Julian is a GIA-certified gemologist with a meticulous eye for brilliance, fire, and scintillation. He personally oversees our global sourcing network, ensuring every stone meets our uncompromising ethical and quality standards.',
+      name: 'Mr Rahul Barua',
+      role: 'General Manager (Marketing)',
+      quote: 'Operational agility and supply chain resilience are what make healthcare accessible. We are committed to maintaining a seamless, ethical, and highly efficient logistics network that never fails.',
+      bio: 'Rahul has over 12 years of experience in pharmaceutical supply chain logistics, operations, and regulatory compliance. He leads our state-of-the-art warehousing and distribution networks, ensuring that vital medicines are transported safely, efficiently, and on schedule. He holds a degree in Operations and Supply Chain Management.',
       image: '/GM.jpeg',
-      accentColor: 'text-yellow-700',
-      borderColor: 'border-yellow-200',
-      notchColor: 'border-yellow-600',
+      accentColor: 'text-purple-600',
+      borderColor: 'border-purple-200',
+      notchColor: 'border-purple-600',
       imageLeft: false
     }
   ];
 
   return (
-    <div className="min-h-screen bg-[#FFFDF8]">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
       {/* Hero Section */}
       <section className="relative text-white py-24 lg:py-32 overflow-hidden">
         {/* Background Image */}
-        <img
+        <img 
           src="/about-bg.jpg"
-          alt="Vellora Jewels Background"
+          alt="Bioinnovate Pharma Background"
           className="absolute inset-0 z-0 w-full h-full object-cover"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
-        {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 z-10" style={{ background: 'linear-gradient(135deg, rgba(26,18,9,0.85) 0%, rgba(107,26,26,0.7) 100%)' }} />
+        {/* Dark Gradient Overlay for Readability */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-blue-900/80 to-purple-900/80 mix-blend-multiply" />
+        <div className="absolute inset-0 z-10 bg-black/20" />
         
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, transparent, #C9920A)' }} />
-              <span className="text-[10px] font-bold tracking-[0.4em] uppercase" style={{ color: '#C9920A' }}>Our Heritage</span>
-              <div className="h-px w-16" style={{ background: 'linear-gradient(90deg, #C9920A, transparent)' }} />
-            </div>
-            <h1
-              className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg"
-              style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontStyle: 'italic' }}
-            >
-              The House of Vellora
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 drop-shadow-md" style={{ color: '#F5E6C8' }}>
-              Redefining luxury through unparalleled craftsmanship, ethical sourcing, and timeless elegance.
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">About Bioinnovate Pharma</h1>
+            <p className="text-xl md:text-2xl mb-8 drop-shadow-md text-blue-50">
+              Your destination for premium healthcare. Quality, care, and health in every product.
             </p>
           </div>
         </div>
       </section>
 
+
       {/* Story Section */}
-      <section className="py-16 lg:py-24 bg-white">
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <SlideIn direction="left">
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>A Legacy Forged in Gold</h2>
-                <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                  Founded in 1995 within a small atelier in New York, Vellora Jewels began with a simple yet powerful vision: to bring the finest handcrafted gold and diamond jewellery to discerning clients worldwide. What started as a bespoke studio has blossomed into an internationally celebrated luxury brand.
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
+                <p className="text-lg text-gray-600 mb-6">
+                  Founded in 2014, Bioinnovate Pharma began with a simple mission: to provide high-quality, 
+                  affordable healthcare products to everyone. What started as a small 
+                  local pharmacy has grown into a global healthcare brand serving customers in over 50 countries.
                 </p>
-                <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                  We believe that jewellery is more than mere adornment. It is emotion made tangible. It is the whisper of a promise, the celebration of a milestone, and the physical embodiment of a family's legacy. Every ring, necklace, and bracelet we create is crafted with absolute precision to become a cherished heirloom.
+                <p className="text-lg text-gray-600 mb-6">
+                  We believe that access to quality medicine and wellness products can change how you feel 
+                  and how you live your life. That's why we're committed to providing healthcare essentials 
+                  that combine cutting-edge science with compassionate care.
                 </p>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Today, we continue to innovate our designs while remaining steadfastly anchored to our core values of purity, masterful craftsmanship, and unwavering ethical standards.
+                <p className="text-lg text-gray-600">
+                  Today, we continue to innovate and expand our collection while staying true to 
+                  our core values of quality, reliability, and customer health.
                 </p>
               </div>
             </SlideIn>
             <SlideIn direction="right" delay={200}>
-              <div className="relative rounded-2xl h-[500px] flex items-center justify-center overflow-hidden shadow-2xl ring-1 ring-yellow-900/10 group">
-                <div className="absolute inset-0 bg-[#C9920A] opacity-20 group-hover:opacity-10 transition-opacity duration-500 z-10" />
+              <div className="rounded-2xl h-[400px] flex items-center justify-center overflow-hidden shadow-2xl ring-1 ring-gray-900/5">
                 <img 
-                  src="/story-image.jpg"
-                  alt="Crafting Vellora Jewellery"
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.parentElement!.innerHTML = '<div class="absolute inset-0 bg-gradient-to-br from-yellow-100 to-amber-50 flex flex-col items-center justify-center p-8 text-center border border-amber-200"><svg class="w-16 h-16 text-amber-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg><h3 class="text-2xl font-serif text-amber-900 mb-2">Masterful Craftsmanship</h3><p class="text-amber-700/80">Every piece is hand-finished by master artisans.</p></div>';
-                  }}
+                  src="/company-img.jpg" 
+                  alt="Bioinnovate Pharma Research Facility" 
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                 />
               </div>
             </SlideIn>
@@ -243,94 +218,128 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#6B1A1A]" />
-        <div className="absolute inset-0 opacity-10 bg-[url('/pattern.png')] bg-repeat" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {stats.map((stat, index) => (
-              <SlideIn key={index} direction="up" delay={index * 100}>
-                <div className="p-6">
-                  <div className="flex justify-center mb-2">
-                    <span className="text-4xl md:text-5xl font-bold text-[#E8B84B]" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>
-                      <AnimatedCounter target={stat.target} suffix={stat.suffix} />
-                    </span>
-                  </div>
-                  <div className="text-sm md:text-base font-medium text-[#F5E6C8] uppercase tracking-wider mt-2">
-                    {stat.label}
-                  </div>
-                </div>
-              </SlideIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Core Values */}
-      <section className="py-20 lg:py-32 bg-[#FFFDF8]">
+      {/* Leadership Team Section */}
+      <section className="py-16 lg:py-24 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>The Vellora Standard</h2>
-            <p className="text-lg text-gray-600">
-              Our principles are as enduring as the diamonds we set. These core values guide every sketch, every cut, and every interaction.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {coreValues.map((value, index) => (
-              <SlideIn key={index} direction="up" delay={index * 100}>
-                <div className="bg-white rounded-xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-yellow-900/5 hover:border-[#C9920A]/30 hover:shadow-[0_8px_30px_rgba(201,146,10,0.1)] transition-all duration-300 h-full group">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ background: 'rgba(201,146,10,0.1)' }}>
-                    <value.icon className="h-7 w-7" style={{ color: '#C9920A' }} />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>{value.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {value.description}
-                  </p>
-                </div>
-              </SlideIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="py-20 lg:py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>Our Visionaries</h2>
-            <p className="text-lg text-gray-600">
-              Meet the masterminds behind Vellora Jewels. A team united by a singular obsession for perfection.
-            </p>
-          </div>
-
-          <div className="space-y-24">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-16 text-center lg:text-left">
+            Meet Our <span className="text-blue-600">Leadership Team</span>
+          </h2>
+          
+          <div className="space-y-24 lg:space-y-32">
             {teamMembers.map((member, index) => (
-              <SlideIn key={index} direction={member.imageLeft ? 'right' : 'left'}>
-                <div className="flex flex-col bg-white border border-[#C9920A]/20 p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="space-y-6">
-                    <svg className="h-10 w-10 text-[#C9920A]/20" fill="currentColor" viewBox="0 0 32 32">
-                      <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
-                    </svg>
-                    <p className="text-xl md:text-2xl text-gray-900 leading-relaxed italic" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>
-                      "{member.quote}"
+              <div 
+                key={index} 
+                className={`flex flex-col lg:flex-row items-center gap-16 lg:gap-24 ${
+                  member.imageLeft ? 'lg:flex-row-reverse' : ''
+                }`}
+              >
+                {/* Quote & Bio Block */}
+                <div className="flex-1 relative w-full pt-4">
+                  {/* Quote Icon */}
+                  <div className="absolute top-0 left-0 text-gray-200 z-10">
+                    <span className="text-[120px] leading-[0.8] font-serif block">“</span>
+                  </div>
+
+                  {/* The Border Container */}
+                  <div className={`border-t-2 border-r-2 border-b-2 ${member.borderColor} rounded-tr-[2rem] rounded-br-[2rem] p-8 lg:p-12 pb-16 relative mt-10 border-l-0 ml-4`}>
+                    <p className="text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
+                      {member.quote}
                     </p>
-                    <div className="h-px w-24 bg-[#C9920A]/30"></div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900" style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}>{member.name}</p>
-                      <p className={`font-medium ${member.accentColor} mb-4`}>{member.role}</p>
-                      <p className="text-lg text-gray-600 leading-relaxed">
-                        {member.bio}
-                      </p>
-                    </div>
+
+                    {/* Actual bottom notch */}
+                    <div className={`absolute -bottom-[13px] left-[3.5rem] w-6 h-6 border-b-2 border-l-2 ${member.notchColor} bg-white transform -rotate-45 z-10`}></div>
+                  </div>
+
+                  {/* Author Info */}
+                  <div className="mt-8 ml-[4.5rem]">
+                    <h4 className="text-2xl font-bold text-gray-900">{member.name}</h4>
+                    <p className={`font-semibold ${member.accentColor} mb-4`}>{member.role}</p>
+                    <p className="text-gray-600 leading-relaxed text-lg">
+                      {member.bio}
+                    </p>
                   </div>
                 </div>
-              </SlideIn>
+
+                {/* Image Block */}
+                <div className="flex-shrink-0 relative">
+                  <div className="w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] lg:w-[500px] lg:h-[500px] rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white ring-1 ring-gray-100 transition-transform duration-500 hover:scale-105">
+                    <img 
+                      src={member.image} 
+                      alt={`${member.name} - ${member.role}`} 
+                      className="w-full h-full object-cover object-center"
+                    />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">By the Numbers</h2>
+            <p className="text-lg text-gray-600">
+              Our impact in numbers
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">
+                  <AnimatedCounter target={stat.target} suffix={stat.suffix} />
+                </div>
+                <div className="text-gray-600">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Values Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Values</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              These core values guide everything we do and shape the way we serve our customers.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {values.map((value, index) => (
+              <div key={index} className="text-center p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
+                  <value.icon className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{value.title}</h3>
+                <p className="text-gray-600">{value.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Mission Section */}
+      <section className="py-16 bg-blue-600 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-6">Our Mission</h2>
+          <p className="text-xl mb-8">
+            To provide exceptional healthcare products that empower people to live healthy lives, 
+            while maintaining the highest standards of safety, quality, and care.
+          </p>
+          <div className="bg-white bg-opacity-10 rounded-lg p-6">
+            <p className="text-lg">
+              We're committed to creating a world where everyone can access the medical care and 
+              wellness products they need to thrive.
+            </p>
+          </div>
+        </div>
+      </section>
+
 
     </div>
   );

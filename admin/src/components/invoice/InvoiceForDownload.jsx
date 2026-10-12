@@ -344,8 +344,8 @@ const InvoiceForDownload = ({
                 }}
               >
                 <Image
-                  src={logoDark}
-                  alt="VTC Shoes"
+                  src={globalSetting?.logo || logoDark}
+                  alt={globalSetting?.company_name || "Company Logo"}
                   style={{
                     width: 90,
                     alignItems: "right",
@@ -660,6 +660,19 @@ const InvoiceForDownload = ({
               </Text>
             </View>
           </View>
+
+          {globalSetting?.company_policy && (
+            <View style={{ marginTop: 15, paddingTop: 8, borderTopWidth: 1, borderColor: '#e5e7eb' }}>
+              <Text style={{ fontSize: 8.5, fontWeight: 'bold', color: '#374151', marginBottom: 3, textTransform: 'uppercase' }}>
+                Terms & Conditions / Company Policy:
+              </Text>
+              {globalSetting.company_policy.split('\n').filter(Boolean).map((term, idx) => (
+                <Text key={idx} style={{ fontSize: 7.5, color: '#6b7280', lineHeight: 1.3, marginBottom: 1.5 }}>
+                  {term}
+                </Text>
+              ))}
+            </View>
+          )}
         </Page>
       </Document>
     </>

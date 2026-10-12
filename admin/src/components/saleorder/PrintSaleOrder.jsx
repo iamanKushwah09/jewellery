@@ -1,13 +1,139 @@
 import React, { useState, useEffect } from "react";
 import { Modal, ModalBody, ModalFooter, Button } from "@windmill/react-ui";
 import { FiPrinter, FiX, FiDownload, FiEdit3, FiEye } from "react-icons/fi";
-import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import SaleOrderServices from "@/services/SaleOrderServices";
+import SaleServices from "@/services/SaleServices";
 import useUtilsFunction from "@/hooks/useUtilsFunction";
 import { notifyError } from "@/utils/toast";
 
+/**
+ * Developer helper: Extracts clean billing & shipping details with automatic fallback.
+ * If shipping address is not saved / empty, it falls back completely to the Bill To address.
+ */
+const getPartyDetails = (order) => {
+  if (!order) {
+    return {
+      billParty: { name: "N/A", lines: [] },
+      shipParty: { name: "N/A", lines: [] },
+    };
+  }
+
+  const billCustomer = order.directCustomer || order.customer || {};
+  const billName = billCustomer.name || "N/A";
+
+  // Build clean bill lines without arbitrary empty rows
+  const billLines = [];
+  if (billCustomer.email && String(billCustomer.email).trim()) {
+    billLines.push(String(billCustomer.email).trim());
+  }
+  const billContact = billCustomer.mobile || billCustomer.contact || billCustomer.phone;
+  if (billContact && String(billContact).trim()) {
+    billLines.push(String(billContact).trim());
+  }
+  if (billCustomer.address && String(billCustomer.address).trim()) {
+    billLines.push(String(billCustomer.address).trim());
+  }
+  const billPin = billCustomer.pincode || billCustomer.zipCode;
+  if (billPin && String(billPin).trim()) {
+    billLines.push(String(billPin).trim());
+  }
+  if (billCustomer.gst_no && String(billCustomer.gst_no).trim()) {
+    const gstVal = String(billCustomer.gst_no).trim();
+    billLines.push(gstVal.toUpperCase().startsWith("GST") ? gstVal : `GSTIN: ${gstVal}`);
+  }
+
+  // Check if shipping address actually has saved address fields
+  let shipAddr = order.shippingAddress || order.customer?.shippingAddress;
+  if (Array.isArray(shipAddr)) {
+    shipAddr = shipAddr.length > 0 ? shipAddr[0] : null;
+  }
+
+  // Only consider it a saved shipping address if it actually contains physical location details
+  const hasSavedShipAddress = Boolean(
+    shipAddr && (
+      (shipAddr.street && String(shipAddr.street).trim()) ||
+      (shipAddr.address && String(shipAddr.address).trim()) ||
+      (shipAddr.addressLine1 && String(shipAddr.addressLine1).trim()) ||
+      (shipAddr.addressLine2 && String(shipAddr.addressLine2).trim()) ||
+      (shipAddr.city && String(shipAddr.city).trim()) ||
+      (shipAddr.state && String(shipAddr.state).trim()) ||
+      (shipAddr.zipCode && String(shipAddr.zipCode).trim()) ||
+      (shipAddr.pincode && String(shipAddr.pincode).trim()) ||
+      (shipAddr.postalCode && String(shipAddr.postalCode).trim()) ||
+      (shipAddr.country && String(shipAddr.country).trim())
+    )
+  );
+
+  let shipName = billName;
+  let shipLines = [];
+
+  if (hasSavedShipAddress) {
+    shipName = (shipAddr.name && String(shipAddr.name).trim()) ? String(shipAddr.name).trim() : billName;
+
+    if (shipAddr.email && String(shipAddr.email).trim()) {
+      shipLines.push(String(shipAddr.email).trim());
+    }
+
+    const shipContact = shipAddr.contact || shipAddr.mobile || shipAddr.phone;
+    if (shipContact && String(shipContact).trim()) {
+      shipLines.push(String(shipContact).trim());
+    } else if (billContact && String(billContact).trim()) {
+      shipLines.push(String(billContact).trim());
+    }
+
+    const street = [
+      shipAddr.street,
+      shipAddr.address,
+      shipAddr.addressLine1,
+      shipAddr.addressLine2,
+    ].filter(Boolean).map(s => String(s).trim()).filter(Boolean).join(", ");
+
+    if (street) {
+      shipLines.push(street);
+    }
+
+    const cityState = [shipAddr.city, shipAddr.state]
+      .filter(Boolean)
+      .map((s) => String(s).trim())
+      .filter(Boolean)
+      .join(", ");
+    if (cityState) {
+      shipLines.push(cityState);
+    }
+
+    const zip = shipAddr.zipCode || shipAddr.pincode || shipAddr.postalCode;
+    if (zip && String(zip).trim()) {
+      shipLines.push(String(zip).trim());
+    }
+
+    if (shipAddr.country && String(shipAddr.country).trim()) {
+      shipLines.push(String(shipAddr.country).trim());
+    }
+  } else {
+    // Exact fallback to Bill To address ONLY when no ship address is saved
+    shipName = (shipAddr?.name && String(shipAddr.name).trim()) ? String(shipAddr.name).trim() : billName;
+    shipLines = [...billLines];
+  }
+
+  return {
+    billParty: {
+      name: billName,
+      lines: billLines,
+      raw: billCustomer,
+    },
+    shipParty: {
+      name: shipName,
+      lines: shipLines,
+      isFallback: !hasSavedShipAddress,
+      raw: shipAddr,
+    },
+  };
+};
+
 // PDF Document Component
-const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber }) => {
+const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber, globalSetting }) => {
+  const { billParty, shipParty } = getPartyDetails(orderData);
 
   const styles = StyleSheet.create({
     page: {
@@ -171,14 +297,32 @@ const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber }) => {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>Vellora Jewels</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+              {globalSetting?.logo ? (
+                <Image
+                  src={globalSetting.logo}
+                  style={{ width: 48, height: 48, objectFit: 'contain', marginRight: 10, borderRadius: 4 }}
+                />
+              ) : null}
+              <View style={{ justifyContent: 'center' }}>
+                <Text style={[styles.companyName, { marginBottom: 2 }]}>
+                  {globalSetting?.company_name || globalSetting?.shop_name || "The ARK"}
+                </Text>
+                {globalSetting?.vat_number ? (
+                  <Text style={{ fontSize: 7.5, color: '#4b5563', fontWeight: 'bold' }}>
+                    GSTIN: {globalSetting.vat_number}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
             <Text style={styles.companyDetails}>
-              123 Business Street{'\n'}
-              City, State 12345{'\n'}
-              Phone: (555) 123-4567{'\n'}
-              Email: info@vellorajewels.com
+              {globalSetting?.address ? `${globalSetting.address}\n` : ""}
+              {globalSetting?.contact ? `Phone: ${globalSetting.contact}\n` : ""}
+              {globalSetting?.email ? `Email: ${globalSetting.email}\n` : ""}
+              {globalSetting?.website ? `Web: ${globalSetting.website}` : ""}
             </Text>
           </View>
           <View style={styles.invoiceInfo}>
@@ -196,31 +340,20 @@ const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber }) => {
           <View style={styles.addressSection}>
             <Text style={styles.addressTitle}>Bill To:</Text>
             <Text style={{ fontSize: 8, marginBottom: 2 }}>
-              <Text style={{ fontWeight: 'bold' }}>{orderData.directCustomer?.name || orderData.customer?.name || "N/A"}</Text>
+              <Text style={{ fontWeight: 'bold' }}>{billParty.name}</Text>
             </Text>
             <Text style={styles.companyDetails}>
-              {orderData.directCustomer?.email || orderData.customer?.email || ""}{'\n'}
-              {orderData.directCustomer?.mobile || orderData.customer?.mobile || ""}{'\n'}
-              {orderData.directCustomer?.address || orderData.customer?.address || ""}{'\n'}
-              {orderData.directCustomer?.pincode || orderData.customer?.pincode || ""}{'\n'}
-              {orderData.directCustomer?.gst_no || orderData.customer?.gst_no || ""}
+              {billParty.lines.join('\n')}
             </Text>
           </View>
           <View style={styles.addressSection}>
             <Text style={styles.addressTitle}>Ship To:</Text>
             <Text style={{ fontSize: 8, marginBottom: 2 }}>
-              <Text style={{ fontWeight: 'bold' }}>
-                {orderData.shippingAddress?.name || orderData.directCustomer?.name || orderData.customer?.name || "N/A"}
-              </Text>
+              <Text style={{ fontWeight: 'bold' }}>{shipParty.name}</Text>
             </Text>
-            {orderData.shippingAddress && (
-              <Text style={styles.companyDetails}>
-                {orderData.shippingAddress.street || ""}{'\n'}
-                {orderData.shippingAddress.city || ""}, {orderData.shippingAddress.state || ""}{'\n'}
-                {orderData.shippingAddress.zipCode || ""}{'\n'}
-                {orderData.shippingAddress.country || ""}
-              </Text>
-            )}
+            <Text style={styles.companyDetails}>
+              {shipParty.lines.join('\n')}
+            </Text>
           </View>
         </View>
 
@@ -249,10 +382,10 @@ const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber }) => {
               <Text style={[styles.tableCell, styles.col10]}>{item.size || ""}</Text>
               <Text style={[styles.tableCell, styles.col3, { textAlign: 'right' }]}>{item.quantity || 0}</Text>
               <Text style={[styles.tableCell, styles.col4]}>{item.unit || ""}</Text>
-              <Text style={[styles.tableCell, styles.col5, { textAlign: 'right' }]}>{currency}{Number(item.listPrice || 0).toFixed(2)}</Text>
-              <Text style={[styles.tableCell, styles.col6, { textAlign: 'right' }]}>{currency}{Number(item.price || 0).toFixed(2)}</Text>
-              <Text style={[styles.tableCell, styles.col7, { textAlign: 'right' }]}>{currency}{Number(item.totalDiscount || 0).toFixed(2)}</Text>
-              <Text style={[styles.tableCell, styles.col8, { textAlign: 'right' }]}>{currency}{Number(item.amount || 0).toFixed(2)}</Text>
+              <Text style={[styles.tableCell, styles.col5, { textAlign: 'right' }]}>{Number(item.listPrice || 0).toFixed(2)}</Text>
+              <Text style={[styles.tableCell, styles.col6, { textAlign: 'right' }]}>{Number(item.price || 0).toFixed(2)}</Text>
+              <Text style={[styles.tableCell, styles.col7, { textAlign: 'right' }]}>{Number(item.totalDiscount || 0).toFixed(2)}</Text>
+              <Text style={[styles.tableCell, styles.col8, { textAlign: 'right' }]}>{Number(item.amount || 0).toFixed(2)}</Text>
             </View>
           ))}
         </View>
@@ -262,21 +395,21 @@ const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber }) => {
           <View style={styles.totalsTable}>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Subtotal:</Text>
-              <Text style={styles.totalsValue}>{currency}{Number(orderData.totalAmount || 0).toFixed(2)}</Text>
+              <Text style={styles.totalsValue}>{Number(orderData.totalAmount || 0).toFixed(2)}</Text>
             </View>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Total Discount:</Text>
-              <Text style={styles.totalsValue}>{currency}{Number(orderData.totalDiscountAmount || 0).toFixed(2)}</Text>
+              <Text style={styles.totalsValue}>{Number(orderData.totalDiscountAmount || 0).toFixed(2)}</Text>
             </View>
             {orderData.sundries?.SundriesDetail?.map((sundry, index) => (
               <View key={sundry._id || index} style={styles.totalsRow}>
                 <Text style={styles.totalsLabel}>{sundry.Name}:</Text>
-                <Text style={styles.totalsValue}>{currency}{Number(sundry.DiscountAmount || 0).toFixed(2)}</Text>
+                <Text style={styles.totalsValue}>{Number(sundry.DiscountAmount || 0).toFixed(2)}</Text>
               </View>
             ))}
             <View style={[styles.totalsRow, styles.grandTotal]}>
               <Text style={styles.totalsLabel}>Net Amount:</Text>
-              <Text style={styles.totalsValue}>{currency}{Number(orderData.netAmount || 0).toFixed(2)}</Text>
+              <Text style={styles.totalsValue}>{Number(orderData.netAmount || 0).toFixed(2)}</Text>
             </View>
           </View>
         </View>
@@ -304,10 +437,18 @@ const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber }) => {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.termsTitle}>Terms and Conditions:</Text>
-          <Text style={styles.termsText}>1. Payment is due within 30 days of invoice date.</Text>
-          <Text style={styles.termsText}>2. All prices are in {currency} and subject to applicable taxes.</Text>
-          <Text style={styles.termsText}>3. Returns accepted within 14 days of delivery.</Text>
-          <Text style={styles.termsText}>4. Damaged goods must be reported within 48 hours.</Text>
+          {globalSetting?.company_policy ? (
+            globalSetting.company_policy.split('\n').filter(Boolean).map((term, idx) => (
+              <Text key={idx} style={styles.termsText}>{term}</Text>
+            ))
+          ) : (
+            <>
+              <Text style={styles.termsText}>1. Payment is due within 30 days of invoice date.</Text>
+              <Text style={styles.termsText}>2. All prices are in INR (Rupees) and subject to applicable taxes.</Text>
+              <Text style={styles.termsText}>3. Returns accepted within 14 days of delivery.</Text>
+              <Text style={styles.termsText}>4. Damaged goods must be reported within 48 hours.</Text>
+            </>
+          )}
           {orderData.notes && (
             <>
               <Text style={styles.termsTitle}>Notes:</Text>
@@ -320,14 +461,14 @@ const InvoicePDF = ({ orderData, currency, showDateFormat, getNumber }) => {
   );
 };
 
-const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
+const PrintSaleOrder = ({ isOpen, onClose, orderId, orderType = "saleorder" }) => {
   const [orderData, setOrderData] = useState(null);
   const [editableData, setEditableData] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [showBorders, setShowBorders] = useState(true);
+  const [showBorders, setShowBorders] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { currency, showDateFormat, getNumber } = useUtilsFunction();
+  const { currency, showDateFormat, getNumber, globalSetting } = useUtilsFunction();
 
   // Helper component for editable inputs with validation
   const EditableInput = ({ value, onChange, type = "text", className = "", validation, ...props }) => {
@@ -410,13 +551,29 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
     if (isOpen && orderId) {
       fetchOrderData();
     }
-  }, [isOpen, orderId]);
+  }, [isOpen, orderId, orderType]);
 
   const fetchOrderData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await SaleOrderServices.getSaleOrderById(orderId);
+      let response = null;
+
+      if (orderType === "sale") {
+        try {
+          response = await SaleServices.getSaleById(orderId);
+        } catch (saleErr) {
+          console.warn("SaleServices.getSaleById failed, trying SaleOrderServices fallback:", saleErr);
+          response = await SaleOrderServices.getSaleOrderById(orderId);
+        }
+      } else {
+        try {
+          response = await SaleOrderServices.getSaleOrderById(orderId);
+        } catch (orderErr) {
+          console.warn("SaleOrderServices.getSaleOrderById failed, trying SaleServices fallback:", orderErr);
+          response = await SaleServices.getSaleById(orderId);
+        }
+      }
 
       if (response && response.success !== false) {
         const data = response.data || response;
@@ -918,6 +1075,7 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
   if (!isOpen) return null;
 
   const dataToRender = isEditMode ? editableData : orderData;
+  const { billParty: previewBillParty, shipParty: previewShipParty } = getPartyDetails(dataToRender);
 
   return (
     <Modal
@@ -930,20 +1088,22 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
         <div className="no-print flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 p-3 sm:p-4 rounded-t-lg border-b border-gray-200 gap-3">
           <h2 className="text-lg sm:text-xl font-semibold">Print Invoice</h2>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Button
+            {/* Layout Guides button commented out as per requirement */}
+            {/* <Button
               onClick={() => setShowBorders(!showBorders)}
               className={`${showBorders ? 'bg-orange-600 hover:bg-orange-700' : 'bg-gray-600 hover:bg-gray-700'} text-white text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2`}
               disabled={loading || error || !orderData}
             >
               {showBorders ? 'Hide Layout Guides' : 'Show Layout Guides'}
-            </Button>
-            <Button
+            </Button> */}
+            {/* Edit Mode option commented out as per requirement */}
+            {/* <Button
               onClick={() => setIsEditMode(!isEditMode)}
-              className={`${isEditMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-600 hover:bg-gray-700'} text-white text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2`}
+              className={`${isEditMode ? 'bg-primary hover:bg-primary-hover shadow-button' : 'bg-gray-600 hover:bg-gray-700'} text-white text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 rounded-lg`}
               disabled={loading || error || !orderData}
             >
               {isEditMode ? <><FiEye className="w-3 h-3 mr-1" />View</> : <><FiEdit3 className="w-3 h-3 mr-1" />Edit</>} Mode
-            </Button>
+            </Button> */}
           </div>
         </div>
 
@@ -951,7 +1111,7 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
         <div className="flex-1 overflow-y-auto">
           {loading && (
             <div className="flex justify-center items-center h-32 sm:h-64">
-              <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-[var(--primary-color)]"></div>
               <span className="ml-3 text-sm sm:text-base">Loading order details...</span>
             </div>
           )}
@@ -981,12 +1141,38 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
               {/* Invoice Header - Responsive */}
               <div className="invoice-header flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <div className="company-info">
-                  <div className="company-name text-xl sm:text-2xl lg:text-3xl">Vellora Jewels</div>
-                  <div className="company-details text-xs sm:text-sm">
-                    <p>123 Business Street</p>
-                    <p>City, State 12345</p>
-                    <p>Phone: (555) 123-4567</p>
-                    <p>Email: info@vellorajewels.com</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    {globalSetting?.logo && (
+                      <img
+                        src={globalSetting.logo}
+                        alt={globalSetting?.company_name || "Logo"}
+                        className="h-12 w-12 object-contain rounded"
+                      />
+                    )}
+                    <div>
+                      <div className="company-name text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+                        {globalSetting?.company_name || globalSetting?.shop_name || "The ARK"}
+                      </div>
+                      {globalSetting?.vat_number && (
+                        <div className="text-xs font-semibold text-gray-600">
+                          GSTIN: {globalSetting.vat_number}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="company-details text-xs sm:text-sm text-gray-600">
+                    <p>{globalSetting?.address || "123 Business Street"}</p>
+                    {globalSetting?.contact && <p>Phone: {globalSetting.contact}</p>}
+                    {globalSetting?.email && <p>Email: {globalSetting.email}</p>}
+                    {globalSetting?.vat_number && <p>GSTIN / VAT: {globalSetting.vat_number}</p>}
+                    {globalSetting?.website && <p>Web: {globalSetting.website}</p>}
+                    {!globalSetting?.contact && !globalSetting?.email && (
+                      <>
+                        <p>City, State 12345</p>
+                        <p>Phone: (555) 123-4567</p>
+                        <p>Email: info@selectionfootwear.com</p>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1002,30 +1188,33 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
 
               {/* Customer Information - Responsive */}
               <div className="addresses flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-8">
-                <div className="address-section">
+                <div className="address-section flex-1">
                   <div className="address-title text-sm sm:text-base">Bill To:</div>
-                  <div className="text-xs sm:text-sm">
+                  <div className="text-xs sm:text-sm space-y-0.5">
                     <p><strong><EditableInput value={isEditMode ? (editableData.directCustomer?.name || editableData.customer?.name) : (orderData.directCustomer?.name || orderData.customer?.name)} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'name')} /></strong></p>
-                    <EditableInput value={isEditMode ? (editableData.directCustomer?.email || editableData.customer?.email) : (orderData.directCustomer?.email || orderData.customer?.email)} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'email')} placeholder="Email" />
-                    <EditableInput value={isEditMode ? (editableData.directCustomer?.mobile || editableData.customer?.mobile) : (orderData.directCustomer?.mobile || orderData.customer?.mobile)} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'mobile')} placeholder="Mobile" />
-                    <EditableTextarea value={isEditMode ? (editableData.directCustomer?.address || editableData.customer?.address) : (orderData.directCustomer?.address || orderData.customer?.address)} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'address')} placeholder="Address" />
-                    <EditableInput value={isEditMode ? (editableData.directCustomer?.pincode || editableData.customer?.pincode) : (orderData.directCustomer?.pincode || orderData.customer?.pincode)} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'pincode')} placeholder="Pincode" />
-                    <EditableInput value={isEditMode ? (editableData.directCustomer?.gst_no || editableData.customer?.gst_no) : (orderData.directCustomer?.gst_no || orderData.customer?.gst_no)} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'gst_no')} placeholder="GST Number" />
+                    {isEditMode ? (
+                      <>
+                        <EditableInput value={editableData.directCustomer?.email || editableData.customer?.email} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'email')} placeholder="Email" />
+                        <EditableInput value={editableData.directCustomer?.mobile || editableData.customer?.mobile} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'mobile')} placeholder="Mobile" />
+                        <EditableTextarea value={editableData.directCustomer?.address || editableData.customer?.address} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'address')} placeholder="Address" />
+                        <EditableInput value={editableData.directCustomer?.pincode || editableData.customer?.pincode} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'pincode')} placeholder="Pincode" />
+                        <EditableInput value={editableData.directCustomer?.gst_no || editableData.customer?.gst_no} onChange={(value) => handleFieldChange(editableData.directCustomer ? 'directCustomer' : 'customer', value, 'gst_no')} placeholder="GST Number" />
+                      </>
+                    ) : (
+                      previewBillParty.lines.map((line, idx) => (
+                        <p key={idx}>{line}</p>
+                      ))
+                    )}
                   </div>
                 </div>
 
-                <div className="address-section">
+                <div className="address-section flex-1">
                   <div className="address-title text-sm sm:text-base">Ship To:</div>
-                  <div className="text-xs sm:text-sm">
-                    <p><strong>{orderData.shippingAddress?.name || orderData.directCustomer?.name || orderData.customer?.name}</strong></p>
-                    {orderData.shippingAddress && (
-                      <div>
-                        <p>{orderData.shippingAddress.street}</p>
-                        <p>{orderData.shippingAddress.city}, {orderData.shippingAddress.state}</p>
-                        <p>{orderData.shippingAddress.zipCode}</p>
-                        <p>{orderData.shippingAddress.country}</p>
-                      </div>
-                    )}
+                  <div className="text-xs sm:text-sm space-y-0.5">
+                    <p><strong>{previewShipParty.name}</strong></p>
+                    {previewShipParty.lines.map((line, idx) => (
+                      <p key={idx}>{line}</p>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1302,10 +1491,18 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
                 <div className="terms">
                   <div className="terms-title text-sm sm:text-base">Terms and Conditions:</div>
                   <div className="text-xs sm:text-sm space-y-1">
-                    <p>1. Payment is due within 30 days of invoice date.</p>
-                    <p>2. All prices are in {currency} and subject to applicable taxes.</p>
-                    <p>3. Returns accepted within 14 days of delivery.</p>
-                    <p>4. Damaged goods must be reported within 48 hours.</p>
+                    {globalSetting?.company_policy ? (
+                      globalSetting.company_policy.split('\n').filter(Boolean).map((term, idx) => (
+                        <p key={idx}>{term}</p>
+                      ))
+                    ) : (
+                      <>
+                        <p>1. Payment is due within 30 days of invoice date.</p>
+                        <p>2. All prices are in {currency} and subject to applicable taxes.</p>
+                        <p>3. Returns accepted within 14 days of delivery.</p>
+                        <p>4. Damaged goods must be reported within 48 hours.</p>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1326,9 +1523,9 @@ const PrintSaleOrder = ({ isOpen, onClose, orderId }) => {
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
           {dataToRender && (
             <PDFDownloadLink
-              document={<InvoicePDF orderData={dataToRender} currency={currency} showDateFormat={showDateFormat} getNumber={getNumber} />}
+              document={<InvoicePDF orderData={dataToRender} currency={currency} showDateFormat={showDateFormat} getNumber={getNumber} globalSetting={globalSetting} />}
               fileName={`invoice-${dataToRender.voucherNo || 'order'}.pdf`}
-              className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 ease-in-out text-sm sm:text-base"
+              className="inline-flex items-center justify-center bg-primary hover:bg-primary-hover shadow-button text-white font-medium py-2.5 px-5 rounded-xl transition duration-200 ease-in-out text-sm sm:text-base"
             >
               {({ loading: pdfLoading }) => (
                 pdfLoading ? (

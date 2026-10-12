@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store/types';
 import Link from 'next/link';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5056/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5055/api';
 
 // ──── Type Definitions ────────────────────────────────────────────────────────
 interface LedgerEntry {

@@ -151,7 +151,7 @@ const ProductDetails = () => {
               <div className="mt-6">
                 <button
                   onClick={() => handleUpdate(id)}
-                  className="cursor-pointer leading-5 transition-colors duration-150 font-medium text-sm focus:outline-none px-5 py-2 rounded-md text-white bg-blue-500 border border-transparent active:bg-blue-600 hover:bg-blue-600 "
+                  className="cursor-pointer leading-5 transition-all duration-200 font-medium text-sm focus:outline-none px-6 py-2.5 rounded-xl text-white bg-primary hover:bg-primary-hover shadow-button"
                 >
                   {t("EditProduct")}
                 </button>

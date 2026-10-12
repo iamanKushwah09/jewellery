@@ -14,7 +14,7 @@ import ActiveInActiveButton from "@/components/table/ActiveInActiveButton";
 import ShowHideButton from "@/components/table/ShowHideButton";
 import Tooltip from "@/components/tooltip/Tooltip";
 
-const StockTable = ({ dataTable, lang, isShow = true }) => {
+const StockTable = ({ dataTable, lang, isShow = true, onStockUpdated }) => {
     const {
         title,
         serviceId,
@@ -31,7 +31,7 @@ const StockTable = ({ dataTable, lang, isShow = true }) => {
             <DeleteModal id={serviceId} title={title} />
 
             <MainDrawer product={true}>
-                <StockDrawer id={serviceId} />
+                <StockDrawer id={serviceId} onStockUpdated={onStockUpdated} />
             </MainDrawer>
 
             <TableBody>
@@ -41,7 +41,19 @@ const StockTable = ({ dataTable, lang, isShow = true }) => {
                             <TableCell>
                                 <h2 className="text-sm font-medium">{role?.name}</h2>
                             </TableCell>
-                            <TableCell><span className="text-sm font-semibold">{role.stock || 0}</span></TableCell>
+                            <TableCell>
+                                <span
+                                    className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full ${
+                                        (role.stock || 0) > 0
+                                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                            : (role.stock || 0) < 0
+                                            ? "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300"
+                                            : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                    }`}
+                                >
+                                    {role.stock ?? 0}
+                                </span>
+                            </TableCell>
                             <TableCell><span className="text-sm">{role.alias}</span></TableCell>
                             <TableCell><span className="text-sm">{role.category_id?.name}</span></TableCell>
                             <TableCell><span className="text-sm">{role.item_group_id?.name}</span></TableCell>

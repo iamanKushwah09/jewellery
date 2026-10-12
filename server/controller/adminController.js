@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const { signInToken, tokenForVerify } = require("../config/auth");
 // here change is required
 const Admin = require("../models/Admin");
+const Salesman = require("../models/Salesman");
 const Otp = require("../models/Otp.model");
 const { CREATE_MESSAGE, DELETE_MESSAGE, UPDATE_MESSAGE } = require("../enum")
 const fileUploadHelper = require('../fileUploader/fileUploadHelper');
@@ -46,14 +47,14 @@ const registerAdmin = async (req, res) => {
       const body = {
         from: process.env.EMAIL_USER,
         to: req.body.email,
-        subject: "Email Verification OTP - Vellora Jewels Admin",
+        subject: "Email Verification OTP - Kachabazar Admin",
         html: `<h2>Hello ${req.body.name}</h2>
-        <p>Welcome to Vellora Jewels Admin Panel!</p>
+        <p>Welcome to Kachabazar Admin Panel!</p>
         <p>Your verification code is: <strong style="font-size: 24px; color: #22c55e;">${otp}</strong></p>
         <p>This code will expire in <strong>5 minutes</strong>.</p>
         <p>If you did not request this, please ignore this email.</p>
         <p style="margin-top: 35px;">Thank you</p>
-        <strong>Vellora Jewels Admin Team</strong>`,
+        <strong>Kachabazar Admin Team</strong>`,
       };
       const message = "OTP sent to your email!";
       sendEmail(body, res, message);
@@ -105,7 +106,10 @@ const loginAdmin = async (req, res) => {
           image: 1,
           password: 1,
           salesman_id: 1,
-          permission: { $ifNull: ["$roleData.permission", "$permission"] } // Fallback to embedded permissions if role is not found
+          roleName: "$roleData.name",
+          roleId: "$role",
+          rolePermission: "$roleData.permission",
+          adminPermission: "$permission"
         }
       }
     ]);
@@ -126,8 +130,55 @@ const loginAdmin = async (req, res) => {
       });
     }
 
+    // Resolve permissions from role, or fallback to Admin direct permissions
+    let permissions = (admin.rolePermission && Array.isArray(admin.rolePermission) && admin.rolePermission.length > 0)
+      ? [...admin.rolePermission]
+      : (admin.adminPermission && Array.isArray(admin.adminPermission) && admin.adminPermission.length > 0)
+        ? [...admin.adminPermission]
+        : [];
+
+    let isSalesmanUser =
+      !!admin.salesman_id ||
+      (admin.roleName && admin.roleName.toLowerCase().includes('salesman'));
+
+    // If user has salesman role or name/email matches, ensure salesman_id is resolved
+    let resolvedSalesmanId = admin.salesman_id || null;
+    if (!resolvedSalesmanId) {
+      const candidateName = typeof admin.name === 'object' ? (admin.name.en || Object.values(admin.name)[0]) : admin.name;
+      const matchedSalesman = await Salesman.findOne({
+        $or: [
+          { name: { $regex: new RegExp(`^${candidateName}$`, 'i') } },
+          { email: email },
+        ]
+      });
+      if (matchedSalesman) {
+        resolvedSalesmanId = matchedSalesman._id;
+        isSalesmanUser = true;
+        await Admin.findByIdAndUpdate(admin._id, { salesman_id: matchedSalesman._id });
+        console.log('🔗 Auto-linked admin to salesman_id:', matchedSalesman._id);
+      }
+    }
+
+    // Automatically ensure salesman has view_sales_man permission
+    if (isSalesmanUser) {
+      const hasPerm = permissions.some((p) => {
+        const val = typeof p === 'object' ? Object.values(p)[0] || p.permission : p;
+        return val === 'view_sales_man' || val === 'salesman';
+      });
+      if (!hasPerm) {
+        permissions.push({ permission: 'view_sales_man' });
+      }
+    }
+
+    const assignedRole = admin.roleName || (isSalesmanUser ? 'Salesman' : 'Admin');
+
     // Generate token
-    const token = signInToken(admin);
+    const token = signInToken({
+      ...admin,
+      salesman_id: resolvedSalesmanId,
+      role: assignedRole,
+      roleName: assignedRole,
+    });
     const response = {
       token,
       _id: admin._id,
@@ -135,11 +186,13 @@ const loginAdmin = async (req, res) => {
       phone: admin.phone,
       email: admin.email,
       image: admin.image,
-      salesman_id: admin.salesman_id || null,
-      permission: admin.permission || [] // Final permission comes from Role
+      salesman_id: resolvedSalesmanId,
+      role: assignedRole,
+      roleName: assignedRole,
+      permission: permissions
     };
 
-    console.log('🔐 Admin login successful for:', email);
+    console.log('🔐 Admin login successful for:', email, 'role:', assignedRole, 'salesman_id:', resolvedSalesmanId, 'with', permissions.length, 'permissions');
     res.send(response);
 
   } catch (err) {
@@ -163,7 +216,7 @@ const forgetPassword = async (req, res) => {
       to: `${req.body.verifyEmail}`,
       subject: "Password Reset",
       html: `<h2>Hello ${req.body.verifyEmail}</h2>
-      <p>A request has been received to change the password for your <strong>Vellora Jewels</strong> account </p>
+      <p>A request has been received to change the password for your <strong>Kachabazar</strong> account </p>
         <p>This link will expire in <strong> 15 minute</strong>.</p>
         <p style="margin-bottom:20px;">Click this link for reset your password</p>
         <a href=${process.env.ADMIN_URL}/reset-password/${token}  style="background:#22c55e;color:white;border:1px solid #22c55e; padding: 10px 15px; border-radius: 4px; text-decoration:none;">Reset Password </a>
@@ -240,7 +293,7 @@ const addStaff = async (req, res) => {
           <p>Email: ${req.body.email}</p>
           ${req.body.password ? `<p>Password: ${req.body.password}</p>` : ''}
           <p style="margin-top: 35px;">Thank you</p>
-          <strong>Vellora Jewels Team</strong>`,
+          <strong>Selection Footwear Team</strong>`,
         };
         sendEmail(body, null, "Salesman assignment email sent");
       }
@@ -380,7 +433,7 @@ const updateStaff = async (req, res) => {
         <p>Your account salesperson assignment has been updated.</p>
         <p>You can now manage your assigned customers and vendors under this profile.</p>
         <p style="margin-top: 35px;">Thank you</p>
-        <strong>Vellora Jewels Team</strong>`,
+        <strong>Selection Footwear Team</strong>`,
       };
       sendEmail(body, null, "Salesman update email sent");
     }
@@ -491,13 +544,13 @@ const sendOtp = async (req, res) => {
     const body = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: `${subject} - Vellora Jewels Admin`,
+      subject: `${subject} - Kachabazar Admin`,
       html: `<h2>Hello</h2>
       <p>Your ${type} verification code is: <strong style="font-size: 24px; color: #22c55e;">${otp}</strong></p>
       <p>This code will expire in <strong>5 minutes</strong>.</p>
       <p>If you did not request this, please ignore this email.</p>
       <p style="margin-top: 35px;">Thank you</p>
-      <strong>Vellora Jewels Admin Team</strong>`,
+      <strong>Kachabazar Admin Team</strong>`,
     };
     const message = "OTP sent to your email!";
     sendEmail(body, res, message);
@@ -577,6 +630,8 @@ const verifyOtp = async (req, res) => {
             image: 1,
             password: 1,
             salesman_id: 1,
+            roleName: "$roleData.name",
+            role: "$roleData.name",
             permission: "$roleData.permission"
           }
         }
@@ -588,7 +643,12 @@ const verifyOtp = async (req, res) => {
         });
       }
 
-      const token = signInToken(admin);
+      const assignedRole = admin.roleName || (admin.salesman_id ? 'Salesman' : 'Admin');
+      const token = signInToken({
+        ...admin,
+        role: assignedRole,
+        roleName: assignedRole,
+      });
       const response = {
         token,
         _id: admin._id,
@@ -596,6 +656,8 @@ const verifyOtp = async (req, res) => {
         phone: admin.phone,
         email: admin.email,
         image: admin.image,
+        role: assignedRole,
+        roleName: assignedRole,
         salesman_id: admin.salesman_id || null,
         permission: admin.permission || []
       };

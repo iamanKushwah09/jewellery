@@ -32,8 +32,7 @@ const useLoginSubmit = () => {
     const sameSite = import.meta.env.VITE_APP_COOKIE_SAME_SITE || 'Lax';
 
     if (location.pathname === "/login") {
-      // Clear any existing session data
-      reduxDispatch(removeSetting("globalSetting"));
+      // Clear any existing user session data
       Cookies.remove("adminInfo");
 
       console.log("🔐 Attempting admin login for:", email);
@@ -46,6 +45,12 @@ const useLoginSubmit = () => {
             setLoading(false);
             notifySuccess("Login Success!");
 
+            const isSalesman = Boolean(
+              res.salesman_id ||
+              (typeof res.role === 'string' && res.role.toLowerCase().includes('salesman')) ||
+              (typeof res.roleName === 'string' && res.roleName.toLowerCase().includes('salesman'))
+            );
+
             // Validate response data
             const adminData = {
               token: res.token,
@@ -54,8 +59,10 @@ const useLoginSubmit = () => {
               phone: res.phone,
               email: res.email,
               image: res.image,
+              role: res.role,
+              roleName: res.roleName,
               permission: res.permission || [],
-              salesman_id:res.salesman_id ?? null
+              salesman_id: res.salesman_id ?? null
             };
 
             console.log("🔐 Setting admin cookie with data:", adminData);
@@ -76,9 +83,13 @@ const useLoginSubmit = () => {
               // Dispatch to context after cookie is confirmed
               dispatch({ type: "USER_LOGIN", payload: adminData });
 
-              // Redirect to dashboard
+              // Redirect to appropriate landing page
               setTimeout(() => {
-                history.replace("/");
+                if (isSalesman) {
+                  history.replace("/salesman-visits");
+                } else {
+                  history.replace("/");
+                }
               }, 100);
             } else {
               console.error("🔐 Failed to set cookie");

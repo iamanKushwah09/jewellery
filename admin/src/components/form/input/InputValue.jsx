@@ -35,7 +35,7 @@ const InputValue = ({
     <>
       <div className={`flex flex-row`}>
         {product && (
-          <span className="inline-flex items-center px-3 rounded rounded-r-none border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm  focus:border-blue-300 dark:bg-gray-700 dark:text-gray-300 dark:border dark:border-gray-600">
+          <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-[#e9edf4] dark:border-[#263168] bg-[#f9fafc] dark:bg-[#111c43] text-[#8c9097] dark:text-[#a3aed1] text-xs sm:text-sm h-8">
             {currency}
           </span>
         )}
@@ -47,7 +47,7 @@ const InputValue = ({
           disabled={disabled}
           placeholder={placeholder}
           defaultValue={defaultValue}
-          className={`mr-2 p-2 ${product && "rounded-l-none"}`}
+          className={`h-8 text-xs sm:text-sm ${product ? "rounded-l-none" : ""}`}
         />
       </div>
     </>

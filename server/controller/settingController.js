@@ -18,25 +18,19 @@ const addGlobalSetting = async (req, res) => {
 
 const getGlobalSetting = async (req, res) => {
   try {
-    let globalSetting = await Setting.findOne({ name: "globalSetting" });
-    if (!globalSetting) {
-      globalSetting = new Setting({
-        name: "globalSetting",
-        setting: {
-          number_of_image_per_product: "5",
-          shop_name: "Vellora Jewels",
-          default_currency: "₹",
-          default_time_zone: "Asia/Kolkata",
-          default_date_format: "MMM D, YYYY",
-          receipt_size: "57-mm",
-        },
+    const globalSetting = await Setting.findOne({ name: "globalSetting" });
+    if (!globalSetting || !globalSetting.setting) {
+      return res.send({
+        default_currency: "₹",
+        default_date_format: "DD/MM/YYYY",
+        floating_number: 2,
       });
-      await globalSetting.save();
-    } else if (globalSetting.setting && (globalSetting.setting.default_currency === "$" || globalSetting.setting.default_currency === "€" || !globalSetting.setting.default_currency)) {
-      globalSetting.setting.default_currency = "₹";
-      await Setting.updateOne({ name: "globalSetting" }, { $set: { "setting.default_currency": "₹" } });
     }
-    res.send(globalSetting.setting);
+    const setting = { ...globalSetting.setting };
+    if (!setting.default_currency || setting.default_currency === "$") {
+      setting.default_currency = "₹";
+    }
+    res.send(setting);
   } catch (err) {
     res.status(500).send({
       message: err.message,
@@ -46,58 +40,28 @@ const getGlobalSetting = async (req, res) => {
 
 const updateGlobalSetting = async (req, res) => {
   try {
-    const globalSetting = await Setting.updateOne(
-      {
-        name: "globalSetting",
-      },
-      {
-        $set: {
-          "setting.number_of_image_per_product":
-            req.body.setting.number_of_image_per_product,
-          "setting.shop_name": req.body.setting.shop_name,
-          "setting.company_name": req.body.setting.company_name,
-          "setting.address": req.body.setting.address,
-          "setting.vat_number": req.body.setting.vat_number,
-          "setting.post_code": req.body.setting.post_code,
-          "setting.contact": req.body.setting.contact,
-          "setting.email": req.body.setting.email,
-          "setting.website": req.body.setting.website,
-          "setting.receipt_size": req.body.setting.receipt_size,
-          "setting.default_currency": req.body.setting.default_currency,
-          "setting.default_time_zone": req.body.setting.default_time_zone,
-          "setting.default_date_format": req.body.setting.default_date_format,
+    let globalSetting = await Setting.findOne({
+      name: "globalSetting",
+    });
 
-          //for store setting
-          "setting.cod_status": req.body.setting.cod_status,
-          "setting.stripe_status": req.body.setting.stripe_status,
-          "setting.fb_pixel_status": req.body.setting.fb_pixel_status,
-          "setting.google_login_status": req.body.setting.google_login_status,
-          "setting.google_analytic_status":
-            req.body.setting.google_analytic_status,
-          "setting.stripe_key": req.body.setting.stripe_key,
-          "setting.stripe_secret": req.body.setting.stripe_secret,
-          "setting.google_client_id": req.body.setting.google_client_id,
-          "setting.google_secret_key": req.body.setting.google_secret_key,
-          "setting.google_analytic_key": req.body.setting.google_analytic_key,
-          "setting.fb_pixel_key": req.body.setting.fb_pixel_key,
-          "setting.tawk_chat_status": req.body.setting.tawk_chat_status,
-          "setting.tawk_chat_property_id":
-            req.body.setting.tawk_chat_property_id,
-          "setting.tawk_chat_widget_id": req.body.setting.tawk_chat_widget_id,
-          // //for seo
-          "setting.meta_img": req.body.setting.meta_img,
-          "setting.favicon": req.body.setting.favicon,
-          "setting.meta_title": req.body.setting.meta_title,
-          "setting.meta_description": req.body.setting.meta_description,
-          "setting.meta_keywords": req.body.setting.meta_keywords,
-          "setting.meta_url": req.body.setting.meta_url,
-        },
-      }
-    );
+    if (!globalSetting) {
+      globalSetting = new Setting({
+        name: "globalSetting",
+        setting: req.body.setting || {},
+      });
+      await globalSetting.save();
+    } else {
+      globalSetting.setting = {
+        ...(globalSetting.setting || {}),
+        ...(req.body.setting || {}),
+      };
+      globalSetting.markModified("setting");
+      await globalSetting.save();
+    }
 
     res.send({
       data: globalSetting,
-      message: "Global Setting Update Successfully!",
+      message: "Global Setting Updated Successfully!",
     });
   } catch (err) {
     res.status(500).send({

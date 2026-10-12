@@ -79,47 +79,50 @@ const Languages = () => {
           <CardBody>
             <form
               onSubmit={handleSubmitLanguage}
-              className="py-3 grid gap-3 md:flex xl:flex md:justify-between"
+              className="py-3 flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-stretch md:items-center gap-3 md:gap-4"
             >
-              <div className="w-full">
+              <div className="flex-1 min-w-[200px] max-w-sm sm:max-w-md w-full">
                 <Input
                   ref={languageRef}
                   type="search"
                   placeholder={t("SearchLanguage")}
+                  className="page-search-input"
                 />
               </div>
 
-              <div className="w-full md:w-56 lg:w-56 xl:w-56">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
                 <Button
                   disabled={isCheck.length < 1}
                   onClick={() => handleUpdateMany(isCheck)}
-                  className="w-full rounded-md h-12 btn-gray text-gray-600"
+                  className="h-10 px-3.5 rounded-lg btn-action-reset flex items-center text-xs sm:text-sm font-medium"
                 >
                   <span className="mr-2">
                     <FiEdit />
                   </span>
                   {t("BulkAction")}
                 </Button>
-              </div>
 
-              <div className="w-full md:w-32 lg:w-32 xl:w-32">
                 <Button
                   disabled={isCheck.length < 1}
                   onClick={() => handleDeleteMany(isCheck)}
-                  className="w-full rounded-md h-12 btn-red"
+                  className="h-10 px-3.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs sm:text-sm font-medium shadow-sm flex items-center"
                 >
                   <span className="mr-2">
                     <FiTrash2 />
                   </span>
                   {t("Delete")}
                 </Button>
+
+                <Button
+                  onClick={toggleDrawer}
+                  className="h-10 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-medium shadow-button flex items-center"
+                >
+                  <span className="mr-2">
+                    <FiPlus />
+                  </span>
+                  Add language
+                </Button>
               </div>
-              <Button onClick={toggleDrawer} className="rounded-md h-12 w-64">
-                <span className="mr-2">
-                  <FiPlus />
-                </span>
-                Add language
-              </Button>
             </form>
           </CardBody>
         </Card>

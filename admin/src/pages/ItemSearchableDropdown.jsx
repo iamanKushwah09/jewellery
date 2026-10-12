@@ -336,14 +336,14 @@ const ItemSearchableDropdown = ({
       </div>
       {isOpen && (
         <ul
-          className="absolute w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-y-auto"
+          className="absolute w-full mt-1 bg-white dark:bg-[#1a2352] border border-gray-200 dark:border-[#263168] rounded-md shadow-lg overflow-y-auto"
           style={{
             maxHeight: "400px",
             zIndex: 9999,
           }}
         >
           {isSearching ? (
-            <li className="px-4 py-3 text-sm text-gray-500 flex items-center">
+            <li className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 flex items-center">
               <svg
                 className="w-4 h-4 animate-spin mr-2"
                 fill="none"
@@ -371,7 +371,7 @@ const ItemSearchableDropdown = ({
                 <li
                   key={option.value}
                   onClick={() => handleSelect(option.value, option.label)}
-                  className="px-4 py-3 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                  className="px-4 py-3 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-[#263168] text-gray-800 dark:text-gray-100 border-b border-gray-100 dark:border-[#263168]/50 last:border-b-0 transition-colors"
                 >
                   <div className="flex items-center space-x-3">
                     {/* Item Image with enhanced error handling */}
@@ -380,14 +380,14 @@ const ItemSearchableDropdown = ({
                         <img
                           src={option.image}
                           alt={option.label}
-                          className="w-10 h-10 object-cover rounded-md border border-gray-200"
+                          className="w-10 h-10 object-cover rounded-md border border-gray-200 dark:border-gray-700"
                           onError={handleImageError}
                           data-original-src={option.image}
                           loading="lazy"
                         />
                       </div>
                     ) : (
-                      <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center">
+                      <div className="flex-shrink-0 w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 flex items-center justify-center">
                         <svg
                           className="w-6 h-6 text-gray-400"
                           fill="none"
@@ -406,7 +406,7 @@ const ItemSearchableDropdown = ({
                     
                     {/* Item Details */}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">
+                      <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
                         {option.label}
                       </div>
                       {/* Stock Information */}
@@ -414,8 +414,8 @@ const ItemSearchableDropdown = ({
                         <div className="flex items-center mt-1 space-x-2">
                           <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                             option.stock > 0
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                           }`}>
                             Stock: {option.stock}
                           </span>
@@ -427,20 +427,20 @@ const ItemSearchableDropdown = ({
               ))}
               {/* Show message when initial results are limited */}
               {isShowingLimitedResults && (
-                <li className="px-4 py-2 text-xs text-gray-500 bg-gray-50 text-center">
+                <li className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#151c43] text-center">
                   Showing first {initialLimit} records. Use search to find specific items.
                 </li>
               )}
               
               {/* Show message when search results are limited */}
               {isSearchResultsLimited && (
-                <li className="px-4 py-2 text-xs text-gray-500 bg-gray-50 text-center">
+                <li className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#151c43] text-center">
                   Showing first {maxSearchResults} search results. Refine your search for more specific results.
                 </li>
               )}
             </>
           ) : (
-            <li className="px-4 py-3 text-sm text-gray-400">No results found</li>
+            <li className="px-4 py-3 text-sm text-gray-400 italic">No results found</li>
           )}
         </ul>
       )}

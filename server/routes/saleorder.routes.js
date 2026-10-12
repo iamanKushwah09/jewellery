@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const saleOrderController = require('../controller/saleorder.controller');
+const saleController = require('../controller/sale.controller');
 const { validateDateRange } = require('../middleware/dateValidation.middleware');
 // const {validateSaleOrder} = require('../validator/saleOrder.validator');
 
@@ -25,6 +26,7 @@ router.route('/customer/:customerId')
 router.route('/customer/:customerId/history')
   .get(saleOrderController.getOrderHistoryByCustomer);
 router.route('/:saleorderid/dispatch').patch(saleOrderController.dispatchUpdate);
+router.route('/:saleorderid/convert-to-sale').post(saleController.convertSaleOrderToSale);
 router.route('/dashboard/data').get(saleOrderController.getDashboardData);
 
 // Robust sale order processing endpoint

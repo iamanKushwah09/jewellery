@@ -15,9 +15,7 @@ const InvoiceForPrint = ({ data, printRef, globalSetting }) => {
   const { t } = useTranslation();
 
   const currency =
-    globalSetting?.default_currency &&
-    globalSetting.default_currency !== "$" &&
-    globalSetting.default_currency !== "€"
+    globalSetting?.default_currency && globalSetting.default_currency !== "$"
       ? globalSetting.default_currency
       : "₹";
 

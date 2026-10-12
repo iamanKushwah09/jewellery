@@ -78,6 +78,18 @@ const productSchema = new mongoose.Schema(
       default: "show",
       enum: ["show", "hide"],
     },
+    flipkartSku: {
+      type: String,
+      default: "",
+    },
+    fsn: {
+      type: String,
+      default: "",
+    },
+    flipkartSyncEnabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

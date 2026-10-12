@@ -579,10 +579,15 @@ exports.getPointsBalance = async (req, res) => {
 
     let customer = null;
     try {
-      customer = await Customer.findById(customerId).populate('loyaltyTier');
+      customer = await Customer.findById(customerId).populate({
+        path: 'loyaltyTier',
+        model: 'LoyaltyMembershipTier'
+      });
     } catch (e) {
       console.warn("Could not fetch Customer details:", e.message);
     }
+
+    const isTierExpired = customer?.loyaltyTierExpiry && new Date(customer.loyaltyTierExpiry) < now;
 
     res.status(200).json({
       success: true,
@@ -592,7 +597,10 @@ exports.getPointsBalance = async (req, res) => {
       minInvoiceAmountToRedeem: config?.minInvoiceAmountToRedeem || 0,
       maxRedeemPercentage: config?.maxRedeemPercentage || 100,
       redeemLevel: config?.redeemLevel || 'full',
-      tier: customer?.loyaltyTier || null,
+      tier: isTierExpired ? null : (customer?.loyaltyTier || null),
+      rawTier: customer?.loyaltyTier || null,
+      isTierExpired: !!isTierExpired,
+      loyaltyTierExpiry: customer?.loyaltyTierExpiry || null,
       visitCount: customer?.visitCount || 0,
       customerName: customer?.name || '',
       entries: entries || []

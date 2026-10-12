@@ -50,27 +50,27 @@ const useCustomerSubmit = (id) => {
       const customerData = {
         name: data.name,
         email: data.email || null,
-        mobile: data.phone || null,
+        mobile: data.phone !== undefined && data.phone !== null && data.phone !== '' ? String(data.phone) : null,
         address: data.address || null,
         shipping_address: data.shipping_address ? JSON.stringify(data.shipping_address) : null,
         password: data.password || null,
         group_type: data.type || "Vendor",
         gst_no: data.gst_no || null,
-        aadhaar_no: data.aadhaar_no || null,
-        tel_no: data.tel_no || null,
-        contact_person: data.contact_person || null,
+        aadhaar_no: data.aadhaar_no !== undefined && data.aadhaar_no !== null && data.aadhaar_no !== '' ? String(data.aadhaar_no) : null,
+        tel_no: data.tel_no !== undefined && data.tel_no !== null && data.tel_no !== '' ? String(data.tel_no) : null,
+        contact_person: data.contact_person !== undefined && data.contact_person !== null && data.contact_person !== '' ? String(data.contact_person) : null,
         bank_detail: data.bank_detail || null,
-        discount: data.discount || null,
+        discount: data.discount !== undefined && data.discount !== null && data.discount !== "" ? Number(data.discount) : null,
         gst_type: data.gst_type || "Registered",
-        country_id: data.country_id || null,
-        state_id: data.state_id || null,
-        city_id: data.city_id || null,
-        pincode: data.pincode || null,
+        country_id: data.country_id ? String(data.country_id) : null,
+        state_id: data.state_id ? String(data.state_id) : null,
+        city_id: data.city_id ? String(data.city_id) : null,
+        pincode: data.pincode !== undefined && data.pincode !== null && data.pincode !== '' ? String(data.pincode) : null,
         vendor_group_id: data.vendor_group_id ? String(data.vendor_group_id) : null,
         salesman_id: data.salesman_id ? String(data.salesman_id) : null,
         is_credit_limit: isCombination,
-        amount: isCombination ? data.amount : null,
-        days: isCombination ? data.days : null,
+        amount: isCombination && data.amount !== undefined && data.amount !== null && data.amount !== '' ? Number(data.amount) : null,
+        days: isCombination && data.days !== undefined && data.days !== null && data.days !== '' ? Number(data.days) : null,
       };
 
       console.log("Customer data being sent:", customerData);
@@ -89,9 +89,15 @@ const useCustomerSubmit = (id) => {
         closeDrawer();
       }
     } catch (err) {
-      notifyError(err?.response?.data?.message || err?.message);
+      console.error("Customer submit error:", err);
+      const errorMessage =
+        err?.response?.data?.errors?.join(', ') ||
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to save vendor';
+      notifyError(errorMessage);
       setIsSubmitting(false);
-      closeDrawer();
     }
   };
 

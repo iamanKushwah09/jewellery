@@ -74,42 +74,43 @@ const Currencies = () => {
           <CardBody>
             <form
               onSubmit={handleSubmitCurrency}
-              className="py-3 grid gap-4 lg:gap-6 xl:gap-6 md:flex xl:flex md:justify-between"
+              className="py-2 flex flex-col md:flex-row flex-wrap md:flex-nowrap items-stretch md:items-center justify-between gap-3 md:gap-4"
             >
-              <div className="w-full">
+              <div className="flex-1 min-w-[220px] max-w-lg lg:max-w-xl w-full">
                 <Input
                   ref={currencyRef}
                   type="search"
                   placeholder={t("SearchIsoCode")}
+                  className="page-search-input"
                 />
               </div>
-              <div className="lg:flex  md:flex xl:justify-end xl:w-1/2  md:w-full md:justify-start flex-grow-0">
-                <div className="w-full md:w-40 lg:w-40 xl:w-40 mr-3 mb-3 lg:mb-0">
-                  <Button
-                    disabled={isCheck.length < 1}
-                    onClick={() => handleUpdateMany(isCheck)}
-                    className="w-full rounded-md h-12 btn-gray text-gray-600"
-                  >
-                    <span className="mr-2">
-                      <FiEdit />
-                    </span>
-                    Bulk Action
-                  </Button>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0 md:ml-auto">
+                <Button
+                  disabled={isCheck.length < 1}
+                  onClick={() => handleUpdateMany(isCheck)}
+                  className="h-10 px-3.5 rounded-lg btn-action-reset flex items-center text-xs sm:text-sm font-medium"
+                >
+                  <span className="mr-2">
+                    <FiEdit />
+                  </span>
+                  Bulk Action
+                </Button>
 
-                <div className="w-full md:w-32 lg:w-32 xl:w-32 mr-3 mb-3 lg:mb-0">
-                  <Button
-                    disabled={isCheck.length < 1}
-                    onClick={() => handleDeleteMany(isCheck)}
-                    className="w-full rounded-md h-12 bg-red-500 btn-red"
-                  >
-                    <span className="mr-2">
-                      <FiTrash2 />
-                    </span>
-                    Delete
-                  </Button>
-                </div>
-                <Button onClick={toggleDrawer} className="rounded-md h-12 w-48">
+                <Button
+                  disabled={isCheck.length < 1}
+                  onClick={() => handleDeleteMany(isCheck)}
+                  className="h-10 px-3.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs sm:text-sm font-medium shadow-sm flex items-center"
+                >
+                  <span className="mr-2">
+                    <FiTrash2 />
+                  </span>
+                  Delete
+                </Button>
+
+                <Button
+                  onClick={toggleDrawer}
+                  className="h-10 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-medium shadow-button flex items-center"
+                >
                   <span className="mr-2">
                     <FiPlus />
                   </span>

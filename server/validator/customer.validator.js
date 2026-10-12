@@ -39,17 +39,17 @@ const customerValidationSchema = Joi.object({
     .messages({
       'string.base': 'Shipping address must be a string.',
     }),
-  country_id: Joi.string()
+  country_id: Joi.alternatives().try(Joi.string(), Joi.number())
     .allow(null, '')
     .messages({
       'string.pattern.base': 'Country ID must be a valid ObjectId.',
     }),
-  state_id: Joi.string()
+  state_id: Joi.alternatives().try(Joi.string(), Joi.number())
     .allow(null, '')
     .messages({
       'string.pattern.base': 'State ID must be a valid ObjectId.',
     }),
-  city_id: Joi.string()
+  city_id: Joi.alternatives().try(Joi.string(), Joi.number())
     .allow(null, '')
     .messages({
       'string.pattern.base': 'City ID must be a valid ObjectId.',
@@ -66,7 +66,7 @@ const customerValidationSchema = Joi.object({
     .messages({
       'string.base': 'Application type must be a string.',
     }),
-  pincode: Joi.string()
+  pincode: Joi.alternatives().try(Joi.string(), Joi.number())
     .allow(null, '')
     .messages({
       'string.base': 'Pincode must be a string.',
@@ -76,7 +76,7 @@ const customerValidationSchema = Joi.object({
     .messages({
       'string.base': 'GST number must be a string.',
     }),
-  aadhaar_no: Joi.string()
+  aadhaar_no: Joi.alternatives().try(Joi.string(), Joi.number())
     .allow(null, '')
     .messages({
       'string.base': 'Aadhaar number must be a string.',
@@ -87,18 +87,20 @@ const customerValidationSchema = Joi.object({
     .messages({
       'string.email': 'Email must be a valid email address.',
     }),
-  mobile: Joi.string()
+  mobile: Joi.alternatives().try(
+    Joi.string().pattern(/^[0-9]+$/),
+    Joi.number()
+  )
     .allow(null, '')
-    .pattern(/^[0-9]+$/)
     .messages({
       'string.pattern.base': 'Mobile must contain only numeric characters.',
     }),
-  tel_no: Joi.string()
+  tel_no: Joi.alternatives().try(Joi.string(), Joi.number())
     .allow(null, '')
     .messages({
       'string.base': 'Telephone number must be a string.',
     }),
-  contact_person: Joi.string()
+  contact_person: Joi.alternatives().try(Joi.string(), Joi.number())
     .allow(null, '')
     .messages({
       'string.base': 'Contact person must be a string.',
@@ -163,12 +165,7 @@ const customerValidationSchema = Joi.object({
       'number.base': 'Days must be a number.',
       'number.min': 'Days cannot be less than 0.',
     }),
-    
-    // .messages({
-    //   'alternatives.types': 'Is_active must be either a boolean or a number (0 or 1).',
-    //   'any.required': 'Is_active is required.',
-    // })
-});
+}).unknown(true);
 
 const validateCustomer = (req, res, next) => {
   const { error } = customerValidationSchema.validate(req.body, {
@@ -176,7 +173,11 @@ const validateCustomer = (req, res, next) => {
   });
   if (error) {
     const errorMessages = error.details.map((err) => err.message);
-    return res.status(400).json({ errors: errorMessages });
+    return res.status(400).json({
+      errors: errorMessages,
+      message: errorMessages.join(', '),
+      error: errorMessages[0]
+    });
   }
   next();
 };

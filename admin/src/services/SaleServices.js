@@ -28,6 +28,15 @@ const SaleServices = {
   processSale: async (id) => {
     return requests.post(`/sale/process/${id}`);
   },
+  convertSaleOrderToSale: async (saleOrderId, data = {}) => {
+    return requests.post(`/sale/convert-order/${saleOrderId}`, data);
+  },
+  getUnbilledSaleOrders: async () => {
+    return requests.get('/sale/unbilled-orders');
+  },
+  getPendingOrdersByCustomer: async (customerId) => {
+    return requests.get(`/sale/pending-orders/${customerId}`);
+  },
   getSalesByFilter: async (filters = {}) => {
     const queryParams = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {

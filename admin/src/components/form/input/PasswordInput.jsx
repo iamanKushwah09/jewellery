@@ -30,7 +30,7 @@ const PasswordInput = ({
         placeholder={placeholder}
         name={name}
         autoComplete={autoComplete}
-        className="mr-2 h-12 p-2 pr-12"
+        className="h-8 text-xs sm:text-sm pr-9"
       />
       <button
         type="button"

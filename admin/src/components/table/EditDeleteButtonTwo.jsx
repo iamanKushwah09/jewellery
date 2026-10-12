@@ -24,18 +24,20 @@ const EditDeleteButtonTwo = ({
       <div className="flex justify-end text-right">
         
 
-        {!isShow && !flag ? <button
-          disabled={isCheck?.length > 0}
-          onClick={() => handleModalOpen(id, title, product)}
-          className="p-2 cursor-pointer text-gray-400 hover:text-red-600 focus:outline-none"
-        >
-          <Tooltip
-            id="delete"
-            Icon={FiTrash2}
-            title={t("Delete")}
-            bgColor="#EF4444"
-          />
-        </button> : null}
+        {!isShow && !flag ? (
+          <button
+            disabled={isCheck?.length > 0}
+            onClick={() => handleModalOpen(id, title, product)}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-danger transition-colors focus:outline-none ${isCheck?.length > 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
+          >
+            <Tooltip
+              id="delete"
+              Icon={FiTrash2}
+              title={t("Delete")}
+              bgColor="#DC2626"
+            />
+          </button>
+        ) : null}
       </div>
     </>
   );

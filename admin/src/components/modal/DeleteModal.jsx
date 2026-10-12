@@ -66,7 +66,7 @@ const DeleteModal = ({ id, ids, setIsCheck, category, title, useParamId }) => {
       }
       if (location.pathname === "/item-group") {
         if (ids) {
-          const res = await ItemGroupServices.deleteManyRole({ ids });
+          const res = await ItemGroupServices.deleteManyItemGroup({ ids });
           setIsUpdate(true);
           notifySuccess(res.message);
           setIsCheck([]);
@@ -281,7 +281,7 @@ const DeleteModal = ({ id, ids, setIsCheck, category, title, useParamId }) => {
 
       if (location.pathname === "/item") {
         if (ids) {
-          const res = await ItemServices.deleteManyCoupons({
+          const res = await ItemServices.deleteManyItems({
             ids: ids,
           });
           setIsUpdate(true);
@@ -341,7 +341,7 @@ const DeleteModal = ({ id, ids, setIsCheck, category, title, useParamId }) => {
       }
       if (location.pathname === "/item") {
         if (ids) {
-          const res = await ItemServices.deleteManyCoupons({
+          const res = await ItemServices.deleteManyItems({
             ids: ids,
           });
           setIsUpdate(true);
@@ -589,54 +589,50 @@ const DeleteModal = ({ id, ids, setIsCheck, category, title, useParamId }) => {
   return (
     <>
       <Modal isOpen={isModalOpen} onClose={closeModal}>
-        <ModalBody className="text-center custom-modal px-8 pt-6 pb-4">
-          <span className="flex justify-center text-3xl mb-6 text-red-500">
-            <FiTrash2 />
-          </span>
-          {/* <h2 className="text-xl font-medium mb-1">{t('DeleteModalH2')}</h2> */}
-          <h2 className="text-xl font-medium mb-2">
-            {t("DeleteModalH2")} <span className="text-red-500">{title}</span>?
+        <ModalBody className="text-center custom-modal px-6 pt-6 pb-2">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#FEEAEA] text-[#DC2626] shadow-sm">
+            <FiTrash2 className="h-7 w-7" />
+          </div>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-2 tracking-tight">
+            {t("DeleteModalH2")} <span className="text-danger">{title}</span>?
           </h2>
-          <p>{t("DeleteModalPtag")}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+            {t("DeleteModalPtag")}
+          </p>
         </ModalBody>
 
-        <ModalFooter className="justify-center">
+        <ModalFooter className="flex items-center justify-center gap-3 pt-3 pb-2">
           <Button
-            className="w-full sm:w-auto hover:bg-white hover:border-gray-50"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition-colors"
             layout="outline"
             onClick={closeModal}
           >
             {t("modalKeepBtn")}
           </Button>
-          <div className="flex justify-end">
-            {isSubmitting ? (
-              <Button
-                disabled={true}
-                type="button"
-                className="w-full h-12 sm:w-auto"
-              >
-                <img
-                  src={spinnerLoadingImage}
-                  alt="Loading"
-                  width={20}
-                  height={10}
-                />{" "}
-                <span className="font-serif ml-2 font-light">
-                  {t("Processing")}
-                </span>
-              </Button>
-            ) : (
-              <Button onClick={handleDelete} className="w-full h-12 sm:w-auto">
-                {t("modalDeletBtn")}
-              </Button>
-              // <button
-              //   type="submit"
-              //   className="text-sm mt-6 leading-4 inline-flex items-center cursor-pointer transition ease-in-out duration-300 font-semibold font-serif text-center justify-center border-0 border-transparent rounded-md focus-visible:outline-none focus:outline-none text-white px-4 md:px-6 lg:px-8 py-4 md:py-3.5 lg:py-4 hover:text-white bg-blue-400 hover:bg-blue-500 h-10"
-              // >
-              //   Park Order
-              // </button>
-            )}
-          </div>
+
+          {isSubmitting ? (
+            <Button
+              disabled={true}
+              type="button"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-danger/70 text-white font-medium flex items-center justify-center"
+            >
+              <img
+                src={spinnerLoadingImage}
+                alt="Loading"
+                width={18}
+                height={18}
+                className="animate-spin mr-2"
+              />
+              <span>{t("Processing")}</span>
+            </Button>
+          ) : (
+            <Button
+              onClick={handleDelete}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-danger hover:bg-red-600 text-white font-medium shadow-sm transition-colors"
+            >
+              {t("modalDeletBtn")}
+            </Button>
+          )}
         </ModalFooter>
       </Modal>
     </>

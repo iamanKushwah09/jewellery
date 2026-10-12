@@ -13,7 +13,7 @@ import ItemServices from "@/services/ItemServices";
 import SaleServices from "@/services/SaleServices";
 import SaleTypeServices from "@/services/SaleTypeServices";
 import SundryDiscountService from "@/services/SundryDiscountServices";
-import { notifyError } from "@/utils/toast";
+import { notifyError, notifySuccess } from "@/utils/toast";
 import { SidebarContext } from "@/context/SidebarContext";
 import { set } from "date-fns";
 import UnitServices from "@/services/UnitServices";
@@ -22,7 +22,8 @@ import ItemSearchableDropdown from "@/pages/ItemSearchableDropdown";
 import { AdminContext } from "@/context/AdminContext";
 import AttributeValueServices from "@/services/AttributeValueServices";
 import LoyaltyServices from "@/services/LoyaltyServices";
-import { FiAward, FiStar } from "react-icons/fi";
+import CustomerPendingOrdersModal from "@/components/modal/CustomerPendingOrdersModal";
+import { FiAward, FiStar, FiFileText, FiCheckCircle, FiGift, FiTag, FiPercent, FiTrash2, FiClock, FiAlertCircle, FiZap } from "react-icons/fi";
 
 
 const SaleDrawer = ({ id, isViewOnly = false }) => {
@@ -79,7 +80,7 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
   const [selectedSaleType, setSelectedSaleType] = useState(null);
   const [itemDiscount, setItemDiscount] = useState(0);
   const [vendorDiscount, setVendorDiscount] = useState(0);
-  const [hammaliDiscount, setHammaliDiscount] = useState(0);
+  const [hammaliDiscount, setHammaliDiscount] = useState({ name: "Hammali@20/CRT", discount: 0 });
   const [isCentralSale, setIsCentralSale] = useState(false);
   const [colorOptions, setColorOptions] = useState([]);
   const [sizeOptions, setSizeOptions] = useState([]);
@@ -98,6 +99,47 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [loyaltyDiscountAmount, setLoyaltyDiscountAmount] = useState(0);
 
+  // Tier Membership states
+  const [isTierDiscountActive, setIsTierDiscountActive] = useState(false);
+  const [tierDiscountAmount, setTierDiscountAmount] = useState(0);
+
+  // Coupon states
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [couponDiscountAmount, setCouponDiscountAmount] = useState(0);
+  const [couponApplying, setCouponApplying] = useState(false);
+  const [couponMessage, setCouponMessage] = useState(null);
+
+  // Rewards preview
+  const [estimatedPointsEarned, setEstimatedPointsEarned] = useState(0);
+
+  // Pending Sale Orders states for selected party
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [isPendingOrdersModalOpen, setIsPendingOrdersModalOpen] = useState(false);
+  const [loadedSaleOrder, setLoadedSaleOrder] = useState(null);
+  const [loadedSaleOrders, setLoadedSaleOrders] = useState([]);
+  const [isCheckingOrders, setIsCheckingOrders] = useState(false);
+
+  // Check pending sale orders for the selected customer
+  const checkPendingOrdersForCustomer = useCallback(async (customerId, custName) => {
+    if (!customerId || id) return;
+    try {
+      setIsCheckingOrders(true);
+      const res = await SaleServices.getPendingOrdersByCustomer(customerId);
+      if (res?.success && Array.isArray(res.orders) && res.orders.length > 0) {
+        setPendingOrders(res.orders);
+        setIsPendingOrdersModalOpen(true);
+      } else {
+        setPendingOrders([]);
+      }
+    } catch (err) {
+      console.error("Error checking pending orders:", err);
+    } finally {
+      setIsCheckingOrders(false);
+    }
+  }, [id]);
+
   const fetchCustomerLoyalty = useCallback(async (customerId) => {
     const id = typeof customerId === 'object' ? (customerId?.value || customerId?._id) : customerId;
     if (!id) {
@@ -105,62 +147,132 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
       setIsRedeemActive(false);
       setRedeemPoints(0);
       setLoyaltyDiscountAmount(0);
+      setIsTierDiscountActive(false);
+      setTierDiscountAmount(0);
+      setAvailableCoupons([]);
+      setSelectedCoupon(null);
+      setCouponCodeInput("");
+      setCouponDiscountAmount(0);
+      setCouponMessage(null);
+      setEstimatedPointsEarned(0);
       return;
     }
     setIsFetchingLoyalty(true);
     try {
-      let res = await LoyaltyServices.getPointsBalance(id);
-      if (res && res.success) {
-        setLoyaltyInfo(res);
+      const [res, couponsRes] = await Promise.allSettled([
+        LoyaltyServices.getPointsBalance(id),
+        LoyaltyServices.getCustomerCoupons(id)
+      ]);
+
+      let loyaltyData = null;
+      if (res.status === 'fulfilled' && res.value?.success) {
+        loyaltyData = res.value;
       } else {
         // Fallback to legacy endpoint if deployed server hasn't updated yet
         try {
           const legacyRes = await LoyaltyServices.getCustomerLoyaltyPoints(id);
-          setLoyaltyInfo({
+          loyaltyData = {
             success: true,
             balance: legacyRes?.totalPoints || 0,
             pointValueInRs: 1,
             visitCount: 0,
             tier: null,
             entries: legacyRes?.transactions || []
-          });
+          };
         } catch {
-          setLoyaltyInfo({
+          loyaltyData = {
             success: true,
             balance: 0,
             pointValueInRs: 1,
             visitCount: 0,
             tier: null,
             entries: []
-          });
+          };
         }
       }
+
+      setLoyaltyInfo(loyaltyData);
+
+      // Auto-enable tier discount if tier has discountPercentage > 0 and is not expired
+      if (loyaltyData?.tier && Number(loyaltyData.tier.discountPercentage) > 0 && !loyaltyData?.isTierExpired) {
+        setIsTierDiscountActive(true);
+      } else {
+        setIsTierDiscountActive(false);
+      }
+
+      // Populate available unused, unexpired coupons
+      if (couponsRes.status === 'fulfilled' && couponsRes.value?.success && Array.isArray(couponsRes.value.data)) {
+        const now = new Date();
+        const activeCoupons = couponsRes.value.data.filter(c => !c.isUsed && (!c.expiryDate || new Date(c.expiryDate) > now));
+        setAvailableCoupons(activeCoupons);
+      } else {
+        setAvailableCoupons([]);
+      }
+      setSelectedCoupon(null);
+      setCouponDiscountAmount(0);
+      setCouponMessage(null);
+
     } catch (err) {
       console.error("Error fetching loyalty info:", err);
-      // Fallback to legacy endpoint on error
-      try {
-        const legacyRes = await LoyaltyServices.getCustomerLoyaltyPoints(id);
-        setLoyaltyInfo({
-          success: true,
-          balance: legacyRes?.totalPoints || 0,
-          pointValueInRs: 1,
-          visitCount: 0,
-          tier: null,
-          entries: legacyRes?.transactions || []
-        });
-      } catch {
-        setLoyaltyInfo({
-          success: true,
-          balance: 0,
-          pointValueInRs: 1,
-          visitCount: 0,
-          tier: null,
-          entries: []
-        });
-      }
     } finally {
       setIsFetchingLoyalty(false);
     }
+  }, []);
+
+  const handleApplyCoupon = useCallback((coupon) => {
+    if (!coupon) return;
+    setSelectedCoupon(coupon);
+    setCouponDiscountAmount(Number(coupon.couponValue) || 0);
+    setCouponMessage({ type: 'success', text: `Coupon ${coupon.couponCode} applied! (-₹${Number(coupon.couponValue || 0).toFixed(2)})` });
+  }, []);
+
+  const handleApplyCouponCode = useCallback(async (codeToApply) => {
+    const code = (codeToApply || couponCodeInput || '').trim();
+    if (!code) {
+      setCouponMessage({ type: 'error', text: 'Please enter a coupon code' });
+      return;
+    }
+    const custId = selectedCustomer?.value;
+    if (!custId) {
+      setCouponMessage({ type: 'error', text: 'Please select a customer first' });
+      return;
+    }
+    setCouponApplying(true);
+    setCouponMessage(null);
+    try {
+      const loyaltyItems = items.map(item => ({
+        item_id: item.itemId?.value || item.itemId?._id || item.itemId,
+        price: item.price || item.listPrice || 0,
+        quantity: item.quantity || 1
+      }));
+      const res = await LoyaltyServices.validateCoupon({
+        couponCode: code,
+        customerId: custId,
+        totalAmount: totalAmount || 0,
+        items: loyaltyItems
+      });
+
+      if (res?.success && res.valid && res.coupon) {
+        setSelectedCoupon(res.coupon);
+        setCouponDiscountAmount(Number(res.coupon.couponValue) || 0);
+        setCouponMessage({ type: 'success', text: `Coupon ${res.coupon.couponCode} applied successfully! (-₹${Number(res.coupon.couponValue || 0).toFixed(2)})` });
+        setCouponCodeInput("");
+      } else {
+        setCouponMessage({ type: 'error', text: res?.reason || 'Invalid or expired coupon' });
+      }
+    } catch (err) {
+      console.error("Error validating coupon:", err);
+      setCouponMessage({ type: 'error', text: err?.response?.data?.message || err?.message || 'Error validating coupon' });
+    } finally {
+      setCouponApplying(false);
+    }
+  }, [couponCodeInput, selectedCustomer, items, totalAmount]);
+
+  const handleRemoveCoupon = useCallback(() => {
+    setSelectedCoupon(null);
+    setCouponDiscountAmount(0);
+    setCouponMessage(null);
+    setCouponCodeInput("");
   }, []);
 
   const fetchCustomers = useCallback(async (query = "", page = 1) => {
@@ -205,7 +317,49 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
     }
   }, [customerPage, hasMoreCustomers, loadingMoreCustomers, fetchCustomers]);
 
-  // Recalculate loyalty discount when points or status changes
+  // Recalculate Tier Membership discount when items, tier, or status changes
+  useEffect(() => {
+    if (isTierDiscountActive && loyaltyInfo?.tier && !loyaltyInfo?.isTierExpired) {
+      const tier = loyaltyInfo.tier;
+      const discPercent = Number(tier.discountPercentage) || 0;
+      if (discPercent <= 0) {
+        setTierDiscountAmount(0);
+        return;
+      }
+
+      const scope = tier.applicableOn || 'all';
+      let eligibleSubtotal = 0;
+
+      if (scope === 'all') {
+        eligibleSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      } else if (scope === 'item_group') {
+        const allowedGroups = (tier.applicableItemGroups || []).map(g => String(g._id || g));
+        eligibleSubtotal = items.reduce((sum, item) => {
+          const itemGroupId = String(item.groupId || item.item_group_id || item.itemId?.item_group_id || '');
+          return allowedGroups.includes(itemGroupId) ? sum + (parseFloat(item.amount) || 0) : sum;
+        }, 0);
+      } else if (scope === 'brand') {
+        const allowedBrands = (tier.applicableBrands || []).map(b => String(b._id || b));
+        eligibleSubtotal = items.reduce((sum, item) => {
+          const itemBrandId = String(item.brandId || item.brand_id || item.itemId?.brand_id || '');
+          return allowedBrands.includes(itemBrandId) ? sum + (parseFloat(item.amount) || 0) : sum;
+        }, 0);
+      } else if (scope === 'item') {
+        const allowedItems = (tier.applicableItems || []).map(it => String(it._id || it));
+        eligibleSubtotal = items.reduce((sum, item) => {
+          const itemId = String(item.itemId?.value || item.itemId?._id || item.itemId || '');
+          return allowedItems.includes(itemId) ? sum + (parseFloat(item.amount) || 0) : sum;
+        }, 0);
+      }
+
+      const calculatedTierDiscount = Math.round((eligibleSubtotal * discPercent) / 100 * 100) / 100;
+      setTierDiscountAmount(calculatedTierDiscount);
+    } else {
+      setTierDiscountAmount(0);
+    }
+  }, [isTierDiscountActive, loyaltyInfo, items]);
+
+  // Recalculate loyalty points discount when points or status changes
   useEffect(() => {
     if (isRedeemActive && loyaltyInfo && Number(redeemPoints) > 0) {
       const pointVal = loyaltyInfo.pointValueInRs || 1;
@@ -215,6 +369,40 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
       setLoyaltyDiscountAmount(0);
     }
   }, [isRedeemActive, loyaltyInfo, redeemPoints]);
+
+  // Preview estimated points to be earned on this order
+  useEffect(() => {
+    const custId = selectedCustomer?.value;
+    if (custId && items.length > 0 && totalAmount > 0) {
+      const loyaltyItems = items
+        .filter(item => item.itemId?.value || item.itemId)
+        .map(item => ({
+          item_id: item.itemId?.value || item.itemId?._id || item.itemId,
+          item_group_id: item.groupId || item.item_group_id || item.itemId?.item_group_id || null,
+          price: item.price || item.listPrice || 0,
+          quantity: item.quantity || 1
+        }));
+
+      if (loyaltyItems.length > 0) {
+        const timer = setTimeout(() => {
+          LoyaltyServices.calculatePoints({
+            customerId: custId,
+            items: loyaltyItems,
+            totalAmount: totalNetAmount || totalAmount
+          }).then(res => {
+            if (res && res.success) {
+              setEstimatedPointsEarned(res.pointsAwarded || 0);
+            }
+          }).catch(err => {
+            console.warn("Could not preview loyalty points:", err);
+          });
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      setEstimatedPointsEarned(0);
+    }
+  }, [selectedCustomer, items, totalAmount, totalNetAmount]);
 
   const customerOptions = useMemo(() => {
     return customerList?.map((item) => {
@@ -258,30 +446,71 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
     setIsCentralSale(iscentral);
   }, [selectedSaleType]);
 
+  // Load items & details from selected SaleOrder(s) into SaleDrawer
+  const handleSelectSaleOrders = useCallback((orderInput) => {
+    const orders = Array.isArray(orderInput) ? orderInput : (orderInput ? [orderInput] : []);
+    if (orders.length === 0) return;
 
+    setLoadedSaleOrders(orders);
+    setLoadedSaleOrder(orders[0]);
+    setIsPendingOrdersModalOpen(false);
 
-  const handleItemChange = async (index, field, value) => {
-    // Handle item selection by itemId (dropdown change)
-    if (field === 'itemId') {
-      try {
+    const firstOrder = orders[0];
 
-        const getItemList = await ItemServices.getItemById(value.value);
-        const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({ "PartyCode": getParty, "ItemCode": getItemList.item_code });
-        const itemDiscount = getIndividualDiscount.data.Discount1;
-        // console.log(getItemList,'getItemListgetItemListgetItemListgetItemList')
+    // Auto-populate saleType if exists
+    if (firstOrder.saleType && someSaleType && someSaleType.length > 0) {
+      const sTypeId = typeof firstOrder.saleType === 'object' ? firstOrder.saleType._id : firstOrder.saleType;
+      const sTypeOption = someSaleType.find(it => it._id === sTypeId);
+      if (sTypeOption) {
+        setSelectedSaleType({ value: sTypeOption._id, label: sTypeOption.name });
+      }
+    }
 
+    // Auto-populate salesman if exists
+    if (firstOrder.salesman && salesmanData && salesmanData.length > 0) {
+      const sManId = typeof firstOrder.salesman === 'object' ? firstOrder.salesman._id : firstOrder.salesman;
+      const sManOption = salesmanData.find(it => it._id === sManId);
+      if (sManOption) {
+        setSelectedSalesman({ value: sManOption._id, label: sManOption.name });
+      }
+    }
 
-        setItems(prev => {
-          const newItems = [...prev];
-          const listPrice = parseFloat(getItemList.sale_price || '0');
-          const quantity = 6; // Default quantity as per your requirement
-          // Use vendorDiscount if set, otherwise use item discount
-          const discount = itemDiscount !== 0 ? itemDiscount : (getItemList.discount !== undefined ? parseFloat(getItemList.discount) : 0);
-          const totalDiscount = quantity * (listPrice * discount) / 100;
-          const price = listPrice - (listPrice * discount) / 100;
-          const amount = quantity * price;
-          // Extract variants color and size
-          const variants = getItemList.item_attribute?.variant || [];
+    // Auto-populate matCentre
+    if (firstOrder.matCentre) {
+      setMatCentre(firstOrder.matCentre);
+    }
+
+    // Format and combine all items from all selected orders
+    const allFormattedItems = [];
+    orders.forEach(order => {
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(item => {
+          let formattedItemId = null;
+          if (item.itemId) {
+            if (typeof item.itemId === 'object') {
+              formattedItemId = {
+                value: item.itemId._id,
+                label: item.itemId.name
+              };
+            } else {
+              const itOpt = activeItems?.find(ai => ai._id === item.itemId);
+              if (itOpt) {
+                formattedItemId = { value: itOpt._id, label: itOpt.name };
+              }
+            }
+          }
+
+          // Unit formatting
+          let formattedUnit = null;
+          let unitId = typeof item.unit === 'object' && item.unit !== null ? item.unit._id : (typeof item.unit === 'string' ? item.unit : null);
+          if (unitData && Array.isArray(unitData)) {
+            const uOpt = unitData.find(u => String(u._id) === String(unitId) || String(u.name).toLowerCase() === String(item.unit || '').toLowerCase());
+            if (uOpt) {
+              formattedUnit = { value: uOpt._id, label: uOpt.name };
+            }
+          }
+
+          const variants = item.itemId?.item_attribute?.variant || [];
           const vColors = [...new Set(variants.map(v => v.color).filter(Boolean))].map(c => {
             const global = colorOptions.find(opt => opt.label === c);
             return global || { value: c, label: c };
@@ -291,23 +520,220 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
             return global || { value: s, label: s };
           });
 
-          newItems[index] = {
-            ...newItems[index],
-            itemId: value, // set itemId
-            name: getItemList.name, // keep name for display if needed
-            hsn: getItemList.hsn_code || '',
-            image: getItemList.image, // Add image to item data
+          const ordered = Number(item.orderedQty ?? item.quantity) || 0;
+          const billed = Number(item.billedQty ?? item.billedQuantity) || 0;
+          const pending = item.pendingQty !== undefined ? Number(item.pendingQty) : Math.max(0, ordered - billed);
+
+          // If this item was already 100% billed in a previous invoice, do not add it again
+          if (billed > 0 && pending <= 0) {
+            return;
+          }
+
+          const initialQty = pending > 0 ? pending : (ordered > 0 ? ordered : 1);
+          const listPrice = parseFloat(item.listPrice || (typeof item.itemId === 'object' ? item.itemId?.sale_price : 0) || '0');
+          const discount = parseFloat(item.discount || 0);
+          const price = parseFloat(item.price || (listPrice - (listPrice * discount) / 100) || '0');
+          const totalDiscount = (Number(initialQty) * (listPrice * discount) / 100);
+          const amount = Number(initialQty) * price;
+
+          allFormattedItems.push({
+            image: item.image || (typeof item.itemId === 'object' ? item.itemId?.default_image || '' : ''),
+            name: typeof item.itemId === 'object' ? item.itemId?.name : (item?.name || ''),
+            itemId: formattedItemId,
+            hsn: typeof item.itemId === 'object' ? item.itemId?.hsn_code : (item.hsn || ''),
+            quantity: String(initialQty),
+            unit: formattedUnit,
             listPrice: listPrice.toFixed(2),
-            quantity: quantity.toString(),
-            discount: itemDiscount,
+            discount: discount.toString(),
             totalDiscount: totalDiscount.toFixed(2),
             price: price.toFixed(2),
             amount: amount.toFixed(2),
-            conversion_factor: getItemList.conversion_factor,
-            description: getItemList.description,
-            unit: getItemList?.unit_id ? { value: getItemList.unit_id, label: unitData?.find(u => u._id === getItemList.unit_id)?.name || 'Unknown' } : null,
+            color: item.color || '',
+            size: item.size || '',
+            conversion_factor: item.conversion_factor || 1,
+            description: item.description || (orders.length > 1 ? `SO: ${order.voucherNo?.trim()}` : ''),
             variantColors: vColors,
-            variantSizes: vSizes
+            variantSizes: vSizes,
+            orderedQty: item.orderedQty || item.quantity,
+            pendingQty: initialQty
+          });
+        });
+      }
+    });
+
+    if (allFormattedItems.length > 0) {
+      setItems(allFormattedItems);
+    }
+
+    // Sum totals dynamically based on the loaded items
+    let totalAmt = 0;
+    let totalDisc = 0;
+    let totalQty = 0;
+    let totalNet = 0;
+    let hamaliTotal = 0;
+    let cgstTotal = 0;
+    let sgstTotal = 0;
+    let discTotal = 0;
+
+    allFormattedItems.forEach(it => {
+      const q = Number(it.quantity) || 0;
+      const lp = Number(it.listPrice) || 0;
+      const p = Number(it.price) || 0;
+      const d = Number(it.totalDiscount) || 0;
+      const a = Number(it.amount) || 0;
+      totalQty += q;
+      totalAmt += (q * lp);
+      totalDisc += d;
+      totalNet += a;
+    });
+
+    orders.forEach(order => {
+      if (order.sundries?.SundriesDetail && Array.isArray(order.sundries.SundriesDetail)) {
+        const hamali = order.sundries.SundriesDetail.find(it => it.Name === "Hammali@15/CRT" || it.Name === "Hamali");
+        const cgst = order.sundries.SundriesDetail.find(it => it.Name === "CGST" || it.Name === "cgst");
+        const sgst = order.sundries.SundriesDetail.find(it => it.Name === "SGST1" || it.Name === "SGST" || it.Name === "sgst");
+        const discount = order.sundries.SundriesDetail.find(it => it.Name === "DISCOUNT" || it.Name === "discount");
+
+        if (hamali) hamaliTotal += Number(hamali.DiscountAmount || 0);
+        if (cgst) cgstTotal += Number(cgst.DiscountAmount || 0);
+        if (sgst) sgstTotal += Number(sgst.DiscountAmount || 0);
+        if (discount) discTotal += Number(discount.DiscountAmount || 0);
+      }
+    });
+
+    if (hamaliTotal > 0) setTotalHammli(hamaliTotal);
+    if (cgstTotal > 0) setTotalCgstSundries(cgstTotal);
+    if (sgstTotal > 0) setTotalSgstSundries(sgstTotal);
+    if (discTotal > 0) setTotalDiscountSundries(discTotal);
+    setTotalIgstSundries(cgstTotal + sgstTotal);
+
+    setTotalAmount(totalAmt);
+    setTotalDiscountAmount(totalDisc);
+    setTotalQuantity(totalQty);
+    setNetAmount(totalNet + hamaliTotal + cgstTotal + sgstTotal - discTotal);
+
+    const voucherList = orders.map(o => o.voucherNo?.trim()).filter(Boolean).join(", ");
+    notifySuccess(`Loaded ${allFormattedItems.length} item(s) from Sale Order(s) [${voucherList}]! Adjust quantities as needed before saving.`);
+  }, [someSaleType, salesmanData, activeItems, unitData, colorOptions, sizeOptions]);
+
+
+
+
+  const handleItemChange = async (index, field, value) => {
+    // Handle item selection by itemId (dropdown change)
+    if (field === 'itemId') {
+      try {
+        const targetItemId = value?.value || value?._id || (typeof value === 'string' ? value : null);
+        if (!targetItemId) {
+          setItems(prev => {
+            const newItems = [...prev];
+            newItems[index] = {
+              ...newItems[index],
+              itemId: null,
+              name: '',
+              hsn: '',
+              image: '',
+              listPrice: '',
+              quantity: '',
+              discount: '',
+              totalDiscount: '',
+              price: '',
+              amount: '',
+              color: '',
+              size: '',
+              unit: null,
+              variantColors: [],
+              variantSizes: []
+            };
+            return newItems;
+          });
+          return;
+        }
+
+        const getItemList = await ItemServices.getItemById(targetItemId);
+        if (!getItemList) return;
+
+        let itemDiscount = 0;
+        if (getParty && getItemList.item_code) {
+          try {
+            const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({
+              "PartyCode": getParty,
+              "ItemCode": getItemList.item_code
+            });
+            if (getIndividualDiscount?.data?.Discount1 !== undefined) {
+              itemDiscount = parseFloat(getIndividualDiscount.data.Discount1) || 0;
+            }
+          } catch (discErr) {
+            console.warn("Could not fetch party discount for item:", discErr?.message);
+            itemDiscount = 0;
+          }
+        }
+
+        const listPrice = parseFloat(getItemList.sale_price || '0');
+        const quantity = 6; // Default quantity
+        const discount = itemDiscount !== 0
+          ? itemDiscount
+          : (getItemList.discount !== undefined && getItemList.discount !== null
+              ? parseFloat(getItemList.discount)
+              : (parseFloat(vendorDiscount) || 0));
+
+        const totalDiscount = quantity * (listPrice * discount) / 100;
+        const price = listPrice - (listPrice * discount) / 100;
+        const amount = quantity * price;
+
+        // Extract variants color and size
+        const variants = getItemList.item_attribute?.variant || [];
+        const vColors = [...new Set(variants.map(v => v.color).filter(Boolean))].map(c => {
+          const global = colorOptions.find(opt => opt.label === c);
+          return global || { value: c, label: c };
+        });
+        const vSizes = [...new Set(variants.map(v => v.size).filter(Boolean))].map(s => {
+          const global = sizeOptions.find(opt => opt.label === s);
+          return global || { value: s, label: s };
+        });
+
+        // Resolve unit
+        let resolvedUnit = null;
+        if (getItemList?.unit_id) {
+          if (typeof getItemList.unit_id === 'object' && getItemList.unit_id._id) {
+            resolvedUnit = { value: getItemList.unit_id._id, label: getItemList.unit_id.name };
+          } else {
+            const matchedUnit = unitData?.find(u => String(u._id) === String(getItemList.unit_id));
+            resolvedUnit = { value: getItemList.unit_id, label: matchedUnit?.name || 'PCS' };
+          }
+        }
+
+        // Resolve image
+        let itemImage = '';
+        if (Array.isArray(getItemList.image) && getItemList.image.length > 0) {
+          itemImage = typeof getItemList.image[0] === 'object' ? (getItemList.image[0].url || '') : getItemList.image[0];
+        } else if (typeof getItemList.image === 'string') {
+          itemImage = getItemList.image;
+        } else if (getItemList.default_image) {
+          itemImage = getItemList.default_image;
+        }
+
+        setItems(prev => {
+          const newItems = [...prev];
+          newItems[index] = {
+            ...newItems[index],
+            itemId: value,
+            name: getItemList.name || '',
+            hsn: getItemList.hsn_code || '',
+            image: itemImage,
+            listPrice: listPrice.toFixed(2),
+            quantity: quantity.toString(),
+            discount: discount.toString(),
+            totalDiscount: totalDiscount.toFixed(2),
+            price: price.toFixed(2),
+            amount: amount.toFixed(2),
+            conversion_factor: getItemList.conversion_factor || 1,
+            description: getItemList.description || '',
+            unit: resolvedUnit,
+            variantColors: vColors,
+            variantSizes: vSizes,
+            color: vColors.length > 0 ? vColors[0].label : '',
+            size: vSizes.length > 0 ? vSizes[0].label : ''
           };
           return newItems;
         });
@@ -375,7 +801,7 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
   useEffect(() => {
     if (id) {
       setLoading(true);
-      SaleServices.getSaleOrderById(id)
+      SaleServices.getSaleById(id)
         .then((data) => {
 
 
@@ -383,6 +809,26 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
           setDate(data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
           setVoucherNo(data.voucherNo || '');
           setMatCentre(data.matCentre || 'RETAIL');
+
+          // Pre-populate loyalty details if saved on this invoice
+          if (data.loyaltyPointsRedeemed > 0) {
+            setIsRedeemActive(true);
+            setRedeemPoints(data.loyaltyPointsRedeemed);
+            setLoyaltyDiscountAmount(data.loyaltyDiscountAmount || 0);
+          }
+          if (data.loyaltyTierDiscountAmount > 0) {
+            setIsTierDiscountActive(true);
+            setTierDiscountAmount(data.loyaltyTierDiscountAmount);
+          }
+          if (data.loyaltyCouponDiscountAmount > 0) {
+            setSelectedCoupon({
+              _id: data.loyaltyCouponId,
+              couponCode: data.loyaltyCouponCode || 'LOYALTY-COUPON',
+              couponValue: data.loyaltyCouponDiscountAmount
+            });
+            setCouponDiscountAmount(data.loyaltyCouponDiscountAmount);
+          }
+
           // Fix: Properly format customer value for SearchableDropdown
           // Use populated customer data from API response directly
           if (data.customer) {
@@ -782,9 +1228,11 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
     setTotalQuantity(Number(totalQty.toFixed(2)));
 
     // Calculate hammali (conversion factor based)
+    const hammaliRate = typeof hammaliDiscount === 'object' ? Number(hammaliDiscount?.discount || 0) : Number(hammaliDiscount || 0);
     const hammaliAmount = items.reduce((sum, item) => {
       const quantity = parseFloat(item.quantity) || 0;
-      return sum + ((quantity * Number(item.conversion_factor)) * Number(hammaliDiscount.discount) || 0);
+      const convFactor = Number(item.conversion_factor) || 1;
+      return sum + ((quantity * convFactor) * hammaliRate || 0);
     }, 0);
     setTotalHammli(Number(hammaliAmount.toFixed(2)));
 
@@ -806,12 +1254,20 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
     setTotalSgstSundries(Number(sgstAmount.toFixed(2)));
     setTotalIgstSundries(Number((cgstAmount + sgstAmount).toFixed(2)));
 
-    // Step 5: Final net amount = Subtotal after discount + GST - Loyalty Discount
-    const finalNetAmount = subtotalAfterDiscount + cgstAmount + sgstAmount - (Number(loyaltyDiscountAmount) || 0);
-    setNetAmount(Number(Math.max(0, finalNetAmount).toFixed(2)));
+    // Step 5: Final net amount = Subtotal after discount + GST - Tier Discount - Coupon Discount - Points Discount
+    const effectiveTierDiscount = isTierDiscountActive ? (Number(tierDiscountAmount) || 0) : 0;
+    const effectiveCouponDiscount = selectedCoupon ? (Number(couponDiscountAmount) || 0) : 0;
+    const effectivePointsDiscount = isRedeemActive ? (Number(loyaltyDiscountAmount) || 0) : 0;
 
+    const finalNetAmount = Math.max(0,
+      subtotalAfterDiscount + cgstAmount + sgstAmount 
+      - effectiveTierDiscount 
+      - effectiveCouponDiscount 
+      - effectivePointsDiscount
+    );
+    setNetAmount(Number(finalNetAmount.toFixed(2)));
 
-  }, [items, vendorDiscount, loyaltyDiscountAmount]);
+  }, [items, vendorDiscount, hammaliDiscount, isTierDiscountActive, tierDiscountAmount, selectedCoupon, couponDiscountAmount, isRedeemActive, loyaltyDiscountAmount]);
 
   const handleAddItem = () => {
     setItems(prev => [...prev, {
@@ -888,6 +1344,17 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
     setIsRedeemActive(false);
     setRedeemPoints(0);
     setLoyaltyDiscountAmount(0);
+    setIsTierDiscountActive(false);
+    setTierDiscountAmount(0);
+    setAvailableCoupons([]);
+    setSelectedCoupon(null);
+    setCouponCodeInput("");
+    setCouponDiscountAmount(0);
+    setCouponMessage(null);
+    setEstimatedPointsEarned(0);
+    setLoadedSaleOrder(null);
+    setPendingOrders([]);
+    setIsPendingOrdersModalOpen(false);
   };
 
   // Auto-select salesman if logged in user is a salesman
@@ -945,6 +1412,22 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
         );
       }
 
+      if (isTierDiscountActive && Number(tierDiscountAmount) > 0) {
+        sundriesArray.push({
+          Name: `Loyalty Tier Discount (${loyaltyInfo?.tier?.name || 'Member'} ${loyaltyInfo?.tier?.discountPercentage || 0}%)`,
+          DiscountAmount: Number(tierDiscountAmount).toFixed(2),
+          DiscountPercent: Number(loyaltyInfo?.tier?.discountPercentage) || 0
+        });
+      }
+
+      if (selectedCoupon && Number(couponDiscountAmount) > 0) {
+        sundriesArray.push({
+          Name: `Loyalty Coupon (${selectedCoupon.couponCode || 'Coupon'})`,
+          DiscountAmount: Number(couponDiscountAmount).toFixed(2),
+          DiscountPercent: 0
+        });
+      }
+
       if (isRedeemActive && Number(loyaltyDiscountAmount) > 0) {
         sundriesArray.push({
           Name: "Loyalty Points Discount",
@@ -955,11 +1438,20 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
 
       console.log("Sundries Array: ", items);
       const saleOrderData = {
+        ...(voucherNo && voucherNo.trim() ? { voucherNo: voucherNo.trim() } : {}),
         date,
         saleType: selectedSaleType?.value || '',
-        matCentre: "Vellora Jewels",
+        matCentre: matCentre || "Selection Footwear",
         customer: selectedCustomer?.value || '',
         salesman: selectedSalesman?.value || '',
+        saleOrder: loadedSaleOrder?._id || (loadedSaleOrders[0]?._id || undefined),
+        saleOrders: loadedSaleOrders.length > 0 ? loadedSaleOrders.map(o => o._id) : (loadedSaleOrder ? [loadedSaleOrder._id] : undefined),
+        saleOrderVoucherNo: loadedSaleOrders.length > 0
+          ? loadedSaleOrders.map(o => o.voucherNo?.trim()).filter(Boolean).join(', ')
+          : (loadedSaleOrder?.voucherNo?.trim() || undefined),
+        description: loadedSaleOrders.length > 0
+          ? `Converted from Sale Order(s): ${loadedSaleOrders.map(o => o.voucherNo?.trim()).filter(Boolean).join(', ')}`
+          : (loadedSaleOrder ? `Converted from Sale Order ${loadedSaleOrder.voucherNo}` : ''),
         items: items.map((item) => ({
           ...item,
           itemId: item.itemId?.value,
@@ -970,22 +1462,34 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
         sundries: {
           SundriesDetail: [
             {
-              Name: hammaliDiscount.name,
-              DiscountAmount: totalHammli,
-              DiscountPercent: hammaliDiscount.discount
+              Name: (typeof hammaliDiscount === 'object' && hammaliDiscount?.name) ? hammaliDiscount.name : "Hammali@20/CRT",
+              DiscountAmount: Number(totalHammli) || 0,
+              DiscountPercent: (typeof hammaliDiscount === 'object' && hammaliDiscount?.discount !== undefined) ? Number(hammaliDiscount.discount) || 0 : (Number(hammaliDiscount) || 0)
             },
             {
               Name: "Discount",
-              DiscountAmount: totalDiscountSundries,
-              DiscountPercent: vendorDiscount
+              DiscountAmount: Number(totalDiscountSundries) || 0,
+              DiscountPercent: Number(vendorDiscount) || 0
             },
             ...sundriesArray
-          ]
+          ].filter(s => s && s.Name && typeof s.Name === 'string' && s.Name.trim() !== '')
+           .map(s => ({
+             Name: String(s.Name).trim(),
+             DiscountAmount: Number(s.DiscountAmount) || 0,
+             DiscountPercent: Number(s.DiscountPercent) || 0
+           }))
         },
         totalAmount,
         totalDiscountAmount,
         totalQuantity,
         netAmount: totalNetAmount,
+        loyaltyTierId: (isTierDiscountActive && loyaltyInfo?.tier?._id) ? loyaltyInfo.tier._id : null,
+        loyaltyTierName: (isTierDiscountActive && loyaltyInfo?.tier?.name) ? loyaltyInfo.tier.name : '',
+        loyaltyTierDiscountPercent: (isTierDiscountActive && loyaltyInfo?.tier?.discountPercentage) ? Number(loyaltyInfo.tier.discountPercentage) : 0,
+        loyaltyTierDiscountAmount: (isTierDiscountActive && Number(tierDiscountAmount) > 0) ? Number(tierDiscountAmount) : 0,
+        loyaltyCouponId: selectedCoupon ? selectedCoupon._id : null,
+        loyaltyCouponCode: selectedCoupon ? selectedCoupon.couponCode : '',
+        loyaltyCouponDiscountAmount: selectedCoupon ? Number(couponDiscountAmount) || 0 : 0,
         loyaltyPointsRedeemed: isRedeemActive ? Number(redeemPoints) || 0 : 0,
         loyaltyDiscountAmount: isRedeemActive ? Number(loyaltyDiscountAmount) || 0 : 0,
       };
@@ -1011,15 +1515,26 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
 
   const getSundryDiscountsByPartyGroup = async (partyCode) => {
     try {
-      const { sundryDiscounts, hammali } = await SundryDiscountService.getSundryDiscountsByPartyGroup(partyCode);
-      if (Array.isArray(sundryDiscounts) && sundryDiscounts.length > 0 && sundryDiscounts[0].discount) {
-        setVendorDiscount(sundryDiscounts[0].discount);
-        setHammaliDiscount(hammali);
+      const response = await SundryDiscountService.getSundryDiscountsByPartyGroup(partyCode);
+      const sundryDiscounts = response?.sundryDiscounts;
+      const hammali = response?.hammali;
+      if (Array.isArray(sundryDiscounts) && sundryDiscounts.length > 0 && sundryDiscounts[0]?.discount !== undefined) {
+        setVendorDiscount(Number(sundryDiscounts[0].discount) || 0);
       } else {
         setVendorDiscount(0);
       }
+      if (hammali && typeof hammali === 'object') {
+        setHammaliDiscount({
+          name: hammali.name || "Hammali@20/CRT",
+          discount: Number(hammali.discount) || 0,
+          ...hammali
+        });
+      } else {
+        setHammaliDiscount({ name: "Hammali@20/CRT", discount: 0 });
+      }
     } catch (error) {
       setVendorDiscount(0);
+      setHammaliDiscount({ name: "Hammali@20/CRT", discount: 0 });
     }
   };
 
@@ -1033,12 +1548,18 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
               const getItemList = await ItemServices.getItemById(item.itemId.value);
 
               // Get individual discount for the new party
-              const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({
-                "PartyCode": newPartyCode,
-                "ItemCode": getItemList.item_code
-              });
-
-              const itemDiscount = getIndividualDiscount.data.Discount1;
+              let itemDiscount = 0;
+              try {
+                const getIndividualDiscount = await ItemDiscountServices.getItemDiscountServices({
+                  "PartyCode": newPartyCode,
+                  "ItemCode": getItemList.item_code
+                });
+                if (getIndividualDiscount?.data?.Discount1 !== undefined) {
+                  itemDiscount = parseFloat(getIndividualDiscount.data.Discount1) || 0;
+                }
+              } catch (discErr) {
+                itemDiscount = 0;
+              }
               const listPrice = parseFloat(getItemList.sale_price || '0');
               const quantity = parseFloat(item.quantity || '0');
 
@@ -1111,21 +1632,20 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
 
   return (
     <>
-      <div className="w-full relative p-4 sm:p-6 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+      <div className="w-full relative px-6 py-2.5 sm:py-3 border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
         <Title
           register={register}
-          handleSelectLanguage={handleSelectLanguage}
           title={id ? (isViewOnly ? t("View Sale Order") : t("Update Sale")) : t("Add Sale")}
         />
       </div>
       <Scrollbars className="w-full md:w-7/12 lg:w-8/12 xl:w-8/12 relative dark:bg-gray-700 dark:text-gray-200">
         <Card className="overflow-y-scroll flex-grow scrollbar-hide w-full max-h-full">
-          <CardBody className={isViewOnly ? "pointer-events-none opacity-80" : ""}>
-            {/* Responsive grid for form fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4">
+          <CardBody className={`p-2 sm:p-2.5 ${isViewOnly ? "pointer-events-none opacity-80" : ""}`}>
+            {/* Responsive ultra-compact grid for form fields */}
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${id ? "md:grid-cols-5" : "md:grid-cols-4"} gap-x-1.5 gap-y-1 sm:gap-x-2 sm:gap-y-1 mb-1.5`}>
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Date
                 </label>
                 <InputArea
@@ -1140,9 +1660,9 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                 />
               </div>
 
-              {
-                id ? <div className="col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+              {id ? (
+                <div className="col-span-1">
+                  <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                     Voucher No
                   </label>
                   <InputArea
@@ -1155,10 +1675,11 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                     onChange={(e) => setVoucherNo(e.target.value)}
                     className="w-full"
                   />
-                </div> : ""
-              }
+                </div>
+              ) : null}
+
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Sale Type
                 </label>
                 <SearchableDropdown
@@ -1181,7 +1702,7 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
               </div>
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Party Name <span className="text-red-500">*</span>
                 </label>
                 <SearchableDropdown
@@ -1193,14 +1714,18 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                   loadingMore={loadingMoreCustomers}
                   onChange={(value) => {
                     const custId = value?.value || value?._id || (typeof value === 'string' ? value : null);
-                    const selected = customerList.find((cust) => cust._id === custId);
+                    const selected = customerList.find((cust) => cust._id === custId) || (customerData && customerData.find(c => c._id === custId));
                     setSelectedCustomer(value);
                     fetchCustomerLoyalty(custId);
+
+                    if (custId) {
+                      checkPendingOrdersForCustomer(custId, selected?.name || value?.label);
+                    }
 
                     if (selected?.code) {
                       const oldParty = getParty;
                       setParty(selected.code);
-                      setPartyObject(selected)
+                      setPartyObject(selected);
 
                       console.log(selected, 'selected?.vendor_group_id?.busy_group_id');
 
@@ -1234,22 +1759,9 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                   className="w-full"
                 />
               </div>
-              {/* <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
-                  Material Centre
-                </label>
-                <InputArea
-                  disabled={isViewOnly}
-                  name="matCentre"
-                  register={register}
-                  placeholder="Select material centre"
-                  className="w-full"
-                  value={matCentre}
-                  onChange={(e) => setMatCentre(e.target.value)}
-                />
-              </div> */}
+
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">
                   Salesman
                 </label>
                 <SearchableDropdown
@@ -1263,6 +1775,55 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
               </div>
             </div>
 
+            {/* Pending Sale Orders Info / Loaded Order Badge - Full Width Slim Banner */}
+            {(loadedSaleOrder || loadedSaleOrders.length > 0) && (
+              <div className="mb-2 px-3 py-1.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700/60 flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-indigo-800 dark:text-indigo-300 font-medium truncate">
+                  <FiCheckCircle className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
+                  <span className="truncate">
+                    {loadedSaleOrders.length > 1
+                      ? <>Orders Linked: <strong className="font-bold">{loadedSaleOrders.map(o => o.voucherNo?.trim()).join(", ")}</strong> ({items.length} items loaded)</>
+                      : <>Order Linked: <strong className="font-bold">{loadedSaleOrder?.voucherNo?.trim() || loadedSaleOrders[0]?.voucherNo?.trim()}</strong> ({items.length} items loaded)</>}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2.5 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsPendingOrdersModalOpen(true)}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold underline"
+                    title="Change or select different orders"
+                  >
+                    Change Orders
+                  </button>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoadedSaleOrder(null);
+                      setLoadedSaleOrders([]);
+                    }}
+                    className="text-xs text-red-500 hover:text-red-700 font-semibold underline"
+                    title="Unlink this order and bill manually"
+                  >
+                    Unlink
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!loadedSaleOrder && loadedSaleOrders.length === 0 && pendingOrders.length > 0 && (
+              <div className="mb-2 px-3 py-1.5 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsPendingOrdersModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-semibold hover:underline"
+                >
+                  <FiFileText className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                  <span>{pendingOrders.length} Pending Sale Order(s) Found — Click to View & Load</span>
+                </button>
+              </div>
+            )}
+
             {/* Customer Loyalty Points Card */}
             {selectedCustomer && (
               <div className="mb-4">
@@ -1272,134 +1833,246 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                     Checking customer loyalty points & tier benefits...
                   </div>
                 ) : loyaltyInfo ? (
-                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-white dark:from-gray-800 dark:via-gray-800 dark:to-gray-800/80 p-4 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-emerald-100 dark:border-gray-700">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-emerald-600 text-white shadow-sm">
-                          <FiAward className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-gray-900 dark:text-white text-sm">
-                              Customer Loyalty Program
-                            </span>
-                            {loyaltyInfo.tier && (
-                              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
-                                <FiStar className="w-3 h-3 fill-current" />
-                                {loyaltyInfo.tier.name}
+                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/60 p-3 space-y-2.5">
+                    {(() => {
+                      const startingPoints = loyaltyInfo.balance || 0;
+                      const pointsBeingRedeemed = (isRedeemActive && loyaltyInfo) ? (Number(redeemPoints) || 0) : 0;
+                      const remainingPoints = Math.max(0, startingPoints - pointsBeingRedeemed);
+                      const totalSavings = (isTierDiscountActive ? tierDiscountAmount : 0) + (selectedCoupon ? couponDiscountAmount : 0) + (isRedeemActive ? loyaltyDiscountAmount : 0);
+
+                      return (
+                        <>
+                          {/* 1. Simple Summary Bar */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-gray-200 dark:border-gray-700 text-xs">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                                <FiAward className="text-amber-500 w-4 h-4" />
+                                <span>Loyalty:</span>
+                              </span>
+
+                              {loyaltyInfo.tier ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
+                                  <span>{loyaltyInfo.tier.name} Tier</span>
+                                  {Number(loyaltyInfo.tier.discountPercentage) > 0 && !loyaltyInfo.isTierExpired && (
+                                    <span className="font-bold">({loyaltyInfo.tier.discountPercentage}% OFF)</span>
+                                  )}
+                                </span>
+                              ) : null}
+
+                              <span className="text-gray-600 dark:text-gray-300">
+                                Available: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{startingPoints} pts</strong>
+                                <span className="text-gray-400 ml-1">(₹{(startingPoints * (loyaltyInfo.pointValueInRs || 1)).toFixed(2)})</span>
+                              </span>
+                            </div>
+
+                            {totalSavings > 0 && (
+                              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 text-xs">
+                                Savings: −₹{totalSavings.toFixed(2)}
                               </span>
                             )}
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              ({loyaltyInfo.visitCount || 0} visits)
-                            </span>
                           </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                            Available: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{loyaltyInfo.balance || 0} Points</strong>
-                            {' '}(Worth <strong className="text-emerald-700 dark:text-emerald-400">₹{((loyaltyInfo.balance || 0) * (loyaltyInfo.pointValueInRs || 1)).toFixed(2)}</strong>)
-                          </p>
-                        </div>
-                      </div>
 
-                      {/* Redeem Toggle */}
-                      {loyaltyInfo.balance > 0 ? (
-                        (loyaltyInfo.minInvoiceAmountToRedeem && Number(totalAmount || 0) < Number(loyaltyInfo.minInvoiceAmountToRedeem)) ? (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-200 font-medium">
-                            <span>Min bill of ₹{loyaltyInfo.minInvoiceAmountToRedeem} required to redeem</span>
+                          {/* 2. Simple Controls Row */}
+                          <div className="space-y-2 text-xs">
+                            {/* Tier Discount Toggle (if customer has active tier discount) */}
+                            {loyaltyInfo.tier && Number(loyaltyInfo.tier.discountPercentage) > 0 && !loyaltyInfo.isTierExpired && (
+                              <div className="flex items-center justify-between py-1 px-2 rounded bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700">
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={isTierDiscountActive}
+                                    onChange={(e) => setIsTierDiscountActive(e.target.checked)}
+                                    disabled={isViewOnly}
+                                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-200 font-medium">
+                                    Apply {loyaltyInfo.tier.name} Tier Discount ({loyaltyInfo.tier.discountPercentage}%)
+                                  </span>
+                                </label>
+                                {isTierDiscountActive && tierDiscountAmount > 0 && (
+                                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                    − ₹{tierDiscountAmount.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Points Redemption */}
+                            {loyaltyInfo.balance > 0 && (
+                              <div className="py-1.5 px-2 rounded bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={isRedeemActive}
+                                      onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setIsRedeemActive(checked);
+                                        if (checked && (!redeemPoints || redeemPoints === 0)) {
+                                          setRedeemPoints(loyaltyInfo.balance);
+                                        }
+                                      }}
+                                      disabled={isViewOnly}
+                                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                    <span className="text-gray-700 dark:text-gray-200 font-medium">
+                                      Redeem Points (Balance: {startingPoints} pts)
+                                    </span>
+                                  </label>
+
+                                  {isRedeemActive && loyaltyDiscountAmount > 0 && (
+                                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                      − ₹{loyaltyDiscountAmount.toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {isRedeemActive && (
+                                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-gray-500">Points:</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={loyaltyInfo.balance}
+                                        value={redeemPoints}
+                                        onChange={(e) => {
+                                          const val = Math.max(0, Math.min(loyaltyInfo.balance, Number(e.target.value) || 0));
+                                          setRedeemPoints(val);
+                                        }}
+                                        disabled={isViewOnly}
+                                        className="w-20 px-2 py-1 text-xs font-mono font-bold rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-right outline-none focus:ring-1 focus:ring-emerald-500"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => setRedeemPoints(loyaltyInfo.balance)}
+                                        disabled={isViewOnly}
+                                        className="px-2 py-1 text-[11px] font-semibold rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 transition"
+                                      >
+                                        Use Max ({loyaltyInfo.balance})
+                                      </button>
+                                    </div>
+
+                                    {/* Simple Minus Math */}
+                                    <div className="text-xs font-mono text-gray-600 dark:text-gray-300">
+                                      <span>{startingPoints}</span>
+                                      <span className="text-rose-600 font-bold"> − {pointsBeingRedeemed}</span>
+                                      <span> = </span>
+                                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                        {remainingPoints} pts left
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Coupon / Promo Code */}
+                            <div className="py-1.5 px-2 rounded bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700">
+                              {selectedCoupon ? (
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <FiTag className="text-indigo-500 w-3.5 h-3.5" />
+                                    <span className="font-mono font-bold text-gray-800 dark:text-gray-100">{selectedCoupon.couponCode}</span>
+                                    <span className="text-emerald-600 font-semibold font-mono">(-₹{selectedCoupon.couponValue})</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={handleRemoveCoupon}
+                                    disabled={isViewOnly}
+                                    className="text-gray-400 hover:text-rose-600 text-xs transition"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="text"
+                                      placeholder="Enter Coupon / Promo Code"
+                                      value={couponCodeInput}
+                                      onChange={(e) => {
+                                        setCouponCodeInput(e.target.value.toUpperCase());
+                                        if (couponMessage) setCouponMessage(null);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleApplyCouponCode();
+                                        }
+                                      }}
+                                      disabled={isViewOnly || couponApplying}
+                                      className="flex-1 px-2.5 py-1 text-xs font-mono uppercase rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 outline-none focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApplyCouponCode()}
+                                      disabled={isViewOnly || couponApplying || !couponCodeInput.trim()}
+                                      className="px-3 py-1 text-xs font-semibold rounded bg-gray-800 hover:bg-gray-700 text-white disabled:opacity-40 transition"
+                                    >
+                                      {couponApplying ? '...' : 'Apply'}
+                                    </button>
+                                  </div>
+
+                                  {availableCoupons.length > 0 && (
+                                    <div className="flex items-center gap-1 flex-wrap pt-0.5 text-[11px]">
+                                      <span className="text-gray-400">Available:</span>
+                                      {availableCoupons.map((c) => (
+                                        <button
+                                          key={c._id}
+                                          type="button"
+                                          onClick={() => handleApplyCoupon(c)}
+                                          disabled={isViewOnly}
+                                          className="px-1.5 py-0.5 rounded border border-dashed border-indigo-300 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 font-mono transition"
+                                        >
+                                          {c.couponCode} (-₹{c.couponValue})
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {couponMessage && (
+                                    <p className={`text-[11px] font-medium ${
+                                      couponMessage.type === 'success' ? 'text-emerald-600' : 'text-rose-500'
+                                    }`}>
+                                      {couponMessage.text}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        ) : (
-                          <label className="inline-flex items-center cursor-pointer select-none bg-emerald-100/70 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-700">
-                            <input
-                              type="checkbox"
-                              checked={isRedeemActive}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                setIsRedeemActive(checked);
-                                if (checked && (!redeemPoints || redeemPoints === 0)) {
-                                  setRedeemPoints(loyaltyInfo.balance);
-                                }
-                              }}
-                              disabled={isViewOnly}
-                              className="rounded border-gray-300 text-emerald-600 shadow-sm focus:border-emerald-300 focus:ring focus:ring-emerald-200 focus:ring-opacity-50 w-4 h-4 cursor-pointer"
-                            />
-                            <span className="ml-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                              Redeem Points on this Bill
-                            </span>
-                          </label>
-                        )
-                      ) : (
-                        <span className="text-xs text-gray-500 italic bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded">
-                          0 points available to redeem
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Redemption controls when active */}
-                    {isRedeemActive && loyaltyInfo.balance > 0 && (
-                      <div className="pt-3 flex flex-wrap items-center justify-between gap-3 bg-white/80 dark:bg-gray-700/60 p-3 rounded-lg mt-2 border border-emerald-100 dark:border-gray-600">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                            Points to Redeem:
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={loyaltyInfo.balance}
-                            value={redeemPoints}
-                            onChange={(e) => {
-                              const val = Math.max(0, Math.min(loyaltyInfo.balance, Number(e.target.value) || 0));
-                              setRedeemPoints(val);
-                            }}
-                            disabled={isViewOnly}
-                            className="w-24 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-right font-semibold text-gray-800 dark:text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setRedeemPoints(loyaltyInfo.balance)}
-                            disabled={isViewOnly}
-                            className="px-2 py-1 text-xs font-semibold rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 transition-colors"
-                          >
-                            Use Max ({loyaltyInfo.balance})
-                          </button>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-xs text-gray-600 dark:text-gray-400">Bill Discount: </span>
-                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                            - ₹{loyaltyDiscountAmount.toFixed(2)}
-                          </span>
-                          <span className="text-[11px] text-gray-400 block">
-                            (@ ₹{loyaltyInfo.pointValueInRs || 1} per point)
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                        </>
+                      );
+                    })()}
                   </div>
                 ) : null}
               </div>
             )}
 
             {/* Responsive Grid wrapper */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               {items.map((item, index) => (
                 <div
                   key={index}
-                  className="border border-gray-300 rounded-md p-4 shadow-sm bg-white relative"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-2 sm:p-2.5 shadow-xs bg-white dark:bg-gray-800 relative"
                 >
-                  <div className="absolute top-[6px] right-[8px]">
+                  <div className="absolute top-[4px] right-[6px]">
                     <button
                       onClick={() => handleRemoveItem(index)}
-                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
                       title="Remove Item"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     </button>
                   </div>
-                  <div className="grid lg:grid-cols-6 md:grid-cols-4 grid-cols-2 gap-4">
+                  <div className="grid lg:grid-cols-6 md:grid-cols-4 grid-cols-2 gap-x-1.5 gap-y-1 sm:gap-x-2 sm:gap-y-1">
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Image</label>
-                      <div className="w-12 h-12 border-2 border-gray-300 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Image</label>
+                      <div className="w-8 h-8 border border-gray-200 dark:border-gray-600 rounded-md overflow-hidden bg-gray-50 dark:bg-gray-700 flex items-center justify-center shadow-xs">
                         {item.image ? (
                           <img
                             src={`${import.meta.env.VITE_APP_API_SOCKET_URL}${item.image}`}
@@ -1411,13 +2084,13 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                             }}
                           />
                         ) : null}
-                        <div className="text-gray-400 text-xs font-medium" style={{ display: item.image ? 'none' : 'flex', textAlign: 'center', padding: '4px' }}>
-                          No Image
+                        <div className="text-gray-400 text-[10px] font-medium" style={{ display: item.image ? 'none' : 'flex', textAlign: 'center' }}>
+                          No Img
                         </div>
                       </div>
                     </div>
                     <div className="col-span-2">
-                      <label className="text-xs font-semibold">Item</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Item</label>
                       <ItemSearchableDropdown
                         options={activeItems?.map((ai) => ({
                           value: ai._id,
@@ -1442,17 +2115,18 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                     </div>
 
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">HSN Code</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">HSN Code</label>
                       <Input
                         disabled={isViewOnly}
                         type="text"
                         value={item.hsn || ''}
                         onChange={(e) => handleItemChange(index, 'hsn', e.target.value)}
                         placeholder="HSN Code"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Color</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Color</label>
                       <SearchableDropdown
                         disabled={isViewOnly}
                         options={item.variantColors?.length > 0 ? item.variantColors : colorOptions}
@@ -1462,7 +2136,7 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Size</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Size</label>
                       <SearchableDropdown
                         disabled={isViewOnly}
                         options={item.variantSizes?.length > 0 ? item.variantSizes : sizeOptions}
@@ -1472,18 +2146,19 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Qty</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Qty</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.quantity || ''}
                         onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                         placeholder="Qty"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
 
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Unit</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Unit</label>
                       <SearchableDropdown
                         disabled={isViewOnly}
                         value={item.unit}
@@ -1497,17 +2172,18 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">List Price</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">List Price</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.listPrice || ''}
                         onChange={(e) => handleItemChange(index, 'listPrice', e.target.value)}
                         placeholder="List Price"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Disc. %</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Disc. %</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
@@ -1517,10 +2193,11 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                         step="0.01"
                         min="0"
                         max="100"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Total Disc.</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Total Disc.</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
@@ -1530,37 +2207,40 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                         step="0.01"
                         min="0"
                         max="100"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Price</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Price</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.price || ''}
                         onChange={(e) => handleItemChange(index, 'price', e.target.value)}
                         placeholder="Price"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Amount</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Amount</label>
                       <Input
                         disabled={isViewOnly}
                         type="number"
                         value={item.amount || ''}
                         readOnly
-                        className="bg-gray-100"
+                        className="h-8 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700/60 dark:text-gray-200"
                         placeholder="Amount"
                       />
                     </div>
                     <div className="col-span-1">
-                      <label className="text-xs font-semibold">Description</label>
+                      <label className="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-300 leading-none mb-0.5 truncate">Description</label>
                       <Input
                         // disabled={isViewOnly}
                         type="text"
                         value={item.description || ''}
                         onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                         placeholder="Description"
+                        className="h-8 text-xs sm:text-sm"
                       />
                     </div>
                   </div>
@@ -1569,75 +2249,77 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
               <div className="flex justify-end">
                 <button
                   onClick={handleAddItem}
-                  className="bg-blue-100 hover:bg-blue-200 text-blue-800 py-2 px-4 rounded text-sm"
+                  className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 py-1.5 px-3 rounded-md text-xs font-medium transition-colors"
                 >
                   + Add Item
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-100 p-4 rounded-md font-semibold text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2.5 rounded-md font-semibold text-xs text-gray-800 dark:text-gray-200">
                 <div>Total Quantity: <span className="font-bold">{totalQuantity}</span></div>
                 <div>Total Discount Amount: <span className="font-bold">₹{!totalDiscountAmount ? "0.00" : totalDiscountAmount}</span></div>
-                <div>Total Amount: <span className="font-bold text-lg">₹{totalAmount}</span></div>
+                <div>Total Amount: <span className="font-bold text-base text-primary">₹{totalAmount}</span></div>
               </div>
             </div>
 
 
 
 
-            {/* Bill Sundry Details - Perfected for mobile */}
-            <div className="bg-blue-50 dark:bg-gray-700 p-3 sm:p-4 rounded border text-gray-800 dark:text-gray-200 mt-4">
-              <div className="text-base font-bold mb-3 tracking-wide">
-                Bill Sundry Details <span className="text-xs italic font-normal">(Apply Tax - F4)</span>
+            {/* Bill Sundry Details - Compact & Sleek */}
+            <div className="bg-slate-50 dark:bg-gray-800/80 p-2 sm:p-2.5 rounded-lg border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 mt-2">
+              <div className="text-xs font-bold mb-1.5 tracking-wide uppercase text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                <span>Bill Sundry Details <span className="text-[11px] italic font-normal text-gray-400 lowercase">(apply tax - f4)</span></span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                 {/* Left: Hammali */}
-                <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                  <div className="font-semibold col-span-1 w-full sm:w-auto">1. (+)</div>
-                  <div className="font-semibold col-span-2 w-full sm:w-auto">{hammaliDiscount.name ?? "Hammali@20/CRT"}</div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block">
-                    <Input
+                <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                    <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">1. (+)</span>
+                    <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">
+                      {(typeof hammaliDiscount === 'object' && hammaliDiscount?.name) ? hammaliDiscount.name : "Hammali@20/CRT"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
-                      value={hammaliDiscount.discount}
-                      className="w-full text-right px-2 py-2"
+                      value={(typeof hammaliDiscount === 'object' && hammaliDiscount?.discount !== undefined) ? hammaliDiscount.discount : 0}
+                      className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
-                  </div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                    <Input
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
                       value={totalHammli}
-                      className="w-full text-right px-2 py-2"
+                      className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
                   </div>
                 </div>
 
                 {/* Right: Discount */}
-                <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                  <div className="font-semibold col-span-1 w-full sm:w-auto">2. (-)</div>
-                  <div className="font-semibold col-span-2 w-full sm:w-auto">Discount</div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block">
-                    <Input
+                <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                    <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">2. (-)</span>
+                    <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">Discount</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
                       value={vendorDiscount || '0.00'}
-                      className="w-full text-right px-2 py-2"
+                      className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
-                  </div>
-                  <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                    <Input
+                    <input
                       disabled={isViewOnly}
                       type="number"
                       step="0.01"
                       value={totalDiscountSundries || '0.00'}
-                      className="w-full text-right px-2 py-2"
+                      className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                       readOnly
                     />
                   </div>
@@ -1646,26 +2328,26 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                 {/* Conditional: IGST OR CGST + SGST */}
                 {isCentralSale ? (
                   <div className="sm:col-span-2">
-                    <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                      <div className="font-semibold col-span-1 w-full sm:w-auto">3. (+)</div>
-                      <div className="font-semibold col-span-2 w-full sm:w-auto">IGST</div>
-                      <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0">
-                        <Input
+                    <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">3. (+)</span>
+                        <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">IGST</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
                           disabled={isViewOnly}
                           type="number"
                           step="0.01"
                           value="5.000"
-                          className="w-full text-right px-2 py-2"
+                          className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                           readOnly
                         />
-                      </div>
-                      <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                        <Input
+                        <input
                           disabled={isViewOnly}
                           type="number"
                           step="0.01"
                           value={(Number(totalCgstSundries) + Number(totalSgstSundries)).toFixed(3)}
-                          className="w-full text-right px-2 py-2"
+                          className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
                           readOnly
                         />
                       </div>
@@ -1674,58 +2356,54 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                 ) : (
                   <>
                     {/* CGST */}
-                    <div className="sm:col-span-1">
-                      <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="font-semibold col-span-1 w-full sm:w-auto">3. (+)</div>
-                        <div className="font-semibold col-span-2 w-full sm:w-auto">CGST</div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value="2.5"
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value={totalCgstSundries.toFixed(2)}
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
+                    <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">3. (+)</span>
+                        <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">CGST</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value="2.5"
+                          className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value={totalCgstSundries.toFixed(2)}
+                          className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
                       </div>
                     </div>
 
                     {/* SGST */}
-                    <div className="sm:col-span-1">
-                      <div className="rounded bg-white dark:bg-gray-800 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="font-semibold col-span-1 w-full sm:w-auto">4. (+)</div>
-                        <div className="font-semibold col-span-2 w-full sm:w-auto">SGST</div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value="2.5"
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
-                        <div className="col-span-1 w-full sm:w-auto mt-2 sm:mt-0 flex sm:block ml-0">
-                          <Input
-                            disabled={isViewOnly}
-                            type="number"
-                            step="0.01"
-                            value={totalSgstSundries.toFixed(2)}
-                            className="w-full text-right px-2 py-2"
-                            readOnly
-                          />
-                        </div>
+                    <div className="rounded-md bg-white dark:bg-gray-800 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-gray-200 dark:border-gray-700 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        <span className="font-semibold text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8">4. (+)</span>
+                        <span className="font-medium text-xs text-gray-800 dark:text-gray-200 truncate">SGST</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value="2.5"
+                          className="w-16 h-7 text-xs text-right font-medium px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
+                        <input
+                          disabled={isViewOnly}
+                          type="number"
+                          step="0.01"
+                          value={totalSgstSundries.toFixed(2)}
+                          className="w-20 h-7 text-xs text-right font-semibold px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none"
+                          readOnly
+                        />
                       </div>
                     </div>
                   </>
@@ -1734,17 +2412,19 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
                 {/* Loyalty Discount Sundry */}
                 {isRedeemActive && loyaltyDiscountAmount > 0 && (
                   <div className="sm:col-span-2">
-                    <div className="rounded bg-emerald-50 dark:bg-emerald-950/30 p-3 flex flex-row sm:grid sm:grid-cols-6 gap-2 items-center shadow-sm border border-emerald-200 dark:border-emerald-800">
-                      <div className="font-semibold col-span-1 text-emerald-700 dark:text-emerald-400">5. (-)</div>
-                      <div className="font-semibold col-span-2 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                        <FiAward className="w-4 h-4" />
-                        Loyalty Discount ({redeemPoints} pts)
+                    <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1.5 flex items-center justify-between shadow-xs border border-emerald-200 dark:border-emerald-800 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        <span className="font-bold text-xs text-emerald-700 dark:text-emerald-400 shrink-0 w-8">5. (-)</span>
+                        <span className="font-medium text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 truncate">
+                          <FiAward className="w-3.5 h-3.5 shrink-0" />
+                          Loyalty Discount ({redeemPoints} pts)
+                        </span>
                       </div>
-                      <div className="col-span-1 text-right text-xs text-gray-500">
-                        @ ₹{loyaltyInfo?.pointValueInRs || 1}/pt
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className="font-bold text-emerald-700 dark:text-emerald-400 text-base">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] text-emerald-600/80">
+                          @ ₹{loyaltyInfo?.pointValueInRs || 1}/pt
+                        </span>
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400 text-xs">
                           - ₹{loyaltyDiscountAmount.toFixed(2)}
                         </span>
                       </div>
@@ -1756,43 +2436,43 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
 
 
             {/* Tax Summary Section - Mobile Responsive */}
-            <div className="bg-blue-50 dark:bg-gray-700 p-3 sm:p-4 mt-6 border-t border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm rounded">
+            <div className="bg-slate-50 dark:bg-gray-800/80 p-2 sm:p-2.5 mt-2 border border-slate-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-xs rounded-lg">
               {/* Tax Summary Table - Responsive */}
               <div className="overflow-x-auto">
                 {/* Desktop Table */}
                 <table className="min-w-full border-collapse w-full hidden sm:table">
                   <thead>
-                    <tr className="bg-blue-100 dark:bg-gray-800">
-                      <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Tax Rate</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Taxable Amt.</th>
+                    <tr className="bg-slate-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Tax Rate</th>
+                      <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">Taxable Amt.</th>
                       {isCentralSale ? (
-                        <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">IGST</th>
+                        <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">IGST</th>
                       ) : (
                         <>
-                          <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">CGST</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-600">SGST</th>
+                          <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">CGST</th>
+                          <th className="px-2 py-1 text-left font-semibold border-b border-gray-200 dark:border-gray-600">SGST</th>
                         </>
                       )}
-                      <th className="px-2 py-2 border-b border-gray-200 dark:border-gray-600"></th>
-                      <th className="px-2 py-2 text-right font-semibold border-b border-gray-200 dark:border-gray-600">
+                      <th className="px-2 py-1 border-b border-gray-200 dark:border-gray-600"></th>
+                      <th className="px-2 py-1 text-right font-semibold border-b border-gray-200 dark:border-gray-600">
                         Total Amount
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">5%</td>
-                      <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalAmount.toFixed(2)}</td>
+                      <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">5%</td>
+                      <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalAmount.toFixed(2)}</td>
                       {isCentralSale ? (
-                        <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalIgstSundries.toFixed(2)}</td>
+                        <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalIgstSundries.toFixed(2)}</td>
                       ) : (
                         <>
-                          <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalCgstSundries.toFixed(2)}</td>
-                          <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600">₹{totalSgstSundries.toFixed(2)}</td>
+                          <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalCgstSundries.toFixed(2)}</td>
+                          <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600">₹{totalSgstSundries.toFixed(2)}</td>
                         </>
                       )}
-                      <td className="px-2 py-2 border-b border-gray-200 dark:border-gray-600"></td>
-                      <td className="px-2 py-2 text-right border-b border-gray-200 dark:border-gray-600"><strong>₹{totalNetAmount.toFixed(2)}</strong></td>
+                      <td className="px-2 py-1 border-b border-gray-200 dark:border-gray-600"></td>
+                      <td className="px-2 py-1 text-right border-b border-gray-200 dark:border-gray-600"><strong>₹{totalNetAmount.toFixed(2)}</strong></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1872,6 +2552,14 @@ const SaleDrawer = ({ id, isViewOnly = false }) => {
           </CardBody>
         </Card>
       </Scrollbars>
+      <CustomerPendingOrdersModal
+        isOpen={isPendingOrdersModalOpen}
+        onClose={() => setIsPendingOrdersModalOpen(false)}
+        customerName={selectedCustomer?.label || selectedCustomer?.name}
+        orders={pendingOrders}
+        onSelectOrders={handleSelectSaleOrders}
+        onSelectOrder={handleSelectSaleOrders}
+      />
     </>
   );
 };

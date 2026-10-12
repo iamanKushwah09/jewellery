@@ -67,11 +67,17 @@ const OrderInvoice = () => {
               </h1>
               <div className="lg:text-right text-left">
                 <h2 className="lg:flex lg:justify-end text-lg font-serif font-semibold mt-4 lg:mt-0 lg:ml-0 md:mt-0">
-                  {/* {mode === "dark" ? (
-                    <img src={logoDark} alt="Vellora Jewels" width="110" />
-                  ) : ( */}
-                    <img src={logoDark} alt="Vellora Jewels" width="110" />
-                  {/* )} */}
+                  {globalSetting?.logo ? (
+                    <img
+                      src={globalSetting.logo}
+                      alt={globalSetting?.company_name || "Company Logo"}
+                      className="max-h-16 max-w-[160px] object-contain"
+                    />
+                  ) : (
+                    <span className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                      {globalSetting?.company_name || globalSetting?.shop_name || "Selection Footwear"}
+                    </span>
+                  )}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   {globalSetting?.address} <br />
@@ -188,6 +194,19 @@ const OrderInvoice = () => {
             </div>
           </div>
         )}
+
+        {!loading && globalSetting?.company_policy && (
+          <div className="mt-4 p-4 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/70 dark:bg-gray-900/60">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-2">
+              Company Policy / Terms & Conditions
+            </h4>
+            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+              {globalSetting.company_policy.split('\n').filter(Boolean).map((term, idx) => (
+                <p key={idx}>{term}</p>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       {!loading && (
         <div className="mb-4 mt-3 flex justify-between">
@@ -199,6 +218,7 @@ const OrderInvoice = () => {
                 currency={currency}
                 getNumberTwo={getNumberTwo}
                 showDateFormat={showDateFormat}
+                globalSetting={globalSetting}
               />
             }
             fileName="Invoice"
@@ -207,7 +227,7 @@ const OrderInvoice = () => {
               loading ? (
                 "Loading..."
               ) : (
-                <button className="flex items-center text-sm leading-5 transition-colors duration-150 font-medium focus:outline-none px-5 py-2 rounded-md text-white bg-blue-500 border border-transparent active:bg-blue-600 hover:bg-blue-600  w-auto cursor-pointer">
+                <button className="flex items-center text-sm leading-5 transition-all duration-200 font-medium focus:outline-none px-6 py-2.5 rounded-xl text-white bg-primary hover:bg-primary-hover shadow-button w-auto cursor-pointer">
                   Download Invoice
                   <span className="ml-2 text-base">
                     <IoCloudDownloadOutline />
@@ -219,7 +239,7 @@ const OrderInvoice = () => {
 
           <ReactToPrint
             trigger={() => (
-              <button className="flex items-center text-sm leading-5 transition-colors duration-150 font-medium focus:outline-none px-5 py-2 rounded-md text-white bg-blue-500 border border-transparent active:bg-blue-600 hover:bg-blue-600  w-auto">
+              <button className="flex items-center text-sm leading-5 transition-all duration-200 font-medium focus:outline-none px-6 py-2.5 rounded-xl text-white bg-primary hover:bg-primary-hover shadow-button w-auto cursor-pointer">
                 {t("PrintInvoice")}
                 <span className="ml-2">
                   <FiPrinter />

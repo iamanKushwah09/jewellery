@@ -343,7 +343,13 @@ const Uploader = ({ initialImages = [], setNewImage }) => {
         }
         // Update the parent state with new images
         setNewImage((prevState) => {
-          return Array.isArray(prevState) && prevState.length > 0 ? [...prevState, ...newImages] : [...newImages];
+          const filteredPrev = Array.isArray(prevState) 
+            ? prevState.filter(img => {
+                const str = typeof img === 'string' ? img : (img?.url || img?.fileName || img?.path || '');
+                return !str.includes('default_image.png') && !str.includes('placeholder_kvepfp.png');
+              })
+            : [];
+          return [...newImages, ...filteredPrev];
         });
         setLoading(false); // Hide loading
       }

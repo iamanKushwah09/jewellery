@@ -22,37 +22,37 @@ const EditDeleteButton = ({
   busyApiStatus
 }) => {
   const { t } = useTranslation();
-  
+
   // Disable all buttons if busyApiStatus is 'SUCCESS'
   const isDisabled = busyApiStatus === 'SUCCESS' || isCheck?.length > 0;
 
   return (
     <>
-      <div className="flex justify-end text-right space-x-1">
+      <div className="flex items-center justify-end text-right gap-1.5">
         {children?.length > 0 ? (
           <>
             <Link
               to={`/categories/${parent?._id}`}
-              className="p-2 cursor-pointer text-gray-400 hover:text-blue-600 focus:outline-none"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#845adf]/10 text-[#845adf] hover:bg-[#845adf] hover:text-white transition-all duration-200 focus:outline-none shadow-xs"
             >
               <Tooltip
                 id="view"
                 Icon={FiZoomIn}
                 title={t("View")}
-                bgColor="#10B981"
+                bgColor="#845adf"
               />
             </Link>
 
             <button
               disabled={isDisabled}
               onClick={() => handleUpdate(id)}
-              className={`p-2 cursor-pointer text-gray-400 hover:text-blue-600 focus:outline-none ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex h-8 w-8 items-center justify-center rounded-lg bg-[#845adf]/10 text-[#845adf] hover:bg-[#845adf] hover:text-white transition-all duration-200 focus:outline-none shadow-xs ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               <Tooltip
                 id="edit"
                 Icon={FiEdit}
                 title={t("Edit")}
-                bgColor="#10B981"
+                bgColor="#845adf"
               />
             </button>
           </>
@@ -60,13 +60,13 @@ const EditDeleteButton = ({
           <button
             disabled={isDisabled}
             onClick={() => handleUpdate(id)}
-            className={`p-2 cursor-pointer text-gray-400 hover:text-blue-600 focus:outline-none ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg bg-[#845adf]/10 text-[#845adf] hover:bg-[#845adf] hover:text-white transition-all duration-200 focus:outline-none shadow-xs ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <Tooltip
               id="edit"
               Icon={isShow ? GrView : FiEdit}
               title={isShow ? t("View") : t("Edit")}
-              bgColor="#10B981"
+              bgColor="#845adf"
             />
           </button>
         )}
@@ -75,24 +75,22 @@ const EditDeleteButton = ({
           <button
             disabled={isDisabled}
             onClick={() => handleProcess(id)}
-            className={`p-2 cursor-pointer text-gray-400 hover:text-blue-600 focus:outline-none ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg bg-[#23b7e5]/10 text-[#23b7e5] hover:bg-[#23b7e5] hover:text-white transition-all duration-200 focus:outline-none shadow-xs ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
             title="Busy Posting"
           >
             <Tooltip
               id="process"
               Icon={FiPlay}
               title="Busy Posting"
-              bgColor="#3B82F6"
+              bgColor="#23b7e5"
             />
           </button>
         )}
 
         {handlePrint && (
           <button
-            // disabled={isDisabled}
             onClick={() => handlePrint(id)}
-            // onClick={() => console.log(id,'idijlkjlkjlkjlk')}
-            className={`p-2 cursor-pointer text-gray-400 hover:text-green-600 focus:outline-none ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg bg-[#23b7e5]/10 text-[#23b7e5] hover:bg-[#23b7e5] hover:text-white transition-all duration-200 focus:outline-none shadow-xs ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
             title="Print Invoice"
             type="button"
           >
@@ -100,23 +98,25 @@ const EditDeleteButton = ({
               id="print"
               Icon={FiPrinter}
               title="Print Invoice"
-              bgColor="#10B981"
+              bgColor="#23b7e5"
             />
           </button>
         )}
 
-        {!isShow && !flag ? <button
-          disabled={isDisabled}
-          onClick={() => handleModalOpen(id, title, product)}
-          className={`p-2 cursor-pointer text-gray-400 hover:text-red-600 focus:outline-none ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <Tooltip
-            id="delete"
-            Icon={FiTrash2}
-            title={t("Delete")}
-            bgColor="#EF4444"
-          />
-        </button> : null}
+        {!isShow && !flag ? (
+          <button
+            disabled={isDisabled}
+            onClick={() => handleModalOpen(id, title, product)}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg bg-[#e6533c]/10 text-[#e6533c] hover:bg-[#e6533c] hover:text-white transition-all duration-200 focus:outline-none shadow-xs ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+          >
+            <Tooltip
+              id="delete"
+              Icon={FiTrash2}
+              title={t("Delete")}
+              bgColor="#e6533c"
+            />
+          </button>
+        ) : null}
       </div>
     </>
   );

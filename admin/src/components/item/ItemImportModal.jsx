@@ -242,7 +242,7 @@ const ItemImportModal = ({ isOpen, onClose, onSuccess }) => {
             
             <div className="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 overflow-hidden relative">
               <div 
-                className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out" 
+                className="bg-primary h-4 rounded-full transition-all duration-300 ease-out" 
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -263,7 +263,7 @@ const ItemImportModal = ({ isOpen, onClose, onSuccess }) => {
         </Button>
         {step === 2 && (
           <Button 
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white" 
+            className="w-full sm:w-auto bg-primary hover:bg-primary-hover text-white rounded-xl shadow-button font-medium" 
             onClick={handleImport}
             disabled={loading || !mapping.name}
           >

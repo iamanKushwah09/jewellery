@@ -231,7 +231,7 @@ const PartyLedger = () => {
                   <Button
                     type="submit"
                     disabled={isLoadingPartyLedger || !vendorMaster}
-                    className="h-12 bg-blue-700 w-full"
+                    className="h-12 bg-primary hover:bg-primary-hover text-white rounded-xl shadow-button font-medium w-full"
                   >
                     {isLoadingPartyLedger ? "Loading..." : t("Filter")}
                   </Button>
@@ -244,7 +244,7 @@ const PartyLedger = () => {
                   <div className="text-sm text-gray-600 font-semibold dark:text-gray-300">
                     Opening Balance:
                   </div>
-                  <div className="text-lg font-semibold text-blue-700 dark:text-blue-400">
+                  <div className="text-lg font-semibold text-primary">
                     ₹{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(partyLedgerData?.Balance?.OpeningBal || 0))}
                   </div>
                 </div>
@@ -255,7 +255,7 @@ const PartyLedger = () => {
                       layout="outline"
                       onClick={handleDownloadPDF}
                       disabled={isDownloadingPDF}
-                      className="flex items-center gap-2 h-10 border-blue-600 text-blue-600 hover:bg-blue-50"
+                      className="flex items-center gap-2 h-10 border-primary text-primary hover:bg-primary hover:text-white rounded-xl transition-all font-medium"
                     >
                       {isDownloadingPDF ? (downloadProgress > 0 ? `Downloading ${downloadProgress}%` : "Generating PDF...") : "Download PDF"}
                       <IoCloudDownloadOutline className={`text-lg ${isDownloadingPDF ? 'animate-bounce' : ''}`} />
@@ -264,7 +264,7 @@ const PartyLedger = () => {
                     {isDownloadingPDF && (
                       <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-500 transition-all duration-300"
+                          className="h-full bg-primary transition-all duration-300"
                           style={{ width: `${downloadProgress || 5}%` }}
                         ></div>
                       </div>

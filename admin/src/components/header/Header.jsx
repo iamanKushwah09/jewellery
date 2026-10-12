@@ -1,46 +1,50 @@
-import { Avatar, Badge, WindmillContext } from "@windmill/react-ui";
-import Cookies from "js-cookie";
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import Cookies from "js-cookie";
+import { useTranslation } from "react-i18next";
 import { Scrollbars } from "react-custom-scrollbars-2";
-
 import {
   FiTrash2,
   FiGrid,
   FiLogOut,
   FiMenu,
-  FiSun,
-  FiMoon,
   FiBell,
   FiSettings,
+  FiChevronDown,
+  FiGlobe,
+  FiSearch,
+  FiSun,
+  FiMoon,
+  FiSliders,
 } from "react-icons/fi";
-import { Link } from "react-router-dom";
-import cookies from "js-cookie";
-import { useTranslation } from "react-i18next";
+import { HiOutlineMenuAlt2 } from "react-icons/hi";
 
-//internal import
-
+// internal import
 import de from "@/assets/img/de.svg";
 import en from "@/assets/img/us.svg";
 import ellipse from "@/assets/img/icons/ellipse.svg";
 import { AdminContext } from "@/context/AdminContext";
 import { SidebarContext } from "@/context/SidebarContext";
+import { useThemeCustomizer } from "@/context/ThemeCustomizerContext";
+import ThemeCustomizerDrawer from "@/components/theme/ThemeCustomizerDrawer";
 import useNotification from "@/hooks/useNotification";
 import useUtilsFunction from "@/hooks/useUtilsFunction";
 import NotFoundTwo from "@/components/table/NotFoundTwo";
 import NotificationServices from "@/services/NotificationServices";
 import { notifyError } from "@/utils/toast";
-import { use } from "react";
 
 const Header = () => {
   const { toggleSidebar, handleLanguageChange, setNavBar, navBar } =
     useContext(SidebarContext);
   const { state, dispatch } = useContext(AdminContext);
+  const { primaryColor, themeMode, toggleThemeMode, openCustomizer } =
+    useThemeCustomizer();
   const { adminInfo } = state;
-  const { mode, toggleMode } = useContext(WindmillContext);
   const pRef = useRef();
   const nRef = useRef();
+  const lRef = useRef();
 
-  const currentLanguageCode = cookies.get("i18next") || "en";
+  const currentLanguageCode = Cookies.get("i18next") || "en";
   const { t } = useTranslation();
   const { updated, setUpdated } = useNotification();
   const { showDateTimeFormat } = useUtilsFunction();
@@ -50,39 +54,38 @@ const Header = () => {
   const [totalUnreadDoc, setTotalUnreadDoc] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
-  // console.log("currentLanguageCode", currentLanguageCode);
-  useEffect(() => {
-    toggleMode();
-  }, []);
+  const getAdminDisplayName = () => {
+    if (!adminInfo) return "Admin";
+    if (typeof adminInfo.name === "string") return adminInfo.name;
+    if (adminInfo.name && typeof adminInfo.name === "object") {
+      return adminInfo.name.en || Object.values(adminInfo.name)[0] || "Admin";
+    }
+    return adminInfo.email ? adminInfo.email.split("@")[0] : "Admin";
+  };
+
+  const displayName = getAdminDisplayName();
+  const displayRole = typeof adminInfo?.role === "string" ? adminInfo.role : "Administrator";
+  const displayInitial = (typeof displayName === "string" && displayName.length > 0)
+    ? displayName.charAt(0).toUpperCase()
+    : "A";
 
   const handleLogOut = () => {
     try {
-      console.log('Logging out...');
-      
-      // Clear context state
       dispatch({ type: "USER_LOGOUT" });
-      
-      // Clear all cookies
       Cookies.remove("adminInfo");
       Cookies.remove("globalSetting");
-      
-      // Clear any other admin-related cookies
       const allCookies = Cookies.get();
-      Object.keys(allCookies).forEach(cookieName => {
-        if (cookieName.includes('admin') || cookieName.includes('Admin')) {
+      Object.keys(allCookies).forEach((cookieName) => {
+        if (cookieName.includes("admin") || cookieName.includes("Admin")) {
           Cookies.remove(cookieName);
         }
       });
-      
-      console.log('Logout successful, redirecting to login...');
-      
-      // Use window.location.href instead of replace for better compatibility
       window.location.href = "/login";
-      
     } catch (error) {
-      console.error('Logout error:', error);
-      // Fallback redirect
+      console.error("Logout error:", error);
       window.location.href = "/login";
     }
   };
@@ -90,10 +93,19 @@ const Header = () => {
   const handleNotificationOpen = async () => {
     setNotificationOpen(!notificationOpen);
     setProfileOpen(false);
+    setLangOpen(false);
     await handleGetAllNotifications();
   };
+
   const handleProfileOpen = () => {
     setProfileOpen(!profileOpen);
+    setNotificationOpen(false);
+    setLangOpen(false);
+  };
+
+  const handleLangToggle = () => {
+    setLangOpen(!langOpen);
+    setProfileOpen(false);
     setNotificationOpen(false);
   };
 
@@ -103,7 +115,6 @@ const Header = () => {
       await NotificationServices.updateStatusNotification(id, {
         status: "read",
       });
-
       const getAllRes = await NotificationServices.getAllNotification();
       setData(getAllRes?.notifications);
       setTotalUnreadDoc(getAllRes?.totalUnreadDoc);
@@ -126,11 +137,10 @@ const Header = () => {
     }
   };
 
-  //handle get notifications
+  // handle get notifications
   const handleGetAllNotifications = async () => {
     try {
       const res = await NotificationServices.getAllNotification();
-      // console.log("notifcation api called", res);
       setData(res?.notifications);
       setTotalUnreadDoc(res?.totalUnreadDoc);
       setTotalDoc(res?.totalDoc);
@@ -149,299 +159,357 @@ const Header = () => {
       if (!nRef?.current?.contains(e.target)) {
         setNotificationOpen(false);
       }
+      if (!lRef?.current?.contains(e.target)) {
+        setLangOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
-  }, [pRef, nRef]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  // notification api calling
   useEffect(() => {
     handleGetAllNotifications();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updated]);
-  // const onChange = (event) => {
-  //     i18next.changeLanguage(event.target.value);
 
-  // }
-
-  // console.log("notificaiotn", data);
   return (
-    <>
-      <header className="z-30 py-4 bg-white shadow-sm dark:bg-gray-800">
-        <div className="container flex items-center justify-between h-full px-6 mx-auto text-blue-500 dark:text-blue-500">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-[#e9edf4] dark:border-[#263168] bg-white dark:bg-[#111c43] px-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] md:px-6 2xl:px-8 transition-colors duration-200">
+      {/* Left controls & Quick Search */}
+      <div className="flex items-center gap-3 md:gap-4 flex-1">
+        {/* Desktop Sidebar Toggle */}
+        <button
+          type="button"
+          onClick={() => setNavBar(!navBar)}
+          aria-label="Toggle Desktop Sidebar"
+          className="hidden h-9 w-9 items-center justify-center rounded-lg border border-[#e9edf4] dark:border-[#263168] bg-[#f0f1f7]/60 dark:bg-[#1a2352] text-[#536485] dark:text-[#a3aed1] transition-colors hover:bg-[#845adf]/10 hover:border-[#845adf]/30 hover:text-[#845adf] lg:flex"
+        >
+          <HiOutlineMenuAlt2 className="w-5 h-5" />
+        </button>
+
+        {/* Mobile Hamburger */}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label="Open Mobile Menu"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e9edf4] dark:border-[#263168] bg-[#f0f1f7]/60 dark:bg-[#1a2352] text-[#536485] dark:text-[#a3aed1] transition-colors hover:bg-[#845adf]/10 hover:border-[#845adf]/30 hover:text-[#845adf] lg:hidden"
+        >
+          <FiMenu className="w-5 h-5" />
+        </button>
+
+        {/* Quick Search Bar */}
+        <div className="hidden md:flex items-center relative max-w-xs w-full">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8c9097] z-10">
+            <FiSearch className="w-3.5 h-3.5" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search anything..."
+            className="header-search-input w-full py-1.5 text-xs bg-[#f0f1f7]/60 dark:bg-[#1a2352] border border-[#e9edf4] dark:border-[#263168] rounded-lg text-[#2c3138] dark:text-white placeholder-[#8c9097] focus:outline-none focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-ring)] transition-all"
+            style={{ paddingLeft: "2.35rem", paddingRight: "3.5rem" }}
+            readOnly
+          />
+          <div className="absolute inset-y-0 right-0 pr-2 flex items-center z-10">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-semibold text-[#8c9097] bg-white dark:bg-[#111c43] border border-[#e9edf4] dark:border-[#263168] rounded shadow-xs">
+              Ctrl+K
+            </kbd>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Controls */}
+      <div className="flex items-center gap-2.5 md:gap-3.5">
+        {/* Language selector - Hidden as requested */}
+        {/* <div className="relative" ref={lRef}>
           <button
             type="button"
-            onClick={() => setNavBar(!navBar)}
-            className="hidden lg:block outline-0 focus:outline-none"
+            onClick={handleLangToggle}
+            className="flex items-center gap-2 rounded-lg border border-[#e9edf4] dark:border-[#263168] bg-[#f0f1f7]/60 dark:bg-[#1a2352] px-2.5 py-1.5 text-xs font-medium text-[#2c3138] dark:text-white transition-colors hover:bg-gray-100 dark:hover:bg-[#1a2352]/80"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 18 18"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              ></path>
-            </svg>
+            <img
+              src={currentLanguageCode === "de" ? de : en}
+              alt="lang"
+              className="h-3.5 w-5 rounded-sm object-cover"
+            />
+            <span className="uppercase font-semibold text-xs">
+              {currentLanguageCode === "de" ? "DE" : "EN"}
+            </span>
+            <FiChevronDown
+              className={`w-3 h-3 text-[#8c9097] transition-transform ${
+                langOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
 
-          {/* <!-- Mobile hamburger --> */}
-          <button
-            className="p-1 mr-5 -ml-1 rounded-md lg:hidden focus:outline-none"
-            onClick={toggleSidebar}
-            aria-label="Menu"
-          >
-            <FiMenu className="w-6 h-6" aria-hidden="true" />
-          </button>
-          <span></span>
-
-          <ul className="flex justify-end items-center flex-shrink-0 space-x-6">
-            <li className="changeLanguage">
-              <div className="dropdown">
-                <button className="dropbtn focus:outline-none">
-                  {currentLanguageCode === "de" ? (
-                    <img src={de} width={16} alt="lang" className="mx-2" />
-                  ) : (
-                    <img src={en} className="mx-2" alt="lang" width={16} />
-                  )}
-                  {currentLanguageCode === "de" ? (
-                    <span className="text-gray-700 dark:text-gray-400">
-                      GERMAN
-                    </span>
-                  ) : (
-                    <span className="text-gray-700 dark:text-gray-400">
-                      ENGLISH
-                    </span>
-                  )}
-                </button>
-
-                <div className="dropdown-content">
-                  <div
-                    onClick={() => handleLanguageChange("en")}
-                    className="focus:outline-none cursor-pointer"
-                  >
-                    <img src={en} width={16} alt="lang" /> English{" "}
-                  </div>
-                  <div
-                    onClick={() => handleLanguageChange("de")}
-                    className="focus:outline-none cursor-pointer"
-                  >
-                    <img src={de} width={16} alt="lang" /> German
-                  </div>
-                </div>
-              </div>
-            </li>
-
-            {/* <!-- Theme toggler --> */}
-
-              {/* <li className="flex">
-                <button
-                  className="rounded-md focus:outline-none"
-                  onClick={toggleMode}
-                  aria-label="Toggle color mode"
-                >
-                  {mode === "dark" ? (
-                    <FiSun className="w-5 h-5" aria-hidden="true" />
-                  ) : (
-                    <FiMoon className="w-5 h-5" aria-hidden="true" />
-                  )}
-                </button>
-              </li> */}
-
-            {/* <!-- Notifications menu --> */}
-            <li className="relative inline-block text-left" ref={nRef}>
+          {langOpen && (
+            <div className="absolute right-0 mt-2 w-36 rounded-xl border border-[#e9edf4] dark:border-[#263168] bg-white dark:bg-[#1a2352] py-1 shadow-dropdown z-50 overflow-hidden">
               <button
-                className="relative align-middle rounded-md focus:outline-none"
-                onClick={handleNotificationOpen}
+                type="button"
+                onClick={() => {
+                  handleLanguageChange("en");
+                  setLangOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-gray-50 dark:hover:bg-white/5 hover:text-[#845adf] ${
+                  currentLanguageCode === "en"
+                    ? "text-[#845adf] font-semibold bg-[#845adf]/5"
+                    : "text-[#536485] dark:text-[#a3aed1]"
+                }`}
               >
-                <FiBell
-                  className="w-5 h-5 text-blue-500"
-                  aria-hidden="true"
-                />
-
-                <span className="absolute z-10 top-0 right-0 inline-flex items-center justify-center p-1 h-5 w-5 text-xs font-medium leading-none text-red-100 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
-                  {totalUnreadDoc}
-                </span>
+                <img src={en} alt="EN" className="h-3.5 w-5 rounded-sm object-cover" />
+                <span>English</span>
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleLanguageChange("de");
+                  setLangOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-gray-50 dark:hover:bg-white/5 hover:text-[#845adf] ${
+                  currentLanguageCode === "de"
+                    ? "text-[#845adf] font-semibold bg-[#845adf]/5"
+                    : "text-[#536485] dark:text-[#a3aed1]"
+                }`}
+              >
+                <img src={de} alt="DE" className="h-3.5 w-5 rounded-sm object-cover" />
+                <span>German</span>
+              </button>
+            </div>
+          )}
+        </div> */}
 
-              {notificationOpen && (
-                <div className="origin-top-right absolute md:right-0 -right-3 top-2 rounded-md shadow-lg bg-white dark:bg-gray-800  focus:outline-none">
-                  <div
-                    className={`${
-                      data?.length === 0
-                        ? "h-40"
-                        : data?.length <= 2
-                        ? "h-40"
-                        : data?.length <= 3
-                        ? "h-56"
-                        : "h-330"
-                    } md:w-400 w-300`}
-                  >
-                    <Scrollbars>
-                      {data?.length === 0 ? (
-                        <NotFoundTwo title="No new notification" />
-                      ) : (
-                        <ul className="block text-sm border-t border-gray-100 dark:border-gray-700 rounded-md">
-                          {data?.map((value, index) => {
-                            return (
-                              <li
-                                key={index + 1}
-                                className={`flex justify-between items-center font-serif font-normal text-sm py-3 border-b border-gray-100 dark:border-gray-700 px-3 transition-colors duration-150 hover:bg-gray-100 ${
-                                  value.status === "unread" && "bg-gray-50"
-                                } hover:text-gray-800 dark:text-gray-400 ${
-                                  value.status === "unread" &&
-                                  "dark:bg-gray-800"
-                                } dark:hover:bg-gray-900  dark:hover:text-gray-100 cursor-pointer`}
-                              >
-                                <Link
-                                  to={
-                                    value.productId
-                                      ? `/product/${value.productId}`
-                                      : value.orderId
-                                      ? `/order/${value.orderId}`
-                                      : "/our-staff"
-                                  }
-                                  className="flex items-center"
-                                  onClick={() =>
-                                    handleNotificationStatusChange(value._id)
-                                  }
-                                >
-                                  <Avatar
-                                    className="mr-2 md:block bg-gray-50 border border-gray-200"
-                                    src={value.image}
-                                    alt="image"
-                                  />
+        {/* Dark/Light Quick Mode Switcher - Hidden as requested */}
+        {/* <button
+          type="button"
+          onClick={toggleThemeMode}
+          aria-label="Toggle Theme Mode"
+          title={themeMode === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e9edf4] dark:border-[#263168] bg-[#f0f1f7]/60 dark:bg-[#1a2352] text-[#536485] dark:text-[#a3aed1] transition-colors hover:bg-[var(--primary-color)]/10 hover:border-[var(--primary-color)]/30 hover:text-[var(--primary-color)]"
+        >
+          {themeMode === "dark" ? (
+            <FiSun className="w-4 h-4 text-amber-400" />
+          ) : (
+            <FiMoon className="w-4 h-4" />
+          )}
+        </button> */}
 
-                                  <div className="notification-content">
-                                    <h6 className="font-medium text-gray-500">
-                                      {/* {`${cusName} ${priceText}`} */}
-                                      {value?.message}
-                                    </h6>
+        {/* Theme Customizer Palette Drawer Trigger - Hidden as requested */}
+        {/* <button
+          type="button"
+          onClick={openCustomizer}
+          aria-label="Customize Theme & Colors"
+          title="Customize Theme & Colors"
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[#e9edf4] dark:border-[#263168] bg-[#f0f1f7]/60 dark:bg-[#1a2352] text-[#536485] dark:text-[#a3aed1] transition-colors hover:bg-[var(--primary-color)]/10 hover:border-[var(--primary-color)]/30 hover:text-[var(--primary-color)] group"
+        >
+          <FiSliders className="w-4 h-4 transition-transform duration-200 group-hover:rotate-45" />
+          <span
+            className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-[#111c43]"
+            style={{ backgroundColor: primaryColor }}
+          />
+        </button> */}
 
-                                    <p className="flex items-center text-xs text-gray-400">
-                                      {value.productId ? (
-                                        <Badge type="danger">Stock Out</Badge>
-                                      ) : (
-                                        <Badge type="success">New Order</Badge>
-                                      )}
-                                      <span className="ml-2">
-                                        {showDateTimeFormat(value.createdAt)}
-                                      </span>
-                                    </p>
-                                  </div>
+        {/* Notifications */}
+        <div className="relative" ref={nRef}>
+          <button
+            type="button"
+            onClick={handleNotificationOpen}
+            aria-label="View notifications"
+            className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[#e9edf4] dark:border-[#263168] bg-[#f0f1f7]/60 dark:bg-[#1a2352] text-[#536485] dark:text-[#a3aed1] transition-colors hover:bg-[#845adf]/10 hover:border-[#845adf]/30 hover:text-[#845adf]"
+          >
+            <FiBell className="w-4 h-4" />
+            {totalUnreadDoc > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e6533c] px-1 text-[10px] font-bold text-white shadow-sm">
+                {totalUnreadDoc}
+              </span>
+            )}
+          </button>
 
-                                  {value.status === "unread" && (
-                                    <span className="px-2 focus:outline-none">
-                                      <img
-                                        src={ellipse}
-                                        width={12}
-                                        height={12}
-                                        alt="ellipse"
-                                        className="w-3 h-3 text-blue-600"
-                                      />
-                                    </span>
-                                  )}
-                                </Link>
+          {notificationOpen && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-[#e9edf4] dark:border-[#263168] bg-white dark:bg-[#1a2352] shadow-dropdown z-50 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-[#e9edf4] dark:border-[#263168] px-4 py-3 bg-[#f0f1f7]/40 dark:bg-white/[0.02]">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-[#2c3138] dark:text-white">
+                  Notifications
+                </h5>
+                {totalUnreadDoc > 0 && (
+                  <span className="rounded-full bg-[#845adf]/10 px-2 py-0.5 text-[11px] font-semibold text-[#845adf]">
+                    {totalUnreadDoc} Unread
+                  </span>
+                )}
+              </div>
 
-                                <div className="group inline-block relative">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleNotificationDelete(value._id)
-                                    }
-                                    className="px-2 group-hover:text-blue-500 text-red-500 focus:outline-none"
-                                  >
-                                    <FiTrash2 />
-                                  </button>
-
-                                  <div className="absolute hidden group-hover:inline-block bg-gray-50 dark:text-red-400 mr-6 mb-1 right-0 z-50 px-3 py-2 text-sm font-medium text-red-600 rounded-lg shadow-sm tooltip dark:bg-gray-700">
-                                    Delete
-                                  </div>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-
-                      {totalDoc > 5 && (
-                        <div className="text-center py-2">
-                          <Link
-                            onClick={() => setNotificationOpen(false)}
-                            to={"/notifications"}
-                            className="focus:outline-none hover:underline transition ease-out duration-200"
-                          >
-                            Show all notifications
-                          </Link>
-                        </div>
-                      )}
-                    </Scrollbars>
+              <div className="max-h-80 overflow-y-auto">
+                {data?.length === 0 ? (
+                  <div className="py-8">
+                    <NotFoundTwo title="No new notifications" />
                   </div>
+                ) : (
+                  <ul className="divide-y divide-[#e9edf4] dark:divide-[#263168]">
+                    {data?.map((value, index) => (
+                      <li
+                        key={index}
+                        className={`flex items-start justify-between gap-3 p-3.5 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] ${
+                          value.status === "unread" ? "bg-[#845adf]/[0.03]" : ""
+                        }`}
+                      >
+                        <Link
+                          to={
+                            value.productId
+                              ? `/product/${value.productId}`
+                              : value.orderId
+                              ? `/order/${value.orderId}`
+                              : "/our-staff"
+                          }
+                          onClick={() => handleNotificationStatusChange(value._id)}
+                          className="flex flex-1 items-start gap-3"
+                        >
+                          <div className="relative mt-0.5 flex-shrink-0">
+                            {value.image ? (
+                              <img
+                                src={value.image}
+                                alt=""
+                                className="h-9 w-9 rounded-full border border-[#e9edf4] dark:border-[#263168] object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#845adf]/10 text-[#845adf] font-bold text-xs">
+                                {value.productId ? "P" : "O"}
+                              </div>
+                            )}
+                            {value.status === "unread" && (
+                              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#845adf] ring-2 ring-white dark:ring-[#1a2352]" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 overflow-hidden">
+                            <p className="truncate text-xs font-semibold text-[#2c3138] dark:text-white">
+                              {value?.message}
+                            </p>
+                            <div className="mt-1 flex items-center gap-2">
+                              {value.productId ? (
+                                <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold bg-[#e6533c]/10 text-[#e6533c]">
+                                  Stock Out
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold bg-[#26bf94]/10 text-[#26bf94]">
+                                  New Order
+                                </span>
+                              )}
+                              <span className="text-[11px] text-[#8c9097]">
+                                {showDateTimeFormat(value.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => handleNotificationDelete(value._id)}
+                          title="Delete"
+                          className="mt-1 flex h-6 w-6 items-center justify-center rounded text-[#8c9097] transition-colors hover:bg-red-50 hover:text-[#e6533c]"
+                        >
+                          <FiTrash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {totalDoc > 5 && (
+                <div className="border-t border-[#e9edf4] dark:border-[#263168] p-2 text-center bg-[#f0f1f7]/40 dark:bg-white/[0.02]">
+                  <Link
+                    to="/notifications"
+                    onClick={() => setNotificationOpen(false)}
+                    className="text-xs font-semibold text-[#845adf] hover:underline"
+                  >
+                    View all {totalDoc} notifications
+                  </Link>
                 </div>
               )}
-            </li>
+            </div>
+          )}
+        </div>
 
-            {/* <!-- Profile menu --> */}
-            <li className="relative inline-block text-left" ref={pRef}>
-              <button
-                className="rounded-full dark:bg-gray-500 bg-blue-500 text-white h-8 w-8 font-medium mx-auto focus:outline-none"
-                onClick={handleProfileOpen}
-              >
-                {adminInfo.image ? (
-                  <Avatar
-                    className="align-middle"
+        {/* User Profile dropdown */}
+        <div className="relative" ref={pRef}>
+          <button
+            type="button"
+            onClick={handleProfileOpen}
+            className="flex items-center gap-2.5 rounded-xl p-1 transition-colors hover:bg-gray-100 dark:hover:bg-white/5"
+          >
+            <div className="relative flex-shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#845adf] font-semibold text-white text-xs shadow-sm overflow-hidden">
+                {adminInfo?.image && !imgError ? (
+                  <img
                     src={`${import.meta.env.VITE_APP_SOCKET_URL}/${adminInfo.image}`}
-                    aria-hidden="true"
+                    alt="avatar"
+                    className="h-full w-full object-cover"
+                    onError={() => setImgError(true)}
                   />
                 ) : (
-                  <span>{adminInfo.email[0].toUpperCase()}</span>
+                  <span>{displayInitial}</span>
                 )}
+              </div>
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#26bf94] ring-2 ring-white dark:ring-[#111c43]" />
+            </div>
+            <div className="hidden text-left md:block">
+              <span className="block text-xs font-semibold text-[#2c3138] dark:text-white">
+                {displayName}
+              </span>
+              <span className="block text-[11px] text-[#8c9097]">
+                {displayRole}
+              </span>
+            </div>
+            <FiChevronDown
+              className={`hidden w-3.5 h-3.5 text-[#8c9097] transition-transform md:block ${
+                profileOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {profileOpen && (
+            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-[#e9edf4] dark:border-[#263168] bg-white dark:bg-[#1a2352] py-1.5 shadow-dropdown z-50">
+              <div className="border-b border-[#e9edf4] dark:border-[#263168] px-4 py-2.5 md:hidden">
+                <p className="text-xs font-bold text-[#2c3138] dark:text-white truncate">
+                  {displayName}
+                </p>
+                <p className="text-[11px] text-[#8c9097] truncate">
+                  {adminInfo?.email || ""}
+                </p>
+              </div>
+
+              <Link
+                to="/dashboard"
+                onClick={() => setProfileOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-[#536485] dark:text-[#a3aed1] transition-colors hover:bg-gray-50 dark:hover:bg-white/5 hover:text-[#845adf]"
+              >
+                <FiGrid className="w-4 h-4 text-[#8c9097]" />
+                <span>{t("Dashboard")}</span>
+              </Link>
+
+              <Link
+                to="/edit-profile"
+                onClick={() => setProfileOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-[#536485] dark:text-[#a3aed1] transition-colors hover:bg-gray-50 dark:hover:bg-white/5 hover:text-[#845adf]"
+              >
+                <FiSettings className="w-4 h-4 text-[#8c9097]" />
+                <span>{t("EditProfile")}</span>
+              </Link>
+
+              <div className="my-1 border-t border-[#e9edf4] dark:border-[#263168]" />
+
+              <button
+                type="button"
+                onClick={handleLogOut}
+                className="flex w-full items-center gap-3 px-4 py-2 text-xs font-medium text-[#e6533c] transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
+              >
+                <FiLogOut className="w-4 h-4" />
+                <span>{t("LogOut")}</span>
               </button>
-
-              {profileOpen && (
-                <ul className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 focus:outline-none">
-                  <li className="justify-between font-serif font-medium py-2 pl-4 transition-colors duration-150 hover:bg-gray-100 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
-                    <Link to="/dashboard">
-                      <span className="flex items-center text-sm">
-                        <FiGrid className="w-4 h-4 mr-3" aria-hidden="true" />
-                        <span>{t("Dashboard")}</span>
-                      </span>
-                    </Link>
-                  </li>
-
-                  <li className="justify-between font-serif font-medium py-2 pl-4 transition-colors duration-150 hover:bg-gray-100 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
-                    <Link to="/edit-profile">
-                      <span className="flex items-center text-sm">
-                        <FiSettings
-                          className="w-4 h-4 mr-3"
-                          aria-hidden="true"
-                        />
-                        <span>{t("EditProfile")}</span>
-                      </span>
-                    </Link>
-                  </li>
-
-                  <li
-                    onClick={handleLogOut}
-                    className="cursor-pointer justify-between font-serif font-medium py-2 pl-4 transition-colors duration-150 hover:bg-gray-100 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                  >
-                    <span className="flex items-center text-sm">
-                      <FiLogOut className="w-4 h-4 mr-3" aria-hidden="true" />
-                      <span>{t("LogOut")}</span>
-                    </span>
-                  </li>
-                </ul>
-              )}
-            </li>
-          </ul>
+            </div>
+          )}
         </div>
-      </header>
-    </>
+      </div>
+
+      {/* Slide-out Theme Customizer Drawer */}
+      <ThemeCustomizerDrawer />
+    </header>
   );
 };
 

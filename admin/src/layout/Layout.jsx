@@ -1,5 +1,6 @@
 import React, { useContext, Suspense, useEffect, lazy } from "react";
 import { Switch, Route, Redirect, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
 
 //internal import
 import Main from "@/layout/Main";
@@ -8,22 +9,39 @@ import Header from "@/components/header/Header";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { SidebarContext } from "@/context/SidebarContext";
 import ThemeSuspense from "@/components/theme/ThemeSuspense";
+import SettingServices from "@/services/SettingServices";
+import { addSetting } from "@/reduxStore/slice/settingSlice";
 const Page404 = lazy(() => import("@/pages/404"));
 // import { useSelector } from "react-redux";
 import { AdminContext } from "@/context/AdminContext";
 // import AuthDebug from "@/components/debug/AuthDebug";
+import SalesmanPresenceTracker from "@/components/common/SalesmanPresenceTracker";
 
 const Layout = () => {
-  const { isSidebarOpen, closeSidebar, navBar } = useContext(SidebarContext);
+  const dispatch = useDispatch();
+  const { isSidebarOpen, closeSidebar, closeDrawer, navBar } = useContext(SidebarContext);
   let location = useLocation();
   const isOnline = navigator.onLine;
 
   const { state } = useContext(AdminContext);
   const { adminInfo } = state;
-  const routes = getRoutes(adminInfo.permission); // Call the function with the user's permissions
+  const routes = getRoutes(adminInfo?.permission || [], adminInfo); // Call the function with user permissions and adminInfo
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await SettingServices.getGlobalSetting();
+        dispatch(addSetting({ ...res, name: "globalSetting" }));
+      } catch (err) {
+        console.error("Error updating settings from background fetch", err);
+      }
+    };
+    fetchSettings();
+  }, [dispatch]);
 
   useEffect(() => {
     closeSidebar();
+    if (closeDrawer) closeDrawer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
@@ -34,16 +52,16 @@ const Layout = () => {
           You are in offline mode!{" "}
         </div>
       )}
+      <SalesmanPresenceTracker />
       {/* Debug component - remove in production */}
       {/* <AuthDebug /> */}
       <div
-        className={`flex h-screen bg-gray-50 dark:bg-gray-900 ${
-          isSidebarOpen && "overflow-hidden"
-        }`}
+        className={`flex h-screen overflow-hidden bg-[#f0f1f7] dark:bg-[#111c43] ${isSidebarOpen ? "overflow-hidden" : ""
+          }`}
       >
         {navBar && <Sidebar />}
 
-        <div className="flex flex-col flex-1 w-full">
+        <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
           <Header />
           <Main>
             <Suspense fallback={<ThemeSuspense />}>

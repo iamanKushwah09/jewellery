@@ -139,7 +139,7 @@ export default function AccessibilityPage() {
       icon: EnvelopeIcon,
       title: 'Email Support',
       description: 'Send us an email for accessibility assistance',
-      contact: 'accessibility@Vellorajewels.com',
+      contact: 'accessibility@bioinnovatepharma.com',
       availability: 'Response within 24 hours'
     },
     {

@@ -106,7 +106,7 @@ export default function ShippingPage() {
       icon: EnvelopeIcon,
       title: 'Email Support',
       description: 'Send us an email for accessibility assistance',
-      contact: 'accessibility@Vellorajewels.com',
+      contact: 'accessibility@bioinnovatepharma.com',
       availability: 'Response within 24 hours'
     },
     {
@@ -423,7 +423,7 @@ export default function ShippingPage() {
               <EnvelopeIcon className="h-6 w-6" />
               <div className="text-left">
                 <p className="font-semibold">Email Us</p>
-                <p className="text-blue-100">shipping@Vellorajewels.com</p>
+                <p className="text-blue-100">shipping@bioinnovatepharma.com</p>
               </div>
             </div>
           </div>

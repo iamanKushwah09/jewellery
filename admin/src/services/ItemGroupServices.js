@@ -29,6 +29,13 @@ const ItemGroupServices = {
     console.log({ id });
     return requests.delete(`/item-groups/${id}`);
   },
+  deleteManyItemGroup: async (body) => {
+    if (body?.ids && Array.isArray(body.ids)) {
+      return Promise.all(body.ids.map((id) => requests.delete(`/item-groups/${id}`)))
+        .then(() => ({ message: "Selected item groups deleted successfully" }));
+    }
+    return requests.delete("/item-groups");
+  },
   deleteAllItemGroup: async () => {
     return requests.delete("/item-groups");
   },
@@ -37,6 +44,9 @@ const ItemGroupServices = {
     return requests.get(`/item-groups/${id}`);
   },
   updateItemGroup: async (id, data) => {
+    return requests.put(`/item-groups/${id}`, data);
+  },
+  updateStatus: async (id, data) => {
     return requests.put(`/item-groups/${id}`, data);
   },
   syncItemGroup: async () => {

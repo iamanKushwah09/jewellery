@@ -57,37 +57,40 @@ const useUtilsFunction = () => {
   };
 
   const currency =
-    globalSetting?.default_currency &&
-    globalSetting.default_currency !== "$" &&
-    globalSetting.default_currency !== "€"
+    globalSetting?.default_currency && globalSetting.default_currency !== "$"
       ? globalSetting.default_currency
       : "₹";
 
   useEffect(() => {
-    // console.log("globalSetting", globalSetting);
+    let isMounted = true;
     const fetchGlobalSetting = async () => {
       try {
         setLoading(true);
-        console.log("globalSetting setting not available");
         const res = await SettingServices.getGlobalSetting();
-        const globalSettingData = {
-          ...res,
-          name: "globalSetting",
-        };
-
-        dispatch(addSetting(globalSettingData));
-
-        setLoading(false);
+        if (isMounted && res) {
+          const globalSettingData = {
+            ...res,
+            name: "globalSetting",
+          };
+          dispatch(addSetting(globalSettingData));
+        }
       } catch (err) {
-        setError(err.message);
-        console.log("Error on getting storeCustomizationSetting setting", err);
+        if (isMounted) {
+          setError(err.message);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (!globalSetting) {
-      fetchGlobalSetting();
-    }
-  }, [globalSetting]);
+    fetchGlobalSetting();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch]);
 
   return {
     error,
