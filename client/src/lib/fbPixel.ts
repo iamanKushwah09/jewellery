@@ -123,7 +123,7 @@ const initPixel = (): void => {
     console.warn('[Meta Pixel] NEXT_PUBLIC_META_PIXEL_ID is not set in store/.env. Set your Pixel ID to send live events to Meta.');
     return;
   }
-  if (window.fbq) return; // Already initialized
+  if (typeof (window as any).fbq === 'function') return; // Already initialized
 
   // Meta Pixel base code
   (function (f: any, b: Document, e: string, v: string, n?: any, t?: any, s?: any) {
