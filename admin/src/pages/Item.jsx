@@ -460,11 +460,11 @@ const Item = () => {
                   </div>
                   <input
                     ref={userRef}
-                    type="text"
+                    type="search"
                     name="search"
                     placeholder={t("Search Item")}
                     onChange={onSearchChange}
-                    className="w-full h-10 rounded-lg text-xs sm:text-sm bg-white dark:bg-[#1a2352] border border-gray-200 dark:border-[#263168] text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-all"
+                    className="has-icon-left page-search-input w-full h-10 rounded-lg text-xs sm:text-sm bg-white dark:bg-[#1a2352] border border-gray-200 dark:border-[#263168] text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-all !pl-11 !pr-4"
                     style={{ paddingLeft: "2.75rem", paddingRight: "1rem" }}
                   />
                   <button type="submit" className="hidden"></button>

@@ -1756,8 +1756,8 @@ table input[type="checkbox"]:checked,
  * Ynex Global Form Controls (Text Boxes, Inputs, Selects, Textareas)
  * Reference: https://laravelui.spruko.com/ynex/index6
  * ============================================================================ */
-html:not(.dark) input[type="text"]:not([class*="react-switch"]):not(.header-search-input),
-html:not(.dark) input[type="search"]:not(.header-search-input):not(.table-search-input):not(.page-search-input),
+html:not(.dark) input[type="text"]:not([class*="react-switch"]):not(.header-search-input):not(.has-icon-left):not(.page-search-input),
+html:not(.dark) input[type="search"]:not(.header-search-input):not(.table-search-input):not(.page-search-input):not(.has-icon-left),
 html:not(.dark) input[type="number"],
 html:not(.dark) input[type="password"],
 html:not(.dark) input[type="email"],
@@ -1830,7 +1830,9 @@ html:not(.dark) .card input.has-icon-left,
 .dark .card input.has-icon-left,
 input.has-icon-left,
 .has-icon-left {
-  padding-left: 2.6rem !important;
+  padding-left: 2.75rem !important;
+  padding-right: 1rem !important;
+  height: 2.5rem !important;
 }
 
 /* Action Buttons (Reset, Sync, Outline, Danger - Unified 40px Height) */
