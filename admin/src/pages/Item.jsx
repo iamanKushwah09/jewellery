@@ -454,18 +454,16 @@ const Item = () => {
             >
               {/* Search Bar - Expands smoothly to eliminate empty space */}
               <div className="w-full xl:flex-1 min-w-0">
-                <div className="relative flex items-center w-full">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-400 z-10">
-                    <FiSearch className="w-4 h-4 text-gray-400" />
-                  </div>
+                <div className="flex items-center w-full h-10 rounded-lg bg-white dark:bg-[#1a2352] border border-gray-200 dark:border-[#263168] px-3.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary shadow-xs transition-all">
+                  <FiSearch className="w-4 h-4 text-gray-400 flex-shrink-0 mr-2.5 pointer-events-none" />
                   <input
                     ref={userRef}
-                    type="search"
+                    type="text"
                     name="search"
                     placeholder={t("Search Item")}
                     onChange={onSearchChange}
-                    className="has-icon-left page-search-input w-full h-10 rounded-lg text-xs sm:text-sm bg-white dark:bg-[#1a2352] border border-gray-200 dark:border-[#263168] text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-all !pl-11 !pr-4"
-                    style={{ paddingLeft: "2.75rem", paddingRight: "1rem" }}
+                    className="w-full h-full !bg-transparent !border-0 !p-0 text-xs sm:text-sm text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-0 !shadow-none"
+                    style={{ background: "transparent", border: "none", outline: "none", padding: 0, height: "100%" }}
                   />
                   <button type="submit" className="hidden"></button>
                 </div>

@@ -1756,8 +1756,8 @@ table input[type="checkbox"]:checked,
  * Ynex Global Form Controls (Text Boxes, Inputs, Selects, Textareas)
  * Reference: https://laravelui.spruko.com/ynex/index6
  * ============================================================================ */
-html:not(.dark) input[type="text"]:not([class*="react-switch"]):not(.header-search-input):not(.has-icon-left):not(.page-search-input):not([class*="pl-"]),
-html:not(.dark) input[type="search"]:not(.header-search-input):not(.table-search-input):not(.page-search-input):not(.has-icon-left):not([class*="pl-"]),
+html:not(.dark) input[type="text"]:not([class*="react-switch"]):not(.header-search-input):not(.has-icon-left):not(.page-search-input):not([class*="pl-"]):not([id^="react-select-"]):not([class*="select__input"]),
+html:not(.dark) input[type="search"]:not(.header-search-input):not(.table-search-input):not(.page-search-input):not(.has-icon-left):not([class*="pl-"]):not([id^="react-select-"]):not([class*="select__input"]),
 html:not(.dark) input[type="number"],
 html:not(.dark) input[type="password"],
 html:not(.dark) input[type="email"],
@@ -1833,6 +1833,17 @@ input.has-icon-left,
   padding-left: 2.75rem !important;
   padding-right: 1rem !important;
   height: 2.5rem !important;
+}
+
+/* Transparent input inside search flex container */
+.flex > input[style*="transparent"],
+.flex > input[type="text"][style*="transparent"],
+.flex > input[type="search"][style*="transparent"] {
+  height: 100% !important;
+  border: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 /* Action Buttons (Reset, Sync, Outline, Danger - Unified 40px Height) */
@@ -2146,7 +2157,7 @@ textarea:disabled {
 }
 
 /* Dark mode inputs (Comprehensive coverage with bulletproof specificity) */
-html.dark input[type="text"]:not([class*="react-switch"]),
+html.dark input[type="text"]:not([class*="react-switch"]):not([id^="react-select-"]):not([class*="select__input"]),
 html.dark input[type="search"],
 html.dark input[type="number"],
 html.dark input[type="password"],
@@ -2161,7 +2172,7 @@ html.dark select,
 html.dark textarea,
 html.dark .form-control,
 html.dark .form-select,
-.dark input[type="text"]:not([class*="react-switch"]),
+.dark input[type="text"]:not([class*="react-switch"]):not([id^="react-select-"]):not([class*="select__input"]),
 .dark input[type="search"],
 .dark input[type="number"],
 .dark input[type="password"],
@@ -2179,6 +2190,38 @@ html.dark .form-select,
   background-color: #1a2352 !important;
   border-color: #263168 !important;
   color: #ffffff !important;
+}
+
+/* ============================================================================
+ * React-Select Internal Dummy Input Reset (Prevents blocking placeholder text)
+ * ============================================================================ */
+.basic-multi-select input,
+.select__input-container input,
+.select__input,
+input.select__input,
+input[id^="react-select-"],
+div[class*="select__input"] input,
+div[class*="-Input"] input,
+div[class*="-input"] input {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  width: auto !important;
+  line-height: normal !important;
+  outline: none !important;
+  opacity: 1 !important;
+}
+
+.basic-multi-select .select__placeholder,
+.select__placeholder {
+  margin-left: 2px !important;
+  margin-right: 2px !important;
 }
 
 html.dark input::placeholder,

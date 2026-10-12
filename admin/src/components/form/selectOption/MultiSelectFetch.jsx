@@ -141,6 +141,26 @@ const MultiSelectFetch = ({
           container: (provided) => ({
             ...provided,
             position: 'relative'
+          }),
+          input: (provided) => ({
+            ...provided,
+            margin: '0',
+            padding: '0',
+            background: 'transparent',
+            backgroundColor: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            height: 'auto',
+          }),
+          placeholder: (provided) => ({
+            ...provided,
+            color: '#9ca3af',
+            marginLeft: '2px',
+            marginRight: '2px',
+          }),
+          valueContainer: (provided) => ({
+            ...provided,
+            padding: '2px 8px',
           })
         }}
       />

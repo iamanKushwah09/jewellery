@@ -8,7 +8,7 @@ import {
   FiArchive,
   FiRadio,
 } from "react-icons/fi";
-import { FaUserShield , FaLuggageCart, FaShippingFast } from "react-icons/fa";
+import { FaUserShield, FaLuggageCart, FaShippingFast } from "react-icons/fa";
 import { BsCart4 } from "react-icons/bs";
 import { FaBuildingUser } from "react-icons/fa6";
 import { RiCustomerService2Fill } from "react-icons/ri";
@@ -25,72 +25,44 @@ const sidebar = [
     permission: "view_dashboard",
   },
   {
-    icon: FiShare2,
-    name: "Marketplace Sync",
-    permission: "view_dashboard",
+    path: "/catalogs",
+    icon: FiSlack,
+    name: "Catalog",
+    permission: "view_catalog",
+  },
+  {
+    path: "/inventory",
+    icon: FiArchive,
+    name: "Inventory",
+    permission: "view_stock",
+  },
+  {
+    icon: FaBuildingUser,
+    name: "Vendor",
+    permission: "view_customers",
     routes: [
       {
-        path: "/flipkart-sync",
-        name: "Flipkart",
-        permission: "view_dashboard",
+        path: "/vendors",
+        name: "Vendor",
+        permission: "view_customers",
       },
       {
-        path: "/amazon-sync",
-        name: "Amazon",
-        permission: "view_dashboard",
-      },
-      {
-        path: "/shopify-sync",
-        name: "Shopify",
-        permission: "view_dashboard",
-      },
-      {
-        path: "/woocommerce-sync",
-        name: "WooCommerce",
-        permission: "view_dashboard",
+        path: "/vendor-group",
+        name: "Vendor Group",
+        permission: "view_vendor_groups",
       },
     ],
   },
-  // {
-  //   path: "/catalogs",
-  //   icon: FiSlack,
-  //   name: "Catalog",
-  //   permission: "view_catalog",
-  // },
-  // {
-  //   icon: FiSlack,
-  //   name: "Catalog",
-  //   permission: "view_catalog",
-  //   routes: [
-  //     { path: "/products", name: "Products", permission: "view_products" },
-  //     // { path: "/categories", name: "Categories", permission: "view_categories" },
-  //     { path: "/attributes", name: "Attributes", permission: "view_attributes" },
-  //     { path: "/coupons", name: "Coupons", permission: "view_coupons" },
-  //   ],
-  // },
   {
-    path: "/vendor-group",
-    icon: FaBuildingUser,
-    name: "Vendor Group",
-    permission: "view_vendor_groups",
-  },
-  {
-    path: "/vendors",
-    icon: RiCustomerService2Fill,
-    name: "Vendor",
-    permission: "view_customers",
-  },
-  {
-    path: "/sales-man",
     icon: FaUserTie,
-    name: "Sales Man",
-    permission: "view_sales_man",
-  },
-  {
-    icon: FiRadio,
-    name: "SalesmanVisit",
+    name: "Salesman Visit",
     permission: "view_sales_man",
     routes: [
+      {
+        path: "/sales-man",
+        name: "Sales Man",
+        permission: "view_sales_man",
+      },
       {
         path: "/salesman-visits",
         name: "Visit List",
@@ -114,34 +86,21 @@ const sidebar = [
     ],
   },
   {
-    path: "/stock",
-    icon: MdShowChart,
-    name: "Stock",
-    permission: "view_stock",
-  },
-  {
-    path: "/inventory",
-    icon: FiArchive,
-    name: "Inventory",
-    permission: "view_stock",
-  },
-  {
-    path: "/loyalty-points",
-    icon: FiCompass, // Using FiCompass for now, could use a better icon
-    name: "Loyalty Mgmt",
-    permission: "view_dashboard", // Using a general permission so admins can see it
-  },
-  {
     icon: BsCart4,
     name: "Item",
     permission: "view_item_groups",
     routes: [
+      { path: "/item", name: "Item", permission: "view_items" },
       {
         path: "/item-group",
         name: "Item Group",
         permission: "view_item_groups",
       },
-      { path: "/item", name: "Item", permission: "view_items" },
+      {
+        path: "/stock",
+        name: "Stock",
+        permission: "view_stock",
+      },
       { path: "/brand", name: "Brand", permission: "view_brands" },
       { path: "/category", name: "Category", permission: "view_categories" },
       { path: "/unit", name: "Unit", permission: "view_units" },
@@ -175,6 +134,18 @@ const sidebar = [
     ],
   },
   {
+    path: "/dispatch",
+    icon: FaLuggageCart,
+    name: "Dispatch",
+    permission: "view_dispatchs",
+  },
+  {
+    path: "/loyalty-points",
+    icon: FiCompass,
+    name: "Loyalty Mgmt",
+    permission: "view_dashboard",
+  },
+  {
     icon: FiFileText,
     name: "Reports",
     permission: "view_report",
@@ -191,33 +162,32 @@ const sidebar = [
       },
     ],
   },
-
-  // {
-  //   icon: BiSolidOffer,
-  //   name: "Promotion",
-  //   permission: "view_item_groups",
-  //   routes: [
-  //     { path: "/banner", name: "Banner", permission: "view_banners" },
-  //     { path: "/offer", name: "Offer", permission: "view_offers" },
-  //     { path: "/promo-code", name: "Promo Code", permission: "view_promo_codes" },
-  //   ],
-  // },
-  // {
-  //   icon: FaShippingFast,
-  //   name: "Shipping Mgmt",
-  //   permission: "view_shippings",
-  //   routes: [
-  //     { path: "/shipping-settings", name: "Strategy Settings", permission: "view_shippings" },
-  //     { path: "/pharmacy-settings", name: "Pharmacy Location", permission: "view_shippings" },
-  //     { path: "/shipping-rules-list", name: "Shipping Rules", permission: "view_shippings" },
-  //   ],
-  // },
-
   {
-    path: "/dispatch",
-    icon: FaLuggageCart,
-    name: "Dispatch",
-    permission: "view_dispatchs",
+    icon: FiShare2,
+    name: "Marketplace Sync",
+    permission: "view_dashboard",
+    routes: [
+      {
+        path: "/flipkart-sync",
+        name: "Flipkart",
+        permission: "view_dashboard",
+      },
+      {
+        path: "/amazon-sync",
+        name: "Amazon",
+        permission: "view_dashboard",
+      },
+      {
+        path: "/shopify-sync",
+        name: "Shopify",
+        permission: "view_dashboard",
+      },
+      {
+        path: "/woocommerce-sync",
+        name: "WooCommerce",
+        permission: "view_dashboard",
+      },
+    ],
   },
   {
     icon: FaUserShield,
@@ -228,13 +198,6 @@ const sidebar = [
       { path: "/role", name: "Role", permission: "view_roles" },
     ],
   },
-
-  // {
-  //   path: "/sale-order",
-  //   icon: MdPointOfSale,
-  //   name: "Sale Order",
-  //   permission: "view_sale_order",
-  // },
   {
     icon: FiSettings,
     name: "Settings",
@@ -273,6 +236,13 @@ const userPermissions = [
   { path: "/coupons", permission: "view_coupons" },
   { path: "/customers", permission: "view_customers" },
   { path: "/orders", permission: "view_orders" },
+  { path: "/vendors", permission: "view_customers" },
+  { path: "/vendor-group", permission: "view_vendor_groups" },
+  { path: "/sales-man", permission: "view_sales_man" },
+  { path: "/salesman-visits", permission: "view_sales_man" },
+  { path: "/salesman-routes", permission: "view_sales_man" },
+  { path: "/salesman-tracking", permission: "view_sales_man" },
+  { path: "/salesman-collections", permission: "view_sales_man" },
   { path: "/our-staff", permission: "view_our_staff" }, // Fixed permission
   {
     path: "/settings?settingTab=common-settings",
@@ -299,21 +269,34 @@ const userPermissions = [
 ];
 
 const filterSidebar = (sidebarItems, userPermissions, adminInfo) => {
+  const isAdmin = Boolean(
+    !adminInfo?.role ||
+    (typeof adminInfo?.role === 'string' && (adminInfo.role.toLowerCase().includes('admin') || adminInfo.role.toLowerCase().includes('super') || adminInfo.role.toLowerCase().includes('manager'))) ||
+    (typeof adminInfo?.roleName === 'string' && (adminInfo.roleName.toLowerCase().includes('admin') || adminInfo.roleName.toLowerCase().includes('super') || adminInfo.roleName.toLowerCase().includes('manager')))
+  );
+
+  // If user is Admin, show full sidebar items unconditionally
+  if (isAdmin) {
+    return sidebarItems.map((item) => ({ ...item }));
+  }
+
   const isSalesman = Boolean(
     adminInfo?.salesman_id ||
-    (typeof adminInfo?.role === 'string' && adminInfo.role.toLowerCase().includes('salesman')) ||
-    (typeof adminInfo?.roleName === 'string' && adminInfo.roleName.toLowerCase().includes('salesman')) ||
-    (Array.isArray(userPermissions) && userPermissions.some(p => {
-      const pVal = typeof p === 'object' ? (p.permission || Object.values(p)[0]) : p;
-      return typeof pVal === 'string' && (pVal === 'view_sales_man' || pVal.toLowerCase().includes('salesman'));
-    }))
+    (typeof adminInfo?.role === 'string' && adminInfo.role.toLowerCase() === 'salesman') ||
+    (typeof adminInfo?.roleName === 'string' && adminInfo.roleName.toLowerCase() === 'salesman')
   );
 
   if (!userPermissions || !Array.isArray(userPermissions) || userPermissions.length === 0) {
     if (isSalesman) {
       return sidebarItems
-        .filter((item) => item.path !== "/sales-man")
-        .map((item) => ({ ...item }));
+        .map((item) => {
+          const copy = { ...item };
+          if (copy.routes && Array.isArray(copy.routes)) {
+            copy.routes = copy.routes.filter((r) => r.path !== "/sales-man");
+          }
+          return copy;
+        })
+        .filter((item) => item.path !== "/sales-man");
     }
     return sidebarItems;
   }
@@ -339,15 +322,16 @@ const filterSidebar = (sidebarItems, userPermissions, adminInfo) => {
 
       const hasPermission = item.permission
         ? userPermissions.some((perm) => {
-            if (!perm) return false;
-            const permStr = typeof perm === 'object' ? perm.permission : perm;
-            if (permStr === item.permission) return true;
-            if (item.permission === "view_orders" && (permStr === "view_sale_order" || permStr === "Orders")) return true;
-            if (item.permission === "view_sale_order" && (permStr === "view_orders" || permStr === "Orders")) return true;
-            if (item.permission === "view_stock" && (permStr === "view_stock" || permStr === "view_items" || permStr === "view_item_groups" || permStr === "view_dashboard" || permStr === "Stock")) return true;
-            if (item.permission === "view_sales_man" && (permStr === "view_sales_man" || permStr === "salesman")) return true;
-            return false;
-          })
+          if (!perm) return false;
+          const permStr = typeof perm === 'object' ? perm.permission : perm;
+          if (permStr === item.permission) return true;
+          if (item.permission === "view_orders" && (permStr === "view_sale_order" || permStr === "Orders")) return true;
+          if (item.permission === "view_sale_order" && (permStr === "view_orders" || permStr === "Orders")) return true;
+          if (item.permission === "view_stock" && (permStr === "view_stock" || permStr === "view_items" || permStr === "view_item_groups" || permStr === "view_dashboard" || permStr === "Stock")) return true;
+          if (item.permission === "view_sales_man" && (permStr === "view_sales_man" || permStr === "salesman")) return true;
+          if (item.permission === "view_customers" && (permStr === "view_customers" || permStr === "view_vendor_groups" || permStr === "view_vendors")) return true;
+          return false;
+        })
         : true;
 
       if (item.routes) {

@@ -431,11 +431,9 @@ const LoyaltyPoints = () => {
                   <div className="md:col-span-4">
                     <Label>
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Search Party / Customer</span>
-                      <div className="relative mt-1">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 z-10">
-                          <FiSearch size={16} />
-                        </span>
-                        <Input
+                      <div className="flex items-center w-full mt-1 h-10 rounded-md border border-[#e9edf4] dark:border-[#263168] bg-white dark:bg-[#1a2352] px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 transition duration-150">
+                        <FiSearch size={16} className="text-gray-400 flex-shrink-0 mr-2.5 pointer-events-none" />
+                        <input
                           type="text"
                           value={search}
                           onChange={(e) => {
@@ -443,8 +441,8 @@ const LoyaltyPoints = () => {
                             setPage(1);
                           }}
                           placeholder="Search name, code, phone, email..."
-                          className="has-icon-left page-search-input !pl-10 !pr-8 w-full text-sm h-10"
-                          style={{ paddingLeft: "2.6rem" }}
+                          className="w-full h-full !bg-transparent !border-0 !p-0 text-xs sm:text-sm text-[#2c3138] dark:text-white placeholder:text-[#8c9097] focus:outline-none focus:ring-0 !shadow-none"
+                          style={{ background: "transparent", border: "none", outline: "none", padding: 0, height: "100%" }}
                         />
                         {search && (
                           <button
@@ -453,7 +451,7 @@ const LoyaltyPoints = () => {
                               setSearch("");
                               setPage(1);
                             }}
-                            className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-1.5"
                           >
                             <FiX size={15} />
                           </button>
